@@ -95,7 +95,7 @@ internal sealed class HomingOrbTriScan
             attackBox: HomingOrbHurtBox,
             hurtBox: HomingOrbAttackBox
         );
-        world.SetAnimation(this, 0);
+        world.SetAnimation(this, 0); // Animation 0: Wait/idle.
         world.UpdateOnScreen(this, 0x20, 0x20); // 32-pixel screen margins.
     }
 
@@ -131,7 +131,7 @@ internal sealed class HomingOrbTriScan
                 world.RunEnemyHitReaction(this);
                 break;
             case HomingOrbBehavior.StartIdle:
-                world.SetAnimation(this, 0);
+                world.SetAnimation(this, 0); // Animation 0: Wait/idle.
                 break;
             case HomingOrbBehavior.Wait:
                 Wait(world);
@@ -158,7 +158,7 @@ internal sealed class HomingOrbTriScan
             XSpeed = 0;
             YSpeed = 0;
             Gravity = -((previousYSpeed * 0x2D) >> 8); // Same 45/256 ~= 0.176 scale for vertical speed.
-            world.SetAnimation(this, 1);
+            world.SetAnimation(this, 1); // Animation 1: Lunge.
             Behavior = HomingOrbBehavior.Lunge;
             BackgroundRelative++;
             CurrentMisc = null;
@@ -185,14 +185,14 @@ internal sealed class HomingOrbTriScan
                 Gravity = 0;
                 XSpeed = 0;
                 YSpeed = 0;
-                world.SetAnimation(this, 0);
+                world.SetAnimation(this, 0); // Animation 0: return to Wait/idle.
                 Behavior = HomingOrbBehavior.Wait;
             }
             else
             {
                 XSpeed = 0;
                 YSpeed = 2 * 0x10000; // FIXED(2): 131072 = 2.0 pixels per update, upward.
-                world.SetAnimation(this, 3);
+                world.SetAnimation(this, 3); // Animation 3: Leave.
                 Behavior = HomingOrbBehavior.Leave;
                 CurrentMisc = null;
             }
@@ -217,8 +217,12 @@ internal sealed class HomingOrbTriScan
         world.MoveWithGravity(this); // Shared helper clamps downward Y speed to -6.5 pixels per update.
     }
 
+    // Animation indices selected by this behavior:
+    // 0 = Wait/idle; 1 = Lunge; 3 = Leave.
+    // Indices 2 and 4-6 are defined in the source but not selected by this object's behavior.
     private static readonly AnimationStep[][] Animations =
     {
+        // Animation 0: Wait/idle (also selected by StartIdle).
         new[]
         {
             new AnimationStep(3, 0, 1, 0x00),
@@ -228,6 +232,7 @@ internal sealed class HomingOrbTriScan
             new AnimationStep(2, 0, 1, 0x04),
             new AnimationStep(1, 0, -5, 0x04),
         },
+        // Animation 1: Lunge.
         new[]
         {
             new AnimationStep(3, 0, 1, 0x00),
@@ -247,6 +252,7 @@ internal sealed class HomingOrbTriScan
             new AnimationStep(1, 14, 1, 0x04),
             new AnimationStep(1, 14, -15, 0x04),
         },
+        // Animation 2: defined by the source, not selected by this behavior.
         new[]
         {
             new AnimationStep(2, 0, 1, 0x05),
@@ -266,6 +272,7 @@ internal sealed class HomingOrbTriScan
             new AnimationStep(1, 0, 1, 0x13),
             new AnimationStep(1, 0, -15, 0x13),
         },
+        // Animation 3: Leave.
         new[]
         {
             new AnimationStep(2, 0, 1, 0x00),
@@ -285,6 +292,7 @@ internal sealed class HomingOrbTriScan
             new AnimationStep(1, 14, 1, 0x04),
             new AnimationStep(1, 14, -15, 0x04),
         },
+        // Animations 4-6: defined by the source, not selected by this behavior.
         new[] { new AnimationStep(1, 0, 0, 0x21) },
         new[] { new AnimationStep(1, 0, 0, 0x22) },
         new[] { new AnimationStep(1, 0, 0, 0x23) },
