@@ -23,6 +23,13 @@ See `README.md` for prerequisites and complete build instructions.
 - When a C# reference conflicts with its C source, the C source wins. Do not use a reference translation as justification for changing game behavior.
 - Preserve uncertainty: names such as `unk*`, address-based function names, and apparent oddities often reflect incomplete reverse engineering. Do not assign meanings or “clean up” behavior without evidence from the code or data.
 
+### Object structures and RAM interpretation
+
+- `include/obj.h` describes object data layouts and field types; its macros (such as `BASE_OBJ_FIELDS`, `MOVING_OBJ_FIELDS`, and `ANIMATED_OBJ_FIELDS`) expand fields into each structure. This is C data-layout reuse, not runtime class inheritance, allocation, or behavior.
+- Use the concrete object structure and target platform to interpret field offsets. Shared-looking fields do not guarantee that every object uses the same structure or movement fields; for example, `MainObj` declares its own movement-related fields.
+- `obj.h` provides offsets relative to an object, not an instance's absolute RAM address or a bus/physical address. To locate instances, inspect their pools, globals, symbols, and allocation/creation code. To map an address seen in an emulator, also establish the target platform and that emulator's address representation.
+- When explaining RAM observations, distinguish field type/layout, object-relative offset, absolute address, and bus/physical address. Do not infer the latter two from `obj.h` alone.
+
 ### Expectations for C# reference translations
 
 - Treat a requested C# file as a conceptual/pseudo-C# reference, not a production port. Follow neighboring reference-file conventions and clearly state that it is not included in the game's C build.
