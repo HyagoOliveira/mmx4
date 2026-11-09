@@ -23,6 +23,15 @@ See `README.md` for prerequisites and complete build instructions.
 - When a C# reference conflicts with its C source, the C source wins. Do not use a reference translation as justification for changing game behavior.
 - Preserve uncertainty: names such as `unk*`, address-based function names, and apparent oddities often reflect incomplete reverse engineering. Do not assign meanings or “clean up” behavior without evidence from the code or data.
 
+### Expectations for C# reference translations
+
+- Treat a requested C# file as a conceptual/pseudo-C# reference, not a production port. Follow neighboring reference-file conventions and clearly state that it is not included in the game's C build.
+- Read the corresponding C implementation first and preserve its behavior, state transitions, update order, timer decrement counts, and edge cases. Keep unknown fields or meanings explicitly unknown instead of guessing.
+- At the top of behavior-heavy classes, summarize the behavior states, the conditions and timing for transitions, and terminal outcomes. Keep lifecycle states distinct from behavior states when both exist.
+- Make gameplay numbers readable: retain source values where useful, but add decimal equivalents beside hexadecimal timer, speed, acceleration, gravity, distance, and damage constants. For fixed-point values, explain the scale and units (for example, `65536 = 1 pixel/update`); clarify direction/sign and whether times count frames or multiple timer decrements.
+- Associate animation indices with the behavior states that select them. Comment both the selection points and animation-table entries; call out defined animations that the source behavior does not select rather than implying they are used.
+- Represent engine services through clear reference abstractions when needed, without claiming they are implemented by the C# model. Validate the reference's C# syntax independently when a suitable .NET SDK is available; C# reference files are not covered by the CMake build.
+
 ## Stage object creation
 
 - Stage placements are stored as `StageObjectRecord` arrays in `src/main/stage_object_records*.c`. Each record contains `flags`, `id`, `subtype`, `object_type`, and the object's `x` and `y` coordinates.
