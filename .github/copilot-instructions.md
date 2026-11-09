@@ -23,6 +23,14 @@ See `README.md` for prerequisites and complete build instructions.
 - When a C# reference conflicts with its C source, the C source wins. Do not use a reference translation as justification for changing game behavior.
 - Preserve uncertainty: names such as `unk*`, address-based function names, and apparent oddities often reflect incomplete reverse engineering. Do not assign meanings or “clean up” behavior without evidence from the code or data.
 
+## Stage object creation
+
+- Stage placements are stored as `StageObjectRecord` arrays in `src/main/stage_object_records*.c`. Each record contains `flags`, `id`, `subtype`, `object_type`, and the object's `x` and `y` coordinates.
+- `src/main/stage_object_record_tables.c` indexes the arrays by stage and substage: `D_800F43C8` points to the full placement list, while `D_800F4430` points to the list position used when loading the current checkpoint. A record with `object_type == 0xFF` ends a list.
+- At stage setup, `func_80028F58` in `src/main/195B4.c` creates objects at or before the current checkpoint by walking from `D_800F4430`. As the camera moves, `func_80028FEC` creates eligible records from `D_800F43C8` when their coordinates enter the camera bounds, then marks each spawned record to prevent duplicate creation.
+- Both paths use `MakeObject(object_type)` to select an object pool, then copy the record's `id`, `subtype`, and coordinates to the allocated object.
+- For main objects (`object_type == 0`), `id` selects the per-frame update function in `main_object_update_funcs` in `src/main/object_update.c`. For example, Cyber Space placements use ID `0x2A` (42), which dispatches to `homing_orb_update`. The placement record determines where and when an enemy is created; its ID determines which behavior updates it.
+
 ## Change and validation guidance
 
 - Keep changes focused. Matching-sensitive C changes can alter generated executable bytes even when gameplay appears unchanged; avoid unrelated refactors and preserve existing compiler-oriented patterns.
