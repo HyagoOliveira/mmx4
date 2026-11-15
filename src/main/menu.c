@@ -30,6 +30,15 @@ void func_8001C210(void);
 extern u8 D_800F1FC0[32];
 extern struct MenuTextureData D_800F1FE0;
 
+#ifdef MMX4_WIN32
+extern char memcard_any_patterns[2][4];
+#define MEMCARD_ANY_PATTERN(i) memcard_any_patterns[i]
+#define MEMCARD_PRODUCT_CODE(i) D_800F1FE0.product_codes[i]
+#else
+#define MEMCARD_ANY_PATTERN(i) D_80010058
+#define MEMCARD_PRODUCT_CODE(i) D_8001005C
+#endif
+
 // D_800F1F64
 extern void (*D_800F1F64[])(struct EngineObj* arg0);
 void func_800194C8(struct EngineObj* arg0);
@@ -153,15 +162,26 @@ void func_800194C8(struct EngineObj* engine)
     func_8001B644(D_800F1DFC);
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001961C);
-#else
+static inline u16* controller_pressed(struct ControllerInput* c)
+{
+    return &c->pressed;
+}
+
+static inline u8* transition_selection(struct MainBssState* state)
+{
+    return &state->transition.selection;
+}
+
+static inline u8* memcard_menu_port(struct MemcardMenuState* menu)
+{
+    return &menu->port;
+}
+
 void func_8001961C(struct EngineObj* engine)
 {
     u16* controller;
     u8* cursor;
     u8* character;
-    u8 current;
 
     if (controller_input.pressed & PADLup) {
         if (main_bss_state.transition.selection == 0) {
@@ -173,10 +193,10 @@ void func_8001961C(struct EngineObj* engine)
                 main_bss_state.transition.selection = 0;
             }
         } else if (memcard_menu.card_status[1] != 0) {
-            if (memcard_menu.card_status[0] == 0) {
-                main_bss_state.transition.selection = 0;
-            } else {
+            if (memcard_menu.card_status[0] != 0) {
                 main_bss_state.transition.selection = 2;
+            } else {
+                main_bss_state.transition.selection = 0;
             }
         } else {
             main_bss_state.transition.selection = 1;
@@ -205,19 +225,18 @@ void func_8001961C(struct EngineObj* engine)
         }
     }
 
-    controller = &controller_input.pressed;
+    controller = controller_pressed(&controller_input);
     if (*controller & PAD_SELECTION_BUTTONS) {
         func_8001540C(0, 0x22, NULL);
         if (*controller & PAD_SELECTION_ALT) {
             main_bss_state.transition.selection = 2;
         }
-        cursor = &main_bss_state.transition.selection;
-        current = *cursor;
-        switch (current) {
+        cursor = transition_selection(&main_bss_state);
+        switch (*cursor) {
         case 0:
         case 1:
-            character = &memcard_menu.port;
-            *character = current;
+            character = memcard_menu_port(&memcard_menu);
+            *character = *cursor;
             engine->unk1++;
             reset_objects();
             func_8001B718(0x40, (*character + 0xB) & 0xFF, 0xFF);
@@ -240,11 +259,7 @@ void func_8001961C(struct EngineObj* engine)
         }
     }
 }
-#endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001989C);
-#else
 void func_8001989C(struct EngineObj* arg0)
 {
     u8* timer;
@@ -253,26 +268,21 @@ void func_8001989C(struct EngineObj* arg0)
     u8 remaining;
     u8 result;
 
-    timer = &memcard_menu.timer;
-    remaining = *timer - 1;
-    *timer = remaining;
-    if (remaining != 0) {
+    if (--memcard_menu.timer != 0) {
         return;
     }
 
     status = func_8001CDE4(memcard_menu.port);
     if (status != 0) {
         if (status == 1) {
-            script = D_800F1DFC;
             arg0->unk1 = 0xB;
-            result = 1;
+            memcard_menu.result = 1;
+            func_8001B644(D_800F1DFC);
         } else {
-            script = D_800F1E24;
             arg0->unk1 = 0xB;
-            result = 2;
+            memcard_menu.result = 2;
+            func_8001B644(D_800F1E24);
         }
-        memcard_menu.result = result;
-        func_8001B644(script);
         main_bss_state.transition.selection = 0;
         return;
     }
@@ -281,27 +291,26 @@ void func_8001989C(struct EngineObj* arg0)
     main_bss_state.transition.selection = 0;
     switch ((u32)status) {
     case 1:
-        script = D_800F1DFC;
         arg0->unk1 = 0xB;
-        result = 1;
-        goto set_result;
+        memcard_menu.result = 1;
+        func_8001B644(D_800F1DFC);
+        return;
     case 2:
         arg0->unk1 = (u8)arg0->unk1 + 1;
         return;
     case 3:
-        script = D_800F1E24;
         arg0->unk1 = 0xB;
-        result = 2;
-    set_result:
-        memcard_menu.result = result;
-        func_8001B644(script);
+        memcard_menu.result = 2;
+        func_8001B644(D_800F1E24);
         return;
     case 0:
         arg0->unk1 = (u8)arg0->unk1 + 2;
-        func_8001CC5C(memcard_menu.port, &memcard_files, D_80010058);
+        func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_ANY_PATTERN(0));
         if (memcard_files.total_size == 0x1E000) {
-            func_8001CC5C(memcard_menu.port, &memcard_files, D_8001005C);
-            if (memcard_files.count == 0) {
+            func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_PRODUCT_CODE(0));
+            if (memcard_files.count != 0) {
+                func_8001CB24(memcard_menu.buffer, memcard_menu.port, 0x2000);
+            } else {
                 arg0->unk1 = 0xB;
                 memcard_menu.result = 3;
                 main_bss_state.transition.selection = 0;
@@ -309,9 +318,8 @@ void func_8001989C(struct EngineObj* arg0)
                 func_8001B644(D_800F1E34);
                 return;
             }
-            func_8001CB24(memcard_menu.buffer, memcard_menu.port, 0x2000);
         } else {
-            func_8001CC5C(memcard_menu.port, &memcard_files, D_8001005C);
+            func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_PRODUCT_CODE(1));
             if (memcard_files.count != 0) {
                 func_8001CB24(memcard_menu.buffer, memcard_menu.port, 0x2000);
             } else {
@@ -328,7 +336,6 @@ void func_8001989C(struct EngineObj* arg0)
         return;
     }
 }
-#endif
 
 void func_80019B64(struct EngineObj* arg0)
 {
@@ -369,19 +376,14 @@ void func_80019BF4(struct EngineObj* arg0)
     }
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_80019D04);
-#else
 void func_80019D04(struct EngineObj* arg0)
 {
-    u8* timer;
     u8* script;
     u8 status;
     u8 empty;
 
-    timer = &memcard_menu.timer;
-    if (*timer != 0) {
-        (*timer)--;
+    if (memcard_menu.timer != 0) {
+        memcard_menu.timer--;
         return;
     }
 
@@ -430,7 +432,6 @@ void func_80019D04(struct EngineObj* arg0)
         func_8001B644(D_800F1EE0);
     }
 }
-#endif
 
 void func_80019EF0(struct EngineObj* engine)
 {
@@ -446,8 +447,8 @@ void func_80019EF0(struct EngineObj* engine)
             }
             main_bss_state.transition.selection = 3;
         } else {
-            memcard_menu.slot--;
             main_bss_state.transition.selection = current - 1;
+            memcard_menu.slot--;
         }
         if (main_bss_state.transition.selection != 3) {
             func_8001B7C0(0xD0, 0x88, 0);
@@ -569,37 +570,25 @@ void func_8001A308(struct EngineObj* arg0)
     }
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001A498);
-#else
 void func_8001A498(struct EngineObj* arg0)
 {
-    u8* timer;
-    u8* script;
     s32 status;
-    u8 remaining;
-    u8 result;
 
-    timer = &memcard_menu.timer;
-    remaining = *timer - 1;
-    *timer = remaining;
-    if (remaining != 0) {
+    if (--memcard_menu.timer != 0) {
         return;
     }
 
     status = func_8001CDE4(memcard_menu.port);
     if (status != 0) {
         if (status == 1) {
-            script = D_800F1DFC;
             arg0->unk1 = 0xB;
-            result = 1;
+            memcard_menu.result = 1;
+            func_8001B644(D_800F1DFC);
         } else {
-            script = D_800F1E24;
             arg0->unk1 = 0xB;
-            result = 2;
+            memcard_menu.result = 2;
+            func_8001B644(D_800F1E24);
         }
-        memcard_menu.result = result;
-        func_8001B644(script);
         main_bss_state.transition.selection = 0;
         return;
     }
@@ -624,9 +613,9 @@ void func_8001A498(struct EngineObj* arg0)
         func_8001B644(D_800F1E24);
         return;
     case 0:
-        func_8001CC5C(memcard_menu.port, &memcard_files, D_80010058);
+        func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_ANY_PATTERN(1));
         if (memcard_files.total_size == 0x1E000) {
-            func_8001CC5C(memcard_menu.port, &memcard_files, D_8001005C);
+            func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_PRODUCT_CODE(2));
             if (memcard_files.count == 0) {
                 arg0->unk1 = 0xB;
                 memcard_menu.result = 3;
@@ -644,17 +633,18 @@ void func_8001A498(struct EngineObj* arg0)
     func_8001B644(D_800F1E78);
     func_8001B7C0(0xA0, 0x78, 1);
 }
-#endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001A710);
-#else
+static inline u8* memcard_menu_timer(struct MemcardMenuState* menu)
+{
+    return &menu->timer;
+}
+
 void func_8001A710(struct EngineObj* arg0)
 {
     u8* timer;
     u8 remaining;
 
-    timer = &memcard_menu.timer;
+    timer = memcard_menu_timer(&memcard_menu);
     remaining = *timer - 1;
     *timer = remaining;
     if (remaining != 0) {
@@ -671,7 +661,6 @@ void func_8001A710(struct EngineObj* arg0)
         *timer = 0x8C;
     }
 }
-#endif
 
 void func_8001A7D4(struct EngineObj* arg0)
 {
@@ -761,22 +750,17 @@ void func_8001A9EC(struct EngineObj* arg0)
     init_objects();
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001AA98);
-#else
 void func_8001AA98(struct EngineObj* arg0)
 {
     struct EngineObj* engine = arg0;
-    u8* buffer;
     u8 i;
 
     reset_objects();
-    buffer = D_8015D9C8;
-    memcard_menu.buffer = buffer;
-    memcard_menu.slot = (struct MemcardSaveSlot*)(buffer + 0x200);
-    func_80012E18(buffer, buffer + 0x1FFC);
+    memcard_menu.buffer = D_8015D9C8;
+    memcard_menu.slot = (struct MemcardSaveSlot*)(D_8015D9C8 + 0x200);
+    func_80012E18(D_8015D9C8, D_8015D9C8 + 0x1FFC);
     for (i = 0; i < 2; ++i) {
-        *(&memcard_menu.card_status[0] + i) = func_8001CDE4(i);
+        memcard_menu.card_status[i] = func_8001CDE4(i);
     }
     main_bss_state.transition.selection = 0;
     engine->unk1 = 1;
@@ -798,11 +782,7 @@ void func_8001AA98(struct EngineObj* arg0)
         func_8001B644(D_800F1F00);
     }
 }
-#endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001ABDC);
-#else
 void func_8001ABDC(struct EngineObj* engine)
 {
     u16* controller;
@@ -819,10 +799,10 @@ void func_8001ABDC(struct EngineObj* engine)
                 main_bss_state.transition.selection = 0;
             }
         } else if (memcard_menu.card_status[1] != 0) {
-            if (memcard_menu.card_status[0] == 0) {
-                main_bss_state.transition.selection = 0;
-            } else {
+            if (memcard_menu.card_status[0] != 0) {
                 main_bss_state.transition.selection = 2;
+            } else {
+                main_bss_state.transition.selection = 0;
             }
         } else {
             main_bss_state.transition.selection = 1;
@@ -851,18 +831,18 @@ void func_8001ABDC(struct EngineObj* engine)
         }
     }
 
-    controller = &controller_input.pressed;
+    controller = controller_pressed(&controller_input);
     if (*controller & PAD_SELECTION_BUTTONS) {
         func_8001540C(0, 0x22, NULL);
         if (*controller & PAD_SELECTION_ALT) {
             main_bss_state.transition.selection = 2;
         }
-        cursor = &main_bss_state.transition.selection;
+        cursor = transition_selection(&main_bss_state);
         switch (*cursor) {
         case 0:
         case 1:
             engine->unk1++;
-            character = &memcard_menu.port;
+            character = memcard_menu_port(&memcard_menu);
             *character = *cursor;
             reset_objects();
             *cursor = 0;
@@ -888,11 +868,7 @@ void func_8001ABDC(struct EngineObj* engine)
         }
     }
 }
-#endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001AE8C);
-#else
 void func_8001AE8C(struct EngineObj* arg0)
 {
     u8* timer;
@@ -901,7 +877,7 @@ void func_8001AE8C(struct EngineObj* arg0)
     u8 remaining;
     u8 empty;
 
-    timer = &memcard_menu.timer;
+    timer = memcard_menu_timer(&memcard_menu);
     remaining = *timer - 1;
     *timer = remaining;
     if (remaining != 0) {
@@ -925,7 +901,8 @@ void func_8001AE8C(struct EngineObj* arg0)
         return;
     }
 
-    switch ((u32)func_8001CD70(memcard_menu.port)) {
+    status = func_8001CD70(memcard_menu.port);
+    switch ((u32)status) {
     case 1:
         reset_objects();
         script = D_800F1F00;
@@ -952,7 +929,7 @@ void func_8001AE8C(struct EngineObj* arg0)
         break;
     case 0:
         arg0->unk1++;
-        func_8001CC5C(memcard_menu.port, &memcard_files, D_8001005C);
+        func_8001CC5C(memcard_menu.port, &memcard_files, MEMCARD_PRODUCT_CODE(3));
         if (memcard_files.count != 0) {
             if (func_8001CB24(memcard_menu.buffer, memcard_menu.port, 0x2000) != 0) {
                 reset_objects();
@@ -977,37 +954,39 @@ void func_8001AE8C(struct EngineObj* arg0)
     }
     main_bss_state.transition.selection = 0;
 }
-#endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001B10C);
-#else
+static inline struct MemcardSaveSlot** memcard_menu_slot(struct MemcardMenuState* menu)
+{
+    return &menu->slot;
+}
+
+static inline u8* memcard_menu_selection(struct MemcardMenuState* menu)
+{
+    return &menu->selection;
+}
+
 void func_8001B10C(struct EngineObj* arg0)
 {
     u8 i;
     u8 j;
-    u8 selected;
     u8* character;
 
     if (controller_input.pressed & PADLup) {
-        u8* cursor = &main_bss_state.transition.selection;
+        u8* cursor = transition_selection(&main_bss_state);
         u8 current = *cursor;
 
         if (current == 0) {
-            struct MemcardSaveSlot** slot;
-
             i = 0;
-            slot = &memcard_menu.slot;
             do {
-                (*slot)++;
+                memcard_menu.slot++;
                 i++;
             } while (i < 3);
             main_bss_state.transition.selection = 3;
         } else {
-            struct MemcardSaveSlot** slot = &memcard_menu.slot;
+            struct MemcardSaveSlot** slot = memcard_menu_slot(&memcard_menu);
 
-            (*slot)--;
             *cursor = current - 1;
+            (*slot)--;
         }
         if (main_bss_state.transition.selection != 3) {
             func_8001B7C0(0xD0, 0x88, 0);
@@ -1015,24 +994,21 @@ void func_8001B10C(struct EngineObj* arg0)
     }
 
     if (controller_input.pressed & PADLdown) {
-        u8* cursor = &main_bss_state.transition.selection;
+        u8* cursor = transition_selection(&main_bss_state);
         u8 current = *cursor;
 
         if (current == 3) {
-            struct MemcardSaveSlot** slot;
-
             j = 0;
-            slot = &memcard_menu.slot;
             do {
-                (*slot)--;
+                memcard_menu.slot--;
                 j++;
             } while (j < 3);
             main_bss_state.transition.selection = 0;
         } else {
-            struct MemcardSaveSlot** slot = &memcard_menu.slot;
+            struct MemcardSaveSlot** slot = memcard_menu_slot(&memcard_menu);
 
-            (*slot)++;
             *cursor = current + 1;
+            (*slot)++;
         }
         if (main_bss_state.transition.selection != 3) {
             func_8001B7C0(0xD0, 0x88, 0);
@@ -1052,10 +1028,13 @@ void func_8001B10C(struct EngineObj* arg0)
         }
 
         func_8001540C(0, 0x22, 0);
-        selected = main_bss_state.transition.selection;
-        character = &memcard_menu.selection;
-        *character = selected;
+        character = memcard_menu_selection(&memcard_menu);
+        *character = main_bss_state.transition.selection;
+#ifdef VERSION_EU
+        main_bss_state.transition.selection = 1;
+#else
         main_bss_state.transition.selection = 0;
+#endif
         reset_objects();
         arg0->unk1 = (u8)arg0->unk1 + 1;
         func_8001B718(0x30, (*character + memcard_menu.port * 3 + 0x1A) & 0xFF, 0xFF);
@@ -1064,7 +1043,6 @@ void func_8001B10C(struct EngineObj* arg0)
         func_8001C008(0, 1);
     }
 }
-#endif
 void func_8001B388(struct EngineObj* arg0)
 {
     if (controller_input.pressed & (PADLup | PADLdown)) {
@@ -1187,9 +1165,6 @@ void func_8001B718(s16 arg0, u8 arg1, u8 arg2)
     }
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001B7C0);
-#else
 void func_8001B7C0(s16 x, s16 y, u8 arg2)
 {
     struct MiscObj* icon;
@@ -1200,8 +1175,8 @@ void func_8001B7C0(s16 x, s16 y, u8 arg2)
     if (icon != NULL) {
         icon->active = 0x41;
         icon->id = 0x2A;
-        icon->animation_step.fields.frame_index = 0x2A;
         icon->unk2 = 1;
+        icon->animation_step.fields.frame_index = 0x2A;
         if (arg2 == 0) {
             icon->ext.misc_42.unk54 = main_bss_state.transition.selection;
             icon->ext.misc_42.unk55 = 3;
@@ -1217,9 +1192,152 @@ void func_8001B7C0(s16 x, s16 y, u8 arg2)
     func_8001BE10(left, y, arg2);
     func_8001B8B0(x, y, arg2);
 }
+
+#if !defined(MMX4_PC)
+#ifdef VERSION_EU
+extern u8 D_800ED338_eu[24];
+extern u16 D_800ED350_eu[8];
+extern u16 D_800ED360_eu[4];
+#define MENU_BUTTON_LOOKUP D_800ED338_eu
+#define MENU_LOW_BUTTON_MASKS D_800ED350_eu
+#define MENU_HIGH_BUTTON_MASKS D_800ED360_eu
+#else
+#define MENU_BUTTON_LOOKUP D_800F1D90.button_lookup
+#define MENU_LOW_BUTTON_MASKS D_800F1D90.low_button_masks
+#define MENU_HIGH_BUTTON_MASKS D_800F1D90.high_button_masks
 #endif
 
-INCLUDE_ASM("main/nonmatchings/menu", func_8001B8B0);
+void func_8001B8B0(s16 x, s16 y, u8 arg2)
+{
+    struct MiscObj* obj;
+    u8 i;
+    u8 count;
+    u8 frame;
+    u8 value;
+    u8 mode;
+
+    count = 0;
+    for (i = 0; i < 8; i++) {
+        if (memcard_menu.slot->unk4 & MENU_BUTTON_LOOKUP[i * 3]) {
+            obj = find_free_misc_obj();
+            if (obj != NULL) {
+                obj->active = 0x41;
+                obj->id = 0x2A;
+                obj->unk2 = 3;
+                obj->animation_step.fields.frame_index = MENU_BUTTON_LOOKUP[i * 3 + 1] + ((memcard_menu.slot->character & 1) << 3);
+                if (memcard_menu.slot->character == 0) {
+                    obj->animation_step.fields.frame_index = MENU_BUTTON_LOOKUP[i * 3 + 1];
+                    frame = MENU_BUTTON_LOOKUP[i * 3 + 1];
+                    obj->unk42 = ((frame + 12) % 16) | (((frame + 12) / 16 + 0x1E0) << 6);
+                } else {
+                    obj->animation_step.fields.frame_index = MENU_BUTTON_LOOKUP[i * 3 + 2] + 8;
+                    switch (MENU_BUTTON_LOOKUP[i * 3 + 2]) {
+                    case 0:
+                    case 1:
+                        obj->unk42 = 0x7844;
+                        break;
+                    case 2:
+                    case 7:
+                        obj->unk42 = 0x7845;
+                        break;
+                    case 3:
+                    case 5:
+                        obj->unk42 = 0x7846;
+                        break;
+                    case 4:
+                    case 6:
+                        obj->unk42 = 0x7847;
+                        break;
+                    }
+                }
+                if (arg2 == 0) {
+                    value = main_bss_state.transition.selection;
+                    mode = 3;
+                    obj->ext.misc_42.unk55 = mode;
+                    obj->ext.misc_42.unk54 = value;
+                } else {
+                    value = engine_obj.unk1;
+                    mode = 1;
+                    obj->ext.misc_42.unk55 = mode;
+                    obj->ext.misc_42.unk54 = value;
+                }
+                obj->x_pos.i.hi = x + (s16)(count * 16 - 0x28);
+                count++;
+                obj->y_pos.i.hi = y - 0x10;
+            }
+        }
+    }
+
+    count = 0;
+    for (i = 0; i < 8; i++) {
+        if (memcard_menu.slot->unk6 & MENU_LOW_BUTTON_MASKS[i]) {
+            obj = find_free_misc_obj();
+            if (obj != NULL) {
+                obj->active = 0x41;
+                obj->id = 0x2A;
+                obj->animation_step.fields.frame_index = 0x13;
+                obj->unk42 = 0x784A;
+                obj->x_pos.i.hi = x + (s16)(count * 16 - 0x28);
+                obj->unk2 = 3;
+                obj->y_pos.i.hi = y;
+                if (arg2 == 0) {
+                    u8 value = main_bss_state.transition.selection;
+
+                    obj->ext.misc_42.unk55 = 3;
+                    obj->ext.misc_42.unk54 = value;
+                } else {
+                    u8 value = engine_obj.unk1;
+
+                    obj->ext.misc_42.unk55 = 1;
+                    obj->ext.misc_42.unk54 = value;
+                }
+                count++;
+            }
+        }
+    }
+
+    count = 0;
+    for (i = 0; i < 4; i++) {
+        if (memcard_menu.slot->unk6 & MENU_HIGH_BUTTON_MASKS[i]) {
+            obj = find_free_misc_obj();
+            if (obj != NULL) {
+                obj->active = 0x41;
+                obj->id = 0x2A;
+                obj->unk2 = 3;
+                switch (i) {
+                case 0:
+                case 1:
+                    obj->animation_step.fields.frame_index = 0x11;
+                    obj->unk42 = 0x7848;
+                    break;
+                case 2:
+                    obj->animation_step.fields.frame_index = 0x10;
+                    obj->unk42 = 0x7848;
+                    break;
+                case 3:
+                    obj->animation_step.fields.frame_index = 0x12;
+                    obj->unk42 = 0x7849;
+                    break;
+                }
+                obj->x_pos.i.hi = x + (s16)(count * 32 - 0x20);
+                obj->y_pos.i.hi = y + 0x10;
+                if (arg2 == 0) {
+                    value = main_bss_state.transition.selection;
+                    mode = 3;
+                    obj->ext.misc_42.unk55 = mode;
+                    obj->ext.misc_42.unk54 = value;
+                } else {
+                    value = engine_obj.unk1;
+                    mode = 1;
+                    obj->ext.misc_42.unk55 = mode;
+                    obj->ext.misc_42.unk54 = value;
+                }
+                count++;
+            }
+        }
+    }
+}
+#endif
 
 struct MemcardSignature {
     u8 bytes[3];
@@ -1231,9 +1349,6 @@ extern const struct MemcardSignature D_80010090;
 INCLUDE_RODATA("main/nonmatchings/menu", D_80010090);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001BCAC);
-#else
 void func_8001BCAC(s16 x, s16 y, u8 arg2)
 {
     struct MiscObj* obj;
@@ -1280,14 +1395,77 @@ void func_8001BCAC(s16 x, s16 y, u8 arg2)
         obj->ext.misc_42.unk54 = value;
     }
 }
-#endif
 
-INCLUDE_ASM("main/nonmatchings/menu", func_8001BE10);
+#if !defined(MMX4_PC)
+void func_8001BE10(s16 x, s16 y, u8 arg2)
+{
+    struct MiscObj* obj;
+    u8 i;
+
+    if (memcard_menu.slot->character != 0) {
+        return;
+    }
+    if (memcard_menu.slot->unk29 == 0) {
+        for (i = 0; i < 4; i++) {
+            if (memcard_menu.slot->unk3 & D_800F1FBC[i]) {
+                obj = find_free_misc_obj();
+                if (obj != NULL) {
+                    obj->id = 0x2A;
+                    obj->active = 1;
+                    obj->unk2 = 2;
+                    obj->unk16 = 3;
+                    obj->animation_step.fields.frame_index = i + 0x2D;
+                    if (D_800F1FBC[i] == 4 && memcard_menu.slot->unk2 == 2) {
+                        obj->unk42 = 0x780A;
+                    } else {
+                        obj->unk42 = 0x7808;
+                    }
+                    obj->x_pos.i.hi = x;
+                    obj->y_pos.i.hi = y;
+                    if (arg2 == 0) {
+                        u8 value = main_bss_state.transition.selection;
+
+                        obj->ext.misc_42.unk55 = 3;
+                        obj->ext.misc_42.unk54 = value;
+                    } else {
+                        u8 value = engine_obj.unk1;
+
+                        obj->ext.misc_42.unk55 = 1;
+                        obj->ext.misc_42.unk54 = value;
+                    }
+                }
+            }
+        }
+    } else if (memcard_menu.slot->unk3 & 0xF) {
+        obj = find_free_misc_obj();
+        if (obj != NULL) {
+            obj->active = 1;
+            obj->id = 0x2A;
+            obj->unk2 = 2;
+            obj->unk16 = 3;
+            obj->animation_step.fields.frame_index = 0x34;
+            obj->unk42 = 0x784E;
+            obj->x_pos.i.hi = x;
+            obj->y_pos.i.hi = y;
+            if (arg2 == 0) {
+                u8 value = main_bss_state.transition.selection;
+
+                obj->ext.misc_42.unk55 = 3;
+                obj->ext.misc_42.unk54 = value;
+            } else {
+                u8 value = engine_obj.unk1;
+
+                obj->ext.misc_42.unk55 = 1;
+                obj->ext.misc_42.unk54 = value;
+            }
+        }
+    }
+}
+#endif
 
 void func_8001C008(s32 first, s32 second)
 {
     struct MiscObj* self = find_free_misc_obj();
-    u8 mode;
 
     if (self == NULL) {
         return;
@@ -1296,11 +1474,10 @@ void func_8001C008(s32 first, s32 second)
     self->id = 0x2A;
     self->unk2 = 4;
     self->unk42 = 0x7806;
-    mode = engine_obj.unk1;
+    self->ext.misc_42.unk54 = engine_obj.unk1;
     self->ext.misc_42.unk55 = 1;
     self->ext.misc_42.unk56 = first;
     self->ext.misc_42.unk58 = second;
-    self->ext.misc_42.unk54 = mode;
 }
 
 void func_8001C07C(void)
@@ -1394,23 +1571,24 @@ void func_8001C3E8(void)
     save->unk28 = D_80171EA9;
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/menu", func_8001C4B4);
-#else
 void func_8001C4B4(struct MemcardMenuState* menu)
 {
     u8* buffer = menu->buffer;
     u8 port;
-    u8* script;
 
     port = menu->port;
     *(struct MemcardSignature*)buffer = D_80010090;
+#ifdef VERSION_EU
+    menu->buffer[2] = 0x11;
+#else
     menu->buffer[2] = 0x13;
+#endif
     menu->result = func_8001CDE4(port);
     if (menu->result != 0) {
         engine_obj.unk1 = 0xB;
         reset_objects();
-        script = D_800F1DFC;
+        main_bss_state.transition.selection = 0;
+        func_8001B644(D_800F1DFC);
     } else {
         func_8001C5A8((u8**)menu);
         menu->result = func_8001C8F4(buffer, port, 0x2000);
@@ -1418,12 +1596,10 @@ void func_8001C4B4(struct MemcardMenuState* menu)
             return;
         engine_obj.unk1 = 0xB;
         reset_objects();
-        script = D_800F1E14;
+        main_bss_state.transition.selection = 0;
+        func_8001B644(D_800F1E14);
     }
-    main_bss_state.transition.selection = 0;
-    func_8001B644(script);
 }
-#endif
 
 void func_8001C5A8(u8** arg0)
 {

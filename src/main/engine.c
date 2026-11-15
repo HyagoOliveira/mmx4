@@ -81,12 +81,11 @@ void func_8001F198(struct EngineObj* arg0)
 {
     s32* dst;
     s32* src;
-    u8 stage;
     u32 i;
 
     for (i = 0; i < 0x10; i++)
         arg0->character_state.bytes[i] = 0;
-    stage = arg0->stage;
+    arg0->character_state.bytes[0] = arg0->stage;
     arg0->character_state.bytes[2] = 0;
     arg0->character_state.bytes[1] = 0;
     arg0->stage = 0xF;
@@ -94,7 +93,6 @@ void func_8001F198(struct EngineObj* arg0)
     arg0->checkpoint = 0;
     arg0->unk1F = 0;
     arg0->enable_boss = 0;
-    arg0->character_state.bytes[0] = stage;
     func_80013014();
     reset_objects();
     func_8002AB20();
@@ -122,9 +120,6 @@ void func_8001F198(struct EngineObj* arg0)
     need_palette_load |= 1;
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/engine", func_8001F2BC);
-#else
 void func_8001F2BC(struct EngineObj* arg0)
 {
     u8 index;
@@ -147,14 +142,21 @@ void func_8001F2BC(struct EngineObj* arg0)
         D_801396B8 = 0xFFF00000;
         background_objects[1].x_pos.val = 0x3000000;
     }
-    D_801396C0 = func_8001F150(arg0, arg0->cur_character != 0 ? 9 : 0);
+    index = arg0->cur_character != 0 ? 9 : 0;
+    D_801396C0 = func_8001F150(arg0, index);
+#ifdef VERSION_EU
+    index = arg0->character_state.bytes[0];
+    if (arg0->cur_character != 0) {
+        index += 9;
+    }
+#else
     if (arg0->cur_character == 0)
         index = arg0->character_state.bytes[0];
     else
         index = arg0->character_state.bytes[0] + 9;
+#endif
     D_801396C4 = func_8001F150(arg0, index);
 }
-#endif
 
 void func_8001F398(struct EngineObj* arg0)
 {
@@ -191,9 +193,6 @@ void func_8001F3D4(struct MainObj* obj)
     g_FilterAmountB = 0;
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/engine", func_8001F488);
-#else
 void func_8001F488(struct EngineObj* arg0)
 {
     s32 x;
@@ -219,7 +218,6 @@ void func_8001F488(struct EngineObj* arg0)
     }
     func_8001F3D4((struct MainObj*)arg0);
 }
-#endif
 
 void func_8001F5D8(struct EngineObj* arg0)
 {
@@ -256,9 +254,6 @@ void func_8001F634(struct EngineObj* arg0)
     need_palette_load |= 1;
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/engine", func_8001F6E8);
-#else
 void func_8001F6E8(struct EngineObj* arg0)
 {
     if (D_801396C0->unk5 == 2 && D_801396C4->unk5 == 2) {
@@ -275,7 +270,6 @@ void func_8001F6E8(struct EngineObj* arg0)
         arg0->unk2++;
     }
 }
-#endif
 
 #if defined(VERSION_EU) && !defined(MMX4_PC)
 INCLUDE_ASM("main/nonmatchings/engine", func_8001F798);
@@ -392,17 +386,14 @@ void func_8001F9DC(struct EngineObj* arg0)
     }
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/engine", func_8001FA24);
-#else
 void func_8001FA24(struct EngineObj* arg0)
 {
-    u8 flags;
+    s32 flags;
     u32 i;
 
-    flags = arg0->palette_flags | (1 << (arg0->character_state.bytes[0] - 1));
+    flags = (u8)arg0->palette_flags | (1 << (arg0->character_state.bytes[0] - 1));
     arg0->palette_flags = flags;
-    if ((u8)g_Player.boss_flags != 0xFF && flags == 0xFF)
+    if ((u8)g_Player.boss_flags != 0xFF && (u8)flags == 0xFF)
         arg0->unk5F = 5;
     g_Player.boss_flags |= 1 << (arg0->character_state.bytes[0] - 1);
     arg0->state = 9;
@@ -411,7 +402,6 @@ void func_8001FA24(struct EngineObj* arg0)
     for (i = 0; i < 0x10; i++)
         arg0->character_state.bytes[i] = 0;
 }
-#endif
 
 void func_8001FAC0(struct EngineObj* arg0)
 {

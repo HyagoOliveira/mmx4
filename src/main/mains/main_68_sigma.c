@@ -183,9 +183,6 @@ extern struct Unk_unk68 D_80103F08;
 extern struct Unk_unk68 D_80103F0C;
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_68_sigma", func_8008329C);
-#else
 void func_8008329C(struct MainObj* self)
 {
     struct ShotObj* shot;
@@ -230,7 +227,6 @@ void func_8008329C(struct MainObj* self)
     play_boss_voice(0xC);
     colonel_spawn_afterimages(self);
 }
-#endif
 
 void sigma_intro_fill_health(struct MainObj* self)
 {
@@ -334,9 +330,6 @@ void sigma_cloak_teleport_fade_in(struct MainObj* self)
 }
 
 // sigma_cloak_teleport_windup
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_68_sigma", func_80083710);
-#else
 void func_80083710(struct MainObj* self)
 {
     struct VisualObj* visual;
@@ -362,7 +355,6 @@ void func_80083710(struct MainObj* self)
     }
     is_on_screen(BASE_OBJECT(self));
 }
-#endif
 
 // sigma_cloak_teleport_fire
 void func_800837FC(struct MainObj* self)
@@ -482,9 +474,9 @@ void func_80083C2C(struct MainObj* self)
         self->attack_box = &D_80103EE4;
         self->hurt_box = &D_80103EE8;
         if (--self->unk7C == 0) {
-            self->hurt_box = &D_80103EF8;
             self->unk7++;
             self->unk15 ^= PLAYER_FACING_RIGHT;
+            self->hurt_box = &D_80103EF8;
             set_animation(self, 1);
             set_animation(self->ext.main_68.scythe, 6);
             func_8001540C(2, SATURN_SOUND(2, 0xC1), self);
@@ -945,10 +937,10 @@ void func_80084B14(struct MainObj* self)
             return;
         self->unk7++;
         self->x_speed = self->unk15 != 0 ? FIXED(-2.5) : FIXED(2.5);
+        self->x_accel = 0;
         self->y_speed = 0x60000;
         self->gravity = 0x4200;
         self->attack_box = &D_80103F08;
-        self->x_accel = 0;
         self->hurt_box = &D_80103F0C;
         set_animation(self, 0x12);
         break;
@@ -957,8 +949,8 @@ void func_80084B14(struct MainObj* self)
         move_with_gravity(ANIMATED_OBJECT(self));
         if (self->y_speed >= 0)
             return;
-        self->y_speed = 0;
         self->unk7++;
+        self->y_speed = 0;
         set_animation(self, 0x13);
         break;
     case 3:
@@ -966,9 +958,9 @@ void func_80084B14(struct MainObj* self)
         move_with_gravity(ANIMATED_OBJECT(self));
         if (!(self->collision_flags & 8))
             return;
+        self->unk7++;
         self->attack_box = &D_80103F00;
         self->hurt_box = &D_80103F04;
-        self->unk7++;
         set_animation(self, 0x14);
         func_8001540C(2, SATURN_SOUND(1, 0xC0), self);
         break;
@@ -976,8 +968,8 @@ void func_80084B14(struct MainObj* self)
         animate_object(ANIMATED_OBJECT(self));
         if (self->animation_step.fields.relative_step != 0)
             return;
-        self->unk7 = 0;
         self->unk6++;
+        self->unk7 = 0;
         set_animation(self, 0x1C);
         break;
     }
@@ -1265,15 +1257,20 @@ extern s16 D_8010442C[8][2];
 void func_80085460(struct MainObj* self)
 {
     u8 kind;
-    s32 x;
 
     engine_obj.gameplay_locked = 0;
     self->on_screen = 0;
     if (self->unk7C != 0) {
         if (get_random() % 7 == 0) {
             kind = (SIGMA_FRAME_COUNTER_U8 ^ 1) & 1;
-            x = D_8010442C[get_random() & 7][0] + 0x470;
-            SIGMA_SPAWN_EXPLOSION(0, x, D_8010442C[get_random() & 7][1] + 0x1E0, kind);
+#ifdef MMX4_PC
+            {
+                s32 x = D_8010442C[get_random() & 7][0] + 0x470;
+                SIGMA_SPAWN_EXPLOSION(0, x, D_8010442C[get_random() & 7][1] + 0x1E0, kind);
+            }
+#else
+            SIGMA_SPAWN_EXPLOSION(0, (D_8010442C[get_random() & 7][0] + 0x470), D_8010442C[get_random() & 7][1] + 0x1E0, kind);
+#endif
         }
         self->unk7C--;
     } else {
@@ -1416,9 +1413,6 @@ void sigma_reveal_fall(struct MainObj* self)
 }
 
 // sigma_reveal_burn_cloak
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_68_sigma", func_80085A44);
-#else
 void func_80085A44(struct MainObj* self)
 {
     struct VisualObj* visual;
@@ -1463,7 +1457,6 @@ void func_80085A44(struct MainObj* self)
     if (self->unk7C & 1)
         is_on_screen(BASE_OBJECT(self));
 }
-#endif
 
 void sigma_reveal_wait_cloak(struct MainObj* self)
 {
@@ -1520,7 +1513,7 @@ void sigma_reveal_fill_health(struct MainObj* self)
 
 void sigma_reveal_finish(struct MainObj* self)
 {
-    unsigned long temp_v1;
+    ulong_ptr temp_v1;
 
     if (--self->unk7C == 0) {
         temp_v1 = 1;
@@ -1534,7 +1527,7 @@ void sigma_reveal_finish(struct MainObj* self)
         self->unk7 = 0;
         self->ext.main_68.flash_timer = 0;
         player_end_script_action();
-        temp_v1 = (unsigned long)self->ext.main_68.scythe;
+        temp_v1 = (ulong_ptr)self->ext.main_68.scythe;
         ((struct MainObj*)temp_v1)->state++;
     }
     is_on_screen(BASE_OBJECT(self));

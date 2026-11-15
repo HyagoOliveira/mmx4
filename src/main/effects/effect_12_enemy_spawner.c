@@ -43,7 +43,6 @@ void func_800B8114(struct EffectObj* self)
 {
     s16 i;
     s16 distance;
-    s32 clut;
     struct MainObj* child;
 #ifdef VERSION_EU
     struct MainObj** slot;
@@ -97,8 +96,7 @@ void func_800B8114(struct EffectObj* self)
                             child->y_pos.val = self->y_pos.val;
                             self->ext.effect_12.cooldown = 0x20;
                             child->unk40 = (u16)(OBJECT_STAGE_TEXTURE(func_8002938C((u8)child->id) & 0xFF));
-                            clut = VISUAL_STAGE_PALETTE(func_8002938C((u8)child->id) & 0xFF);
-                            child->unk42 = clut;
+                            child->unk42 = VISUAL_STAGE_PALETTE(func_8002938C((u8)child->id) & 0xFF);
                             child->sprite_frames = (const u8*)SP_MENU_FRAMES + SP_MENU_FRAMES[func_8002938C((u8)child->id) & 0xFF];
                             self->ext.effect_12.spawned++;
                             if (self->ext.effect_12.spawned >= self->ext.effect_12.child_count) {
@@ -152,19 +150,15 @@ void enemy_spawner_despawn(struct EffectObj* self)
 }
 
 // enemy_spawner_count_children
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/effects/effect_12_enemy_spawner", func_800B8490);
-#else
 s32 func_800B8490(struct EffectObj* arg0)
 {
     s16 dx = arg0->x_pos.i.hi - background_objects[0].x_pos.i.hi;
     s16 dy = arg0->y_pos.i.hi - background_objects[0].y_pos.i.hi;
 
-    if (dx >= -0x40 && dx < 0x180 && dy >= -0x40 && dy < 0x130)
+    if ((dx >= -0x40 && dx < 0x180) && (dy >= -0x40 && dy < 0x130))
         return 0;
     return 1;
 }
-#endif
 
 void (*enemy_spawner_state_funcs[])(struct EffectObj*) = {
     enemy_spawner_init,

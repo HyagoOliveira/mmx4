@@ -63,11 +63,9 @@ struct QuadMotionData boss_warning_quad_motions[22] = {
 void func_800D4C50(struct QuadObj* arg0);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/quads/quad_03_boss_warning_quad", func_800D4C50);
-#else
 void func_800D4C50(struct QuadObj* arg0)
 {
+    arg0->state++;
     arg0->bg_offset = -1;
     arg0->unk34 = 4;
     arg0->unk36 = 0x10;
@@ -75,7 +73,6 @@ void func_800D4C50(struct QuadObj* arg0)
     arg0->x_pos.val = 0;
     arg0->y_pos.val = 0;
     arg0->ext.quad_2.x_scale.bytes.fraction = 0;
-    arg0->state++;
     arg0->vertices[0].x.val = boss_warning_quad_motions[arg0->unk2].vertex[0] << 16;
     arg0->vertices[1].x.val = boss_warning_quad_motions[arg0->unk2].vertex[2] << 16;
     arg0->vertices[2].x.val = boss_warning_quad_motions[arg0->unk2].vertex[2] << 16;
@@ -92,7 +89,6 @@ void func_800D4C50(struct QuadObj* arg0)
     if (arg0->unk2 == 0)
         D_8013B960 = 0;
 }
-#endif
 void boss_warning_quad_open(struct QuadObj* arg0)
 {
     u8 integer = arg0->ext.quad_2.x_scale.bytes.integer;

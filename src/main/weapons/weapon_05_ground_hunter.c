@@ -84,8 +84,8 @@ void func_80095854(struct WeaponObj* self)
 
     self->on_screen = 1;
     self->unk50 = ground_hunter_crawl_box;
-    self->unk64 = 1;
     self->unk68 = ground_hunter_terrain_box;
+    self->unk64 = 1;
     self->unk38 = (u8*)SP_ARCHIVE_ENTRY(SP_PLAYER_GFX, 6);
     self->unk3C = (u8*)SP_ARCHIVE_ENTRY(SP_SPRITE_FRAMES, 14);
     self->animation_table = D_8011C0C8;
@@ -101,8 +101,8 @@ void func_80095854(struct WeaponObj* self)
     } else {
         self->x_vel.val = FIXED(-6);
     }
-    self->y_vel.val = FIXED(-2);
     self->unk28.val = 0;
+    self->y_vel.val = FIXED(-2);
     self->unk2C = 0;
     self->unk67 = 1;
 
@@ -192,20 +192,17 @@ void ground_hunter_despawn(struct WeaponObj* arg0)
     ZeroObjectState(OBJECT_HEADER(arg0));
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/weapons/weapon_05_ground_hunter", ground_hunter_check_wall);
-#else
 s32 ground_hunter_check_wall(struct WeaponObj* arg0)
 {
     u16 mask;
-    u32 flags;
+    u16 flags;
 
     mask = 2;
     if (arg0->unk15 != 0) {
         mask = 1;
     }
     flags = arg0->unk70;
-    if (mask & flags) {
+    if (flags & mask) {
         if (flags & 8) {
             ground_hunter_start_burst(arg0);
         } else {
@@ -216,7 +213,6 @@ s32 ground_hunter_check_wall(struct WeaponObj* arg0)
     }
     return 0;
 }
-#endif
 
 void ground_hunter_start_crawl(struct WeaponObj* arg0)
 {
@@ -292,9 +288,6 @@ extern struct Unk_unk68 ground_hunter_charged_hit_box[];
 extern struct Unk_unk68 ground_hunter_charged_shot_box[];
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/weapons/weapon_05_ground_hunter", func_80095E3C);
-#else
 void func_80095E3C(struct WeaponObj* self)
 {
     struct PlayerObj* player;
@@ -325,8 +318,8 @@ void func_80095E3C(struct WeaponObj* self)
         func_8001540C(1, 9, self);
         self->unk5 = 0;
     } else {
-        self->unk50 = ground_hunter_charged_shot_box;
         self->unk16 = 1;
+        self->unk50 = ground_hunter_charged_shot_box;
         self->unk64 = 0;
         if (self->unk2 == 1)
             self->y_vel.val = FIXED(8);
@@ -336,7 +329,6 @@ void func_80095E3C(struct WeaponObj* self)
     }
     update_on_screen(BASE_OBJECT(self), 0x2C, 0x18);
 }
-#endif
 
 void ground_hunter_charged_main(struct WeaponObj* arg0)
 {
@@ -362,9 +354,6 @@ void ground_hunter_charged_wait_fire(struct WeaponObj* arg0)
 }
 
 // ground_hunter_charged_fire
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/weapons/weapon_05_ground_hunter", func_80096060);
-#else
 void func_80096060(struct WeaponObj* self)
 {
     struct Weapon14Ext* ext = &self->ext.weapon_14;
@@ -392,7 +381,6 @@ void func_80096060(struct WeaponObj* self)
     }
     update_on_screen(BASE_OBJECT(self), 0x2C, 0x18);
 }
-#endif
 
 void ground_hunter_charged_shot_fly(struct WeaponObj* arg0)
 {

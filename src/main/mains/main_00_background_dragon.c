@@ -53,7 +53,7 @@ ret_s8 func_8002DD04(struct MainObj* object);
 
 extern union AnimationStep* D_800F9934[16];
 extern struct Unk_unk68 D_801062F0[32];
-extern s16 D_800F98EC[36];
+extern s16 D_800F98EC[18][2];
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 void func_80040644(struct MainObj* arg0);
 void func_80040838(struct MainObj* arg0);
@@ -64,17 +64,12 @@ void func_80041060(struct MainObj* arg0);
 void func_800415B0(struct MainObj* arg0);
 void background_dragon_spawn_trail(struct PlayerObj*, s8);
 extern void (*background_dragon_step_funcs[13])(struct MainObj*);
-extern u8 background_dragon_attack_map[128];
 extern u16 D_800F99BC[4];
 #endif
+extern u8 background_dragon_attack_map[128];
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_80040644);
-#else
 void func_80040644(struct MainObj* arg0)
 {
-    u8* ext = (u8*)&arg0->ext;
-
     arg0->on_screen = 1;
     arg0->hp = 0x30;
     arg0->animation_table = (const u8* const*)D_800F9934;
@@ -100,19 +95,18 @@ void func_80040644(struct MainObj* arg0)
     arg0->y_speed = 0x18000;
     arg0->y_pos.val = 0;
     arg0->x_speed = 0;
-    ext[0] = 1;
-    ext[2] = 0;
-    ext[3] = 0;
-    ext[4] = 0;
+    ((u8*)&arg0->ext)[0] = 1;
+    ((u8*)&arg0->ext)[2] = 0;
+    ((u8*)&arg0->ext)[3] = 0;
+    ((u8*)&arg0->ext)[4] = 0;
     arg0->unk7C = 0;
     arg0->unk7E = 0;
-    ext[6] = 0;
-    ext[5] = 0;
-    ext[1] = 0;
+    ((u8*)&arg0->ext)[6] = 0;
+    ((u8*)&arg0->ext)[5] = 0;
+    ((u8*)&arg0->ext)[1] = 0;
     arg0->state = (u8)arg0->state + 1;
     update_on_screen(BASE_OBJECT(arg0), 0xA0, 0xA0);
 }
-#endif
 
 void background_dragon_spawn_trail(struct PlayerObj* self, s8 arg1)
 {
@@ -145,9 +139,6 @@ void background_dragon_reset(struct MainObj* self)
 }
 
 // background_dragon_main
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_80040838);
-#else
 #ifdef MMX4_SATURN
 #define FRAME_COUNTER_U8 ((u8)WEAPON_FRAME_COUNTER)
 #else
@@ -160,16 +151,15 @@ void func_80040838(struct MainObj* arg0)
     u8 saved_substep;
     s32 spawn;
     s32 x;
-    u8 timer;
 
     if (engine_obj.character_state.bytes[0] != 0) {
-        ((u8*)&arg0->ext)[5] = 1;
+        arg0->ext.main_0.exit_mode = 1;
     }
     saved_step = arg0->unk5;
     saved_substep = arg0->unk6;
     result = func_8002DD04(arg0);
     if (result < 0) {
-        ((u8*)&arg0->ext)[5] = 2;
+        arg0->ext.main_0.exit_mode = 2;
         arg0->unk5 = saved_step;
         arg0->unk6 = saved_substep;
         arg0->invincibility_timer = 0x1E;
@@ -195,87 +185,76 @@ void func_80040838(struct MainObj* arg0)
     }
     background_dragon_step_funcs[arg0->unk5](arg0);
     if (!(get_random_nonzero() & 1)) {
-        if (((u8*)&arg0->ext)[5] == 2) {
+        if (arg0->ext.main_0.exit_mode == 2) {
             spawn = (FRAME_COUNTER_U8 ^ 1) & 1;
-            x = (s16)(arg0->x_pos.i.hi + (arg0->unk15 != 0 ? -D_800F98EC[(get_random() & 0x1F) * 2] : D_800F98EC[(get_random() & 0x1F) * 2]));
-            spawn_explosion_at(0, x, arg0->y_pos.i.hi + D_800F98EC[(get_random() & 0x1F) * 2 + 1], spawn)->unk16 = 0x21;
+            x = (s16)(arg0->x_pos.i.hi + (arg0->unk15 != 0 ? -D_800F98EC[get_random() & 0x1F][0] : D_800F98EC[get_random() & 0x1F][0]));
+            spawn_explosion_at(0, x, arg0->y_pos.i.hi + D_800F98EC[get_random() & 0x1F][1], spawn)->unk16 = 0x21;
         }
     }
-    if (((u8*)&arg0->ext)[5] == 2) {
-        timer = ((u8*)&arg0->ext)[6];
-        ((u8*)&arg0->ext)[6] += 0xFF;
-        if (timer == 0) {
-            ((u8*)&arg0->ext)[6] = 4;
+    if (arg0->ext.main_0.exit_mode == 2) {
+        if (arg0->ext.main_0.damage_flash_timer-- == 0) {
+            arg0->ext.main_0.damage_flash_timer = 4;
             arg0->unk42 ^= 0x8000;
         }
         return;
     }
     if (arg0->hp < 0x18) {
-        timer = ((u8*)&arg0->ext)[6];
-        ((u8*)&arg0->ext)[6] += 0xFF;
-        if (timer == 0) {
-            ((u8*)&arg0->ext)[6] = 0x1E;
+        if (arg0->ext.main_0.damage_flash_timer-- == 0) {
+            arg0->ext.main_0.damage_flash_timer = 0x1E;
             arg0->unk42 ^= 0x8000;
         }
     }
 }
-#endif
 
 // background_dragon_pick_step
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
+#if defined(VERSION_EU) && !defined(MMX4_PC)
+INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_80040ABC);
+#else
 s32 func_80040ABC(struct MainObj* arg0)
 {
-    u8* ext = (u8*)&arg0->ext;
-    const s8* flags = &engine_obj.character_state.bytes[1];
-    s32 distance;
-    s32 index;
-    s32 kind;
+    s16 index;
+    u8 kind;
     s32 value;
-    s32 remainder;
 
     arg0->unk2 = get_random() & 1;
-    if (ext[5] != 0) {
+    if (arg0->ext.main_0.exit_mode != 0) {
         return 8;
     }
-
-    distance = g_Player.x_pos.i.hi - arg0->x_pos.i.hi;
-    if (distance < 0) {
-        distance = arg0->x_pos.i.hi - g_Player.x_pos.i.hi;
-    }
-    if (distance >= 0x49) {
+    if ((g_Player.x_pos.i.hi - arg0->x_pos.i.hi >= 0 ? g_Player.x_pos.i.hi - arg0->x_pos.i.hi
+                                                     : arg0->x_pos.i.hi - g_Player.x_pos.i.hi)
+        > 0x48) {
         return 6;
     }
-
-    index = (s32)(s16)arg0->x_pos.i.hi >> 4;
+    index = arg0->x_pos.i.hi >> 4;
     if (index < 0x50) {
         return 0xC;
     }
     index -= 0x50;
-    kind = background_dragon_attack_map[index];
-
-    switch (kind) {
-    case 0:
-        value = get_random() & 3;
-        if (value == 1) {
-            ext[1] = 3;
-            return 3;
-        }
-        if (value == 0) {
-            return 0xC;
-        }
-        return value == 2 ? 2 : 5;
+    switch (background_dragon_attack_map[index]) {
     case 1:
     case 2:
     case 3:
-        ext[2 + ext[1]] = (u8)flags[ext[1]];
+        arg0->ext.main_0.flags[arg0->ext.main_0.index] = engine_obj.character_state.bytes[arg0->ext.main_0.index + 1];
         kind = background_dragon_attack_map[index];
-        if (ext[1 + kind] != 0) {
+        if (arg0->ext.main_0.flags[kind - 1] != 0) {
             return 2;
         }
-        ext[1] = kind - 1;
+        arg0->ext.main_0.index = kind - 1;
         return 3;
+    case 0:
+        switch (get_random() & 3) {
+        case 0:
+            return 0xC;
+        case 1:
+            arg0->ext.main_0.index = 3;
+            return 3;
+        case 2:
+            return 2;
+        default:
+            return 5;
+        }
     case 4:
-        ext[1] = 3;
+        arg0->ext.main_0.index = 3;
         return 3;
     case 5:
         return 2;
@@ -283,34 +262,33 @@ s32 func_80040ABC(struct MainObj* arg0)
         return 5;
     case 8:
         value = get_random_nonzero();
-        remainder = value - ((value >= 0 ? value >> 2 : (value + 3) >> 2) * 4);
-        if (remainder >= 3) {
-            return 0xC;
+        value %= 4;
+        if (value < 3) {
+            if (value > 0) {
+                return 2;
+            }
+            if (value == 0) {
+                return 8;
+            }
         }
-        if (remainder > 0) {
-            return 2;
-        }
-        if (remainder != 0) {
-            return 0xC;
-        }
-        return 8;
+        return 0xC;
     default:
-        remainder = get_random_nonzero() % 3;
-        if (remainder == 1) {
-            ext[1] = 3;
+        switch (get_random_nonzero() % 3) {
+        case 0:
+            return 2;
+        case 1:
+            arg0->ext.main_0.index = 3;
             return 3;
+        case 2:
+            return 5;
+        default:
+            return 5;
         }
-        return remainder == 0 ? 2 : 5;
     }
 }
-#else
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_80040ABC);
 #endif
 
 // background_dragon_hover
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_80040CCC);
-#else
 void func_80040CCC(struct MainObj* arg0)
 {
     animate_object(ANIMATED_OBJECT(arg0));
@@ -328,7 +306,6 @@ void func_80040CCC(struct MainObj* arg0)
     if (arg0->animation_step.fields.relative_step < 0)
         arg0->unk5 = func_80040ABC(arg0);
 }
-#endif
 
 void background_dragon_wait_for_animation(struct MainObj* self)
 {
@@ -613,9 +590,6 @@ void background_dragon_sequence_begin(struct MainObj* self)
 }
 
 // background_dragon_swoop
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_800415B0);
-#else
 void func_800415B0(struct MainObj* arg0)
 {
     s32 offset = engine_obj.cur_character == 0 ? 0x480000 : 0x4A0000;
@@ -668,7 +642,6 @@ void func_800415B0(struct MainObj* arg0)
     }
     update_on_screen(BASE_OBJECT(arg0), 0x90, 0x90);
 }
-#endif
 
 void background_dragon_sequence_bob(struct MainObj* self)
 {
@@ -725,7 +698,7 @@ void background_dragon_sequence(struct MainObj* self)
 }
 
 // background_dragon_chase
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
+#ifdef MMX4_SATURN
 void func_800419B8(struct MainObj* arg0)
 {
     s32 distance;
@@ -778,7 +751,27 @@ void func_800419B8(struct MainObj* arg0)
     update_on_screen(BASE_OBJECT(arg0), 0x90, 0x90);
 }
 #else
-INCLUDE_ASM("main/nonmatchings/mains/main_00_background_dragon", func_800419B8);
+#define DRAGON_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define DRAGON_MAX(a, b) ((a) < (b) ? (b) : (a))
+void func_800419B8(struct MainObj* arg0)
+{
+    s32 speed;
+
+    set_velocity_from_angle(MOVING_OBJECT(arg0),
+        angle_to_point(OBJECT_HEADER(arg0), g_Player.x_pos.val, 0x01700000));
+    speed = arg0->x_speed * DRAGON_MAX(DRAGON_MIN(ABS(g_Player.x_pos.i.hi, arg0->x_pos.i.hi), 0x40), 0x38);
+    arg0->x_speed = speed >> 4;
+    speed = arg0->y_speed * DRAGON_MAX(DRAGON_MIN(ABS(g_Player.y_pos.i.hi - 0x40, arg0->y_pos.i.hi), 0x40), 0x18);
+    arg0->y_speed = speed >> 4;
+    move_object(MOVING_OBJECT(arg0));
+    animate_object(ANIMATED_OBJECT(arg0));
+    if (ABS(arg0->x_pos.i.hi, g_Player.x_pos.i.hi) < 8 && ABS(arg0->y_pos.i.hi, 0x170) < 8) {
+        arg0->x_pos.i.hi = g_Player.x_pos.u.hi;
+        arg0->y_pos.i.hi = 0x170;
+        arg0->unk5 = 0xC;
+    }
+    update_on_screen(BASE_OBJECT(arg0), 0x90, 0x90);
+}
 #endif
 
 void background_dragon_fly_to_route_start(struct MainObj* self)
@@ -1247,43 +1240,25 @@ u8 background_dragon_attack_map[128] = {
     0x08,
 };
 
-s16 D_800F98EC[36] = {
-    (s16)0xFFD3,
-    (s16)0x0021,
-    (s16)0x0000,
-    (s16)0x001E,
-    (s16)0xFFD4,
-    (s16)0x001F,
-    (s16)0xFFE0,
-    (s16)0x003B,
-    (s16)0xFFDF,
-    (s16)0x0050,
-    (s16)0x0029,
-    (s16)0x0053,
-    (s16)0x0013,
-    (s16)0xFFFF,
-    (s16)0xFFDD,
-    (s16)0xFFF5,
-    (s16)0xFFDD,
-    (s16)0xFFF5,
-    (s16)0xFFF3,
-    (s16)0xFFF5,
-    (s16)0xFFF3,
-    (s16)0xFFE0,
-    (s16)0x0037,
-    (s16)0x000B,
-    (s16)0xFFCC,
-    (s16)0x000F,
-    (s16)0xFFEE,
-    (s16)0x000D,
-    (s16)0xFFE7,
-    (s16)0x0024,
-    (s16)0x0010,
-    (s16)0x0021,
-    (s16)0x0016,
-    (s16)0xFFE3,
-    (s16)0xFFE7,
-    (s16)0xFFE3,
+s16 D_800F98EC[18][2] = {
+    { (s16)0xFFD3, (s16)0x0021 },
+    { (s16)0x0000, (s16)0x001E },
+    { (s16)0xFFD4, (s16)0x001F },
+    { (s16)0xFFE0, (s16)0x003B },
+    { (s16)0xFFDF, (s16)0x0050 },
+    { (s16)0x0029, (s16)0x0053 },
+    { (s16)0x0013, (s16)0xFFFF },
+    { (s16)0xFFDD, (s16)0xFFF5 },
+    { (s16)0xFFDD, (s16)0xFFF5 },
+    { (s16)0xFFF3, (s16)0xFFF5 },
+    { (s16)0xFFF3, (s16)0xFFE0 },
+    { (s16)0x0037, (s16)0x000B },
+    { (s16)0xFFCC, (s16)0x000F },
+    { (s16)0xFFEE, (s16)0x000D },
+    { (s16)0xFFE7, (s16)0x0024 },
+    { (s16)0x0010, (s16)0x0021 },
+    { (s16)0x0016, (s16)0xFFE3 },
+    { (s16)0xFFE7, (s16)0xFFE3 },
 };
 
 union AnimationStep* D_800F9934[16] = {

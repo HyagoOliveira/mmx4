@@ -203,21 +203,18 @@ void func_800C2638(struct ItemObj* self);
 extern ret_u8 func_8002938C(s32);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/items/item_10_spark_machine", func_800C2528);
-#else
 void func_800C2528(struct ItemObj* self)
 {
     self->active = 0x41;
     self->unk16 = VISUAL_SATURN_LAYER(5);
     self->unk40 = (u16)(OBJECT_STAGE_TEXTURE(func_8002938C(0x9D)));
     self->sprite_frames = (const u8*)SP_ARCHIVE_ENTRY(SP_MENU_FRAMES, func_8002938C(0x9D));
+    self->unk15 = 0;
     self->unk42 = OBJECT_CLUT(0x7986);
     self->animation_table = (const u8* const*)spark_machine_animations;
     self->unk68 = (struct Unk_unk68*)spark_machine_terrain_box;
     self->unk54 = spark_machine_hit_box;
     self->unk58 = (const u8*)D_80108604;
-    self->unk15 = 0;
     self->bg_offset = g_Player.bg_offset;
     self->unk61 = 0;
     self->unk75 = 1;
@@ -231,12 +228,8 @@ void func_800C2528(struct ItemObj* self)
     self->tail_ext.unk1.unk84.bytes[2] = 0x14;
     self->tail_ext.unk1.unk84.bytes[3] = 0;
 }
-#endif
 
 // spark_machine_main
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/items/item_10_spark_machine", func_800C2638);
-#else
 void func_800C2638(struct ItemObj* self)
 {
     s32 hit = func_8002DD04((struct MainObj*)self);
@@ -273,7 +266,6 @@ void func_800C2638(struct ItemObj* self)
             self->unk42 &= 0x7FFF;
     }
 }
-#endif
 
 void spark_machine_sparking(struct ItemObj* arg0)
 {

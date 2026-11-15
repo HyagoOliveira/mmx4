@@ -34,9 +34,6 @@ void owl_cyclone_update(struct ShotObj* self)
 void func_800A42C8(struct ShotObj* arg0);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/shots/shot_38_owl_cyclone", func_800A42C8);
-#else
 void func_800A42C8(struct ShotObj* arg0)
 {
     struct MainObj* owner = (struct MainObj*)arg0->unk7C;
@@ -47,16 +44,16 @@ void func_800A42C8(struct ShotObj* arg0)
     dx = 0;
     dy = 0;
 #endif
-    arg0->on_screen = 1;
-    arg0->unk58.data = (u8*)D_80105FF0;
-    arg0->unk54 = owl_cyclone_hit_box;
-    arg0->unk60 = 6;
-    arg0->unk50.data = owl_cyclone_hit_box;
     arg0->state++;
+    arg0->on_screen = 1;
     arg0->unk68 = NULL;
-    arg0->unk5C = 1;
-    arg0->unk84.value = 4;
+    arg0->unk54 = owl_cyclone_hit_box;
+    arg0->unk58.data = (u8*)D_80105FF0;
     arg0->unk42 &= 0x7FFF;
+    arg0->unk50.data = owl_cyclone_hit_box;
+    arg0->unk5C = 1;
+    arg0->unk60 = 6;
+    arg0->unk84.value = 4;
     switch (arg0->unk2) {
     case 0:
         set_animation(arg0, 0xF);
@@ -103,13 +100,13 @@ void func_800A42C8(struct ShotObj* arg0)
         arg0->unk50.data = owl_cyclone_column_box;
         arg0->unk54 = NULL;
         set_animation(arg0, 0x1D);
-        arg0->unk60 = 9;
         arg0->on_screen = 0;
         arg0->x_vel.val = 0;
         arg0->y_vel.val = 0;
         arg0->unk28 = 0;
         arg0->unk2C = 0;
         arg0->unk84.value = 0;
+        arg0->unk60 = 9;
         arg0->timer = 1;
         break;
     }
@@ -123,7 +120,6 @@ void func_800A42C8(struct ShotObj* arg0)
     }
     arg0->y_pos.i.hi = owner->y_pos.i.hi + dy;
 }
-#endif
 
 void owl_cyclone_fly(struct ShotObj* self)
 {

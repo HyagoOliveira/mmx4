@@ -145,9 +145,6 @@ extern s16 walrus_ice_icicle_offsets[2][2];
 extern struct Unk_unk68 walrus_ice_ball_terrain_box;
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/shots/shot_35_walrus_ice", func_800A241C);
-#else
 void func_800A241C(struct ShotObj* arg0)
 {
     struct WeaponObj* owner = arg0->unk7C;
@@ -174,7 +171,6 @@ void func_800A241C(struct ShotObj* arg0)
     }
     arg0->unk5++;
 }
-#endif
 
 void walrus_ice_icicle_main(struct ShotObj* self)
 {
@@ -205,9 +201,6 @@ void walrus_ice_icicle_main(struct ShotObj* self)
 }
 
 // walrus_ice_icicle_form
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/shots/shot_35_walrus_ice", func_800A25EC);
-#else
 void func_800A25EC(struct ShotObj* arg0)
 {
     struct WeaponObj* owner = arg0->unk7C;
@@ -247,7 +240,6 @@ void func_800A25EC(struct ShotObj* arg0)
         }
     }
 }
-#endif
 
 void walrus_ice_icicle_rise(struct ShotObj* self)
 {
@@ -662,7 +654,9 @@ void func_800A348C(struct ShotObj* self)
         func_8001540C(2, SATURN_SOUND(0x96, 0x66), self);
         self->unk6++;
     } else {
-        self->on_screen ^= 1;
+        if (FLICKER_ENABLED) {
+            self->on_screen ^= 1;
+        }
         if (self->on_screen != 0) {
             is_on_screen(BASE_OBJECT(self));
         }

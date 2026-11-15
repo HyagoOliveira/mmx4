@@ -66,9 +66,6 @@ void func_800C7F1C(struct MiscObj* arg0);
 extern ret_u8 func_8002938C(s32);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/misc/misc_02_rubble", func_800C7F1C);
-#else
 void func_800C7F1C(struct MiscObj* arg0)
 {
     s32 index;
@@ -98,7 +95,6 @@ void func_800C7F1C(struct MiscObj* arg0)
     arg0->state++;
     is_on_screen(BASE_OBJECT(arg0));
 }
-#endif
 
 void rubble_fall(struct MiscObj* self)
 {
@@ -187,18 +183,13 @@ void spawn_owner_debris(s32 arg0, u8* arg1, struct MainObj* arg2, s32 arg3, s32 
     }
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/misc/misc_02_rubble", spawn_debris_offset);
-#else
 void spawn_debris_offset(u8 count, u8* variants, struct MainObj* owner, s32 x_offset, s32 y_offset)
 {
-    u8 i;
-    u8* vars = variants;
-    s32 xoff = x_offset;
+    struct MiscObj* misc;
     struct MainObj* obj = owner;
 
-    for (i = count; i; i--) {
-        struct MiscObj* misc = find_free_misc_obj();
+    for (; count > 0; count--) {
+        misc = find_free_misc_obj();
         if (misc != NULL) {
             misc->active = 0x41;
             misc->id = 3;
@@ -207,14 +198,13 @@ void spawn_debris_offset(u8 count, u8* variants, struct MainObj* owner, s32 x_of
             misc->state = 0;
             misc->unk5 = 0;
             misc->unk6 = 0;
-            misc->x_pos.val = obj->x_pos.val + (get_random() & 3) + xoff;
+            misc->x_pos.val = obj->x_pos.val + (get_random() & 3) + x_offset;
             misc->y_pos.val = obj->y_pos.val + (get_random() & 3) + y_offset;
-            misc->ext.misc_2.unk58 = *vars++;
+            misc->ext.misc_2.unk58 = *variants++;
             misc->ext.misc_2.owner = obj;
         }
     }
 }
-#endif
 
 // spawn_animated_debris
 void func_800C842C(u8 count, u8* variants, void* owner, s32 id, void* animation_table)

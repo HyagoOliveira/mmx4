@@ -110,12 +110,14 @@ void func_80044458(struct MainObj* self)
 // drill_copter_main
 void func_80044508(struct MainObj* self)
 {
+    s32 hit;
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
     if (self->unk2 == 1)
         CollisionRelated(PLAYER_OBJECT(self));
     func_8002D9BC(self);
-    if (func_8002DD04(self) < 0) {
+    hit = func_8002DD04(self);
+    if (hit < 0) {
         spawn_explosion(BASE_OBJECT(self));
         spawn_debris(D_800FA0B4[(s8)self->unk2], D_800FA0A8[(s8)self->unk2], self);
         if (self->unk2 != 2)
@@ -127,7 +129,11 @@ void func_80044508(struct MainObj* self)
         func_80044DE4(self);
     drill_copter_step_funcs[(s8)self->unk5](self);
     if (func_8002B1E8(BASE_OBJECT(self), 0x40, 0x40) == 0) {
+#ifdef MMX4_WIN32
+        update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
+#else
         ((void (*)(struct BaseObj*, s32, s32))is_on_screen)(BASE_OBJECT(self), 0x20, 0x20);
+#endif
         return;
     }
     self->state = 2;
@@ -197,15 +203,11 @@ void drill_copter_sway_start(struct MainObj* self)
     set_animation(self, 3);
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_04_drill_copter", drill_copter_sway_move);
-#else
 void drill_copter_sway_move(struct MainObj* self)
 {
     s32 object_x;
     s32 object_x_2;
     s32 distance;
-    s32 distance_2;
 
     animate_object(ANIMATED_OBJECT(self));
     move_object(MOVING_OBJECT(self));
@@ -219,17 +221,16 @@ void drill_copter_sway_move(struct MainObj* self)
         self->unk15 = ((self->unk15 & PLAYER_FACING_RIGHT) == 0) << PLAYER_FACING_SHIFT;
         self->x_speed = -self->x_speed;
         object_x_2 = self->x_pos.val;
-        distance_2 = object_x_2 - g_Player.x_pos.val;
-        if (distance_2 <= -1) {
-            distance_2 = g_Player.x_pos.val - object_x_2;
+        distance = object_x_2 - g_Player.x_pos.val;
+        if (distance <= -1) {
+            distance = g_Player.x_pos.val - object_x_2;
         }
-        if (distance_2 > FIXED(64)) {
+        if (distance > FIXED(64)) {
             self->unk5 = 1;
             self->unk6 = 0;
         }
     }
 }
-#endif
 
 void drill_copter_sway_idle(struct MainObj* self)
 {
@@ -393,9 +394,6 @@ void drill_copter_fire_reload(struct MainObj* self)
 }
 
 // drill_copter_spawn_clone
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_04_drill_copter", func_80044DE4);
-#else
 void func_80044DE4(struct MainObj* self)
 {
     struct MainObj* child;
@@ -439,7 +437,6 @@ void func_80044DE4(struct MainObj* self)
     self->unk6 = 0;
     self->unk7E = 1;
 }
-#endif
 
 struct Unk_unk68 D_800F9EBC = { 0, 8, 8, 16 };
 

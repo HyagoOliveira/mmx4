@@ -43,9 +43,6 @@ void heavy_mech_update(struct MainObj* self)
     CollisionRelated((struct PlayerObj*)self);
 }
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_13_heavy_mech", heavy_mech_init);
-#else
 void heavy_mech_init(struct MainObj* self)
 {
     self->hp = 0x10;
@@ -53,8 +50,8 @@ void heavy_mech_init(struct MainObj* self)
     self->invincibility_timer = 0;
     self->collision_data = D_801068F0;
     self->bg_offset = g_Player.bg_offset;
-    self->animation_table = (const u8* const*)heavy_mech_animations;
     self->x_speed = 0;
+    self->animation_table = (const u8* const*)heavy_mech_animations;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
@@ -73,11 +70,11 @@ void heavy_mech_init(struct MainObj* self)
     self->unk5 = 2;
     self->unk6 = 0;
 }
-#endif
 
 // heavy_mech_main
 void func_8004C860(struct MainObj* self)
 {
+    s32 hit;
     heavy_mech_check_fall(self);
     heavy_mech_check_catch(self);
     self->unk18.val = self->x_pos.val;
@@ -87,7 +84,8 @@ void func_8004C860(struct MainObj* self)
         func_8002D9BC(self);
     }
     self->ext.main_13.saved_unk5 = self->unk5;
-    if (func_8002DD04(self) < 0) {
+    hit = func_8002DD04(self);
+    if (hit < 0) {
         spawn_explosion(BASE_OBJECT(self));
         spawn_debris(9, heavy_mech_debris, self);
         drop_item(BASE_OBJECT(self), 8);
@@ -146,9 +144,6 @@ void heavy_mech_idle_start(struct MainObj* self)
 void func_8004CA94(struct MainObj* arg0);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/mains/main_13_heavy_mech", func_8004CA94);
-#else
 void func_8004CA94(struct MainObj* arg0)
 {
     u8 roll;
@@ -197,7 +192,6 @@ void func_8004CA94(struct MainObj* arg0)
     arg0->unk5 = 4;
     arg0->unk6 = 0;
 }
-#endif
 
 void heavy_mech_fall(struct MainObj* self)
 {

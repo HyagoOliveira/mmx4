@@ -394,9 +394,6 @@ void player_enter_wall_cling(struct PlayerObj* self)
 void func_800349F4(struct PlayerObj* arg0);
 #endif
 
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/player_enter", func_800349F4);
-#else
 void func_800349F4(struct PlayerObj* arg0)
 {
     player_set_animation_shooting(arg0, 0xE);
@@ -431,7 +428,6 @@ void func_800349F4(struct PlayerObj* arg0)
     arg0->unk5 = 10;
     arg0->unk6 = 0;
 }
-#endif
 void player_enter_wall_slide(struct PlayerObj* self)
 {
     player_set_animation_shooting(self, 0xF);
@@ -457,12 +453,12 @@ void func_80034B64(struct PlayerObj* player)
         player->x_vel.val = FIXED(2);
     }
 
+    player->unk28 = 0;
+    player->y_vel.val = 0;
     player->unk2C = 0x4200;
     player->unk8A.bytes.low = 4;
     player->air_state = -1;
     player->unk5 = 0xB;
-    player->unk28 = 0;
-    player->y_vel.val = 0;
     player->unk6 = 1;
 }
 void player_enter_ladder_grab(struct PlayerObj* self)
@@ -544,17 +540,8 @@ void player_enter_ladder_down(struct PlayerObj* self)
 }
 
 // player_start_script
-#if defined(VERSION_EU) && !defined(MMX4_PC)
-INCLUDE_ASM("main/nonmatchings/player_enter", func_80034E2C);
-#else
-#ifdef MMX4_PC
-void func_80034E2C(void)
-{
-    struct PlayerObj* player = &g_Player;
-#else
 void func_80034E2C(struct PlayerObj* player)
 {
-#endif
 
     player->unk6 = 0;
     player->unk5 = player->script_action;
@@ -599,7 +586,6 @@ void func_80034E2C(struct PlayerObj* player)
         break;
     }
 }
-#endif
 void player_start_stage_clear(struct PlayerObj* self)
 {
     u8 flags;
