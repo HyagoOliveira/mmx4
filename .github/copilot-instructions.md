@@ -47,6 +47,11 @@ See `README.md` for prerequisites and complete build instructions.
 - Both paths use `MakeObject(object_type)` to select an object pool, then copy the record's `id`, `subtype`, and coordinates to the allocated object.
 - For main objects (`object_type == 0`), `id` selects the per-frame update function in `main_object_update_funcs` in `src/main/object_update.c`. For example, Cyber Space placements use ID `0x2A` (42), which dispatches to `homing_orb_update`. The placement record determines where and when an enemy is created; its ID determines which behavior updates it.
 
+### Non-boss main-object weapon damage
+
+- Damage values, attack names, and per-object tables are maintained in [docs/weapon-damage-tables.md](../docs/weapon-damage-tables.md).
+- `MainObj.collision_data` is read by `func_8002DE30` in `src/main/1E1BC.c`; each attack ID selects the target-specific reaction and damage entry. Check the target C source for state-dependent table changes.
+
 ## Change and validation guidance
 
 - Keep changes focused. Matching-sensitive C changes can alter generated executable bytes even when gameplay appears unchanged; avoid unrelated refactors and preserve existing compiler-oriented patterns.
