@@ -63,7 +63,7 @@ All attack IDs and damage values are decimal. Each attack column is labeled with
 
 ## Zero
 
-| Target (Id) | 24 Ground saber slash | 25 Saber combo hit 2 | 26 Saber combo hit 3 | 27 Jump/fall slash or combo hit 4 | 28 Landing follow-up | 29 Shippuuga | 30 Ladder slash | 31 Wall slash | 32 Raijingeki | 33 Hyouretsuzan | 34 Spin slash | 35 Ryuenjin |
+| Target (Id) | 24 Ground saber slash | 25 Saber combo hit 2 | 26 Saber combo hit 3 | 27 Jump/fall slash | 28 Landing follow-up | 29 Shippuuga | 30 Ladder slash | 31 Wall slash | 32 Raijingeki | 33 Hyouretsuzan | 34 Spin slash | 35 Ryuenjin |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Armored Walker (01) | 4 | 6 | 4 | 4 | 4 | 6 | 4 | 4 | 3 | 8 | 6 | 8 |
 | Item Carrier (02) | 4 | 6 | 4 | 4 | 4 | 6 | 4 | 4 | 3 | 8 | 6 | 8 |
