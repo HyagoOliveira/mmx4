@@ -8,7 +8,7 @@ All attack IDs and damage values are decimal. Each attack column is labeled with
 
 ## X
 
-| Target | 0 X-Buster (normal) | 1 Lightning Web | 2 Frost Tower | 3 Soul Body | 4 Rising Fire | 5 Ground Hunter | 6 Aiming Laser | 7 Double Cyclone | 8 Twin Slasher | 9 X-Buster (partial charge) | 10 Charged Lightning Web | 11 Charged Frost Tower | 12 Charged Soul Body slot* | 13 Charged Rising Fire | 14 Charged Ground Hunter | 15 Charged Aiming Laser | 16 Charged Double Cyclone | 17 Charged Twin Slasher | 18 X-Buster (full charge) | 19 Stock Shot | 20 Plasma Shot (main) | 21 Plasma Shot (lingering) | 22 Nova Strike | 23 Auxiliary Lemon-type projectile* |
+| Target (Id) | 0 X-Buster (normal) | 1 Lightning Web | 2 Frost Tower | 3 Soul Body | 4 Rising Fire | 5 Ground Hunter | 6 Aiming Laser | 7 Double Cyclone | 8 Twin Slasher | 9 X-Buster (partial charge) | 10 Charged Lightning Web | 11 Charged Frost Tower | 12 Charged Soul Body slot* | 13 Charged Rising Fire | 14 Charged Ground Hunter | 15 Charged Aiming Laser | 16 Charged Double Cyclone | 17 Charged Twin Slasher | 18 X-Buster (full charge) | 19 Stock Shot | 20 Plasma Shot (main) | 21 Plasma Shot (lingering) | 22 Nova Strike | 23 Auxiliary Lemon-type projectile* |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Armored Walker (01) | 3 | 1 | 4 | 2 | 4 | 4 | 1 | 2 | 1 | 5 | 4 | 8 | 2 | 8 | 4 | 4 | 4 | 4 | 15 | 8 | 16 | 2 | 32 | 0 |
 | Item Carrier (02) | 3 | 1 | 4 | 2 | 4 | 4 | 0 | 2 | 1 | 5 | 4 | 8 | 3 | 8 | 6 | 0 | 4 | 6 | 15 | 8 | 16 | 2 | 32 | 0 |
@@ -63,7 +63,7 @@ All attack IDs and damage values are decimal. Each attack column is labeled with
 
 ## Zero
 
-| Target | 24 Ground saber slash | 25 Saber combo hit 2 | 26 Saber combo hit 3 | 27 Jump/fall slash or combo hit 4 | 28 Landing follow-up | 29 Shippuuga | 30 Ladder slash | 31 Wall slash | 32 Raijingeki | 33 Hyouretsuzan | 34 Spin slash | 35 Ryuenjin |
+| Target (Id) | 24 Ground saber slash | 25 Saber combo hit 2 | 26 Saber combo hit 3 | 27 Jump/fall slash or combo hit 4 | 28 Landing follow-up | 29 Shippuuga | 30 Ladder slash | 31 Wall slash | 32 Raijingeki | 33 Hyouretsuzan | 34 Spin slash | 35 Ryuenjin |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Armored Walker (01) | 4 | 6 | 4 | 4 | 4 | 6 | 4 | 4 | 3 | 8 | 6 | 8 |
 | Item Carrier (02) | 4 | 6 | 4 | 4 | 4 | 6 | 4 | 4 | 3 | 8 | 6 | 8 |
