@@ -32,10 +32,10 @@ void func_80029DBC(void)
 
     for (a1 = 0; a1 < COUNT(unk_objects); a1++) {
         a0 = (u8*)&unk_objects[a1];
-        var_v1 = sizeof(unk_objects[0]) - 1;
-        do {
+        var_v1 = sizeof(unk_objects[0]);
+        while (var_v1-- != 0) {
             *a0++ = fill;
-        } while (var_v1-- != 0);
+        }
     }
 }
 
@@ -47,8 +47,8 @@ void func_80029E1C(struct GameInfo* arg0)
     obj = find_free_unk_obj();
     if (obj != NULL) {
         obj->active = 1;
-        obj->unk2 = 0x5E;
         obj->id = 0;
+        obj->unk2 = 0x5E;
         obj->y_pos.i.hi = 0x10;
     }
 
@@ -90,24 +90,22 @@ void func_80029E1C(struct GameInfo* arg0)
     }
 
     var_s1 = main_bss_state.character_mode != 0 ? D_800F4568 : D_800F457C;
-    if (var_s1[1] != 7) {
-        do {
-            obj = find_free_unk_obj();
-            if (obj != NULL) {
-                obj->active = 1;
-                obj->id = 0;
-                obj->unk2 = var_s1[1];
-                obj->y_pos.i.hi = var_s1[0];
-            }
-            var_s1 += 2;
-        } while (var_s1[1] != 7);
+    while (var_s1[1] != 7) {
+        obj = find_free_unk_obj();
+        if (obj != NULL) {
+            obj->active = 1;
+            obj->id = 0;
+            obj->unk2 = var_s1[1];
+            obj->y_pos.i.hi = var_s1[0];
+        }
+        var_s1 += 2;
     }
 
     obj = find_free_unk_obj();
     if (obj != NULL) {
         obj->active = 1;
-        obj->unk2 = -2;
         obj->id = 0;
+        obj->unk2 = -2;
         obj->x_pos.i.hi = 0x20;
     }
 

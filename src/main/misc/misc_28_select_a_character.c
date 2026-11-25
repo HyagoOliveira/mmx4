@@ -166,15 +166,15 @@ void select_char_portrait_bounce(struct MiscObj* self)
     case 1:
         move_object((struct MovingObj*)self);
         if (self->on_screen == 0) {
-            self->ext.sel_char.blast_timer = 20;
             self->unk7++;
+            self->ext.sel_char.blast_timer = 20;
             return;
         }
         return;
     case 2:
         if (--self->ext.sel_char.blast_timer == 0) {
-            self->x_vel.val = FIXED(-16);
             self->unk7++;
+            self->x_vel.val = FIXED(-16);
             return;
         }
         break;
@@ -293,7 +293,9 @@ void select_char_selector_animate(struct MiscObj* self)
     animate_object(self);
     if (engine_obj.cur_character != self->ext.sel_char.cur_character_selected) {
         self->unk6 = 0;
+#ifndef VERSION_DEMO
         func_8001540C(SATURN_ALT(5, 0), SATURN_SOUND(0, 0x1B), NULL);
+#endif
     }
     self->ext.sel_char.cur_character_selected = engine_obj.cur_character;
 }
@@ -404,19 +406,19 @@ void select_char_charged_shot_fly(struct MiscObj* self)
 // select_char_subtype_funcs state 10, 11
 void select_char_shot_burst(struct MiscObj* self)
 {
-    struct MiscObj* temp_v0;
+    struct MiscObj* misc;
 
     animate_object(self);
     if (self->animation_step.fields.event != 0) {
         self->animation_step.fields.event = 0;
-        temp_v0 = find_free_misc_obj();
+        misc = find_free_misc_obj();
         // create X charged shot object
-        if (temp_v0 != NULL) {
-            temp_v0->active = 0x41;
-            temp_v0->id = 0x1C;
-            temp_v0->unk2 = 9;
-            temp_v0->x_pos.i.hi = self->x_pos.i.hi;
-            temp_v0->y_pos.i.hi = self->y_pos.i.hi;
+        if (misc != NULL) {
+            misc->active = 0x41;
+            misc->id = 0x1C;
+            misc->unk2 = 9;
+            misc->x_pos.i.hi = self->x_pos.i.hi;
+            misc->y_pos.i.hi = self->y_pos.i.hi;
         }
     }
     if (self->animation_step.fields.relative_step == 0) {
@@ -444,14 +446,14 @@ void select_char_character_exit(struct MiscObj* self)
             engine->character_state.fields.flags |= (1 << (self->unk2 - 7));
         }
         if ((s8)engine->character_state.fields.flags & 0x80) {
-            self->unk6 = (u8)self->unk6 + 1;
+            self->unk6++;
             set_animation(self, 4);
         }
         break;
     case 2:
         animate_object(self);
         if (self->animation_step.fields.relative_step == 0) {
-            self->unk6 = (u8)self->unk6 + 1;
+            self->unk6++;
             set_animation(self, 5);
             self->y_vel.val = 0x80000;
         }
@@ -461,7 +463,7 @@ void select_char_character_exit(struct MiscObj* self)
         move_object((struct MovingObj*)self);
         if (self->on_screen == 0) {
             engine->character_state.fields.flags &= ~(1 << (self->unk2 - 7));
-            self->state = (u8)self->state + 1;
+            self->state++;
         }
         break;
     }

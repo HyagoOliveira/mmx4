@@ -69,19 +69,19 @@ void func_8005C860(struct MainObj* self)
     self->contact_damage = 3;
     self->invincibility_timer = 0;
     self->bg_offset = g_Player.bg_offset;
+    self->unk18.val = self->x_pos.val;
+    self->unk1C.val = self->y_pos.val;
     self->collision_data = (const u16*)D_80107274;
-    self->animation_table = (const u8* const*)bomb_bat_animations;
-    self->unk16 = VISUAL_SATURN_LAYER(6);
-    self->hurt_box = (const u8*)&bomb_bat_body_box;
     self->x_speed = 0;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
     self->air_state = 0;
+    self->animation_table = (const u8* const*)bomb_bat_animations;
+    self->unk16 = VISUAL_SATURN_LAYER(6);
     self->terrain_box = NULL;
+    self->hurt_box = (const u8*)&bomb_bat_body_box;
     self->attack_box = (const u8*)D_800FDC88;
-    self->unk18.val = self->x_pos.val;
-    self->unk1C.val = self->y_pos.val;
     set_animation(self, 0);
     self->ext.main_32.unk80 = 0;
     self->ext.main_32.unk84 = 0;
@@ -197,7 +197,7 @@ void bomb_bat_drop_start(struct MainObj* self)
 {
     set_animation(self, 1);
     self->x_speed = 0;
-    self->ext.main_32.unk80 = 5;
+    self->ext.main_32.unk80 = DEMO_ALT(5, 6);
     self->hurt_box = (const u8*)&bomb_bat_body_box;
     self->attack_box = (const u8*)&bomb_bat_body_box;
     self->unk6++;
@@ -301,11 +301,10 @@ void func_8005CF9C(struct MainObj* arg0)
 void bomb_bat_dive_wait(struct MainObj* self)
 {
     s32 unused[1];
-    s16 timer = self->unk7C;
-    if (timer == 0) {
+    if (self->unk7C == 0) {
         self->unk6++;
     } else {
-        self->unk7C = timer - 1;
+        self->unk7C--;
     }
 }
 
@@ -327,23 +326,23 @@ void bomb_bat_face_player(struct MainObj* self)
 
 void bomb_bat_drop_bomb(struct MainObj* self)
 {
-    struct ShotObj* temp_v0;
+    struct ShotObj* shot;
 
-    temp_v0 = find_free_shot_obj();
-    if (temp_v0 != NULL) {
-        temp_v0->active = 0x41;
-        temp_v0->id = 7;
-        temp_v0->unk2 = 0;
-        temp_v0->unk40 = self->unk40;
-        temp_v0->unk42 = self->unk42;
-        temp_v0->animation_table = (u32**)self->animation_table;
-        temp_v0->unk3C = (u8*)self->sprite_frames;
-        temp_v0->bg_offset = self->bg_offset;
-        temp_v0->unk15 = self->unk15;
-        temp_v0->x_pos.val = self->x_pos.val;
-        temp_v0->y_pos.val = self->y_pos.val;
-        temp_v0->unk7C = WEAPON_OBJECT(self);
-        temp_v0->unk16 = VISUAL_SATURN_LAYER(6);
+    shot = find_free_shot_obj();
+    if (shot != NULL) {
+        shot->active = 0x41;
+        shot->id = 7;
+        shot->unk2 = 0;
+        shot->unk40 = self->unk40;
+        shot->unk42 = self->unk42;
+        shot->animation_table = (u32**)self->animation_table;
+        shot->unk3C = (u8*)self->sprite_frames;
+        shot->bg_offset = self->bg_offset;
+        shot->unk15 = self->unk15;
+        shot->x_pos.val = self->x_pos.val;
+        shot->y_pos.val = self->y_pos.val;
+        shot->unk7C = WEAPON_OBJECT(self);
+        shot->unk16 = VISUAL_SATURN_LAYER(6);
     }
 }
 

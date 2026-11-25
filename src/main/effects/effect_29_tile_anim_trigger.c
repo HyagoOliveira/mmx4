@@ -56,7 +56,7 @@ void tile_anim_trigger_init(struct EffectObj* self)
         self->ext.effect_29.palette.fields.unk1 = self->ext.effect_29.palette_source.animation->unused;
         self->ext.effect_29.palette.fields.step = self->ext.effect_29.palette_source.animation->frame_step;
         self->ext.effect_29.palette.fields.id = self->ext.effect_29.palette_source.animation->frame;
-        self->state = (u8)self->state + 1;
+        self->state++;
     }
 }
 
@@ -71,17 +71,21 @@ void tile_anim_trigger_main(struct EffectObj* self)
 
 void tile_anim_trigger_step(struct EffectObj* self)
 {
-    s8 timer;
-
-    timer = self->ext.effect_29.palette.fields.timer - 1;
-    self->ext.effect_29.palette.fields.timer = timer;
-    if (timer == 0) {
-        self->ext.effect_29.palette_source.words += self->ext.effect_29.palette.fields.step;
-        self->ext.effect_29.palette.packed = *self->ext.effect_29.palette_source.words;
-        refresh_visible_tile_effect(self->ext.effect_29.palette.fields.id,
-            self->x_pos.i.hi - tile_anim_trigger_offsets[self->unk2][0],
-            self->y_pos.i.hi - tile_anim_trigger_offsets[self->unk2][1]);
+#ifdef MMX4_GAMECUBE
+    if (func_8002B160(BASE_OBJECT(self)) == 0) {
+#endif
+        if (--self->ext.effect_29.palette.fields.timer == 0) {
+            self->ext.effect_29.palette_source.words += self->ext.effect_29.palette.fields.step;
+            self->ext.effect_29.palette.packed = *self->ext.effect_29.palette_source.words;
+            refresh_visible_tile_effect(self->ext.effect_29.palette.fields.id,
+                self->x_pos.i.hi - tile_anim_trigger_offsets[self->unk2][0],
+                self->y_pos.i.hi - tile_anim_trigger_offsets[self->unk2][1]);
+        }
+#ifdef MMX4_GAMECUBE
+    } else {
+        despawn_object(OBJECT_HEADER(self));
     }
+#endif
 }
 
 void (*tile_anim_trigger_state_funcs[])(struct EffectObj*) = {

@@ -44,25 +44,29 @@ void data_hopper_init(struct MainObj* self)
         mode = 6;
     }
     self->unk5 = mode;
+    self->unk6 = 0;
+    self->unk7C = 0;
+#ifdef VERSION_DEMO
+    self->on_screen = 1;
+#else
+    self->bg_offset = 0;
+#endif
     self->hp = 3;
     self->contact_damage = 3;
+    self->invincibility_timer = 0;
+    self->unk18.val = self->x_pos.val;
+    self->unk1C.val = self->y_pos.val;
     self->animation_table = (const u8* const*)data_hopper_animations;
+    self->hurt_box = NULL;
     self->attack_box = &data_hopper_attack_box;
     self->terrain_box = &data_hopper_terrain_box;
     self->collision_data = D_801060F0;
-    self->unk16 = VISUAL_SATURN_LAYER(5);
-    self->unk6 = 0;
-    self->unk7C = 0;
-    self->bg_offset = 0;
-    self->invincibility_timer = 0;
-    self->hurt_box = NULL;
     self->air_state = 0;
     self->x_speed = 0;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
-    self->unk18.val = self->x_pos.val;
-    self->unk1C.val = self->y_pos.val;
+    self->unk16 = VISUAL_SATURN_LAYER(5);
     ext = &self->ext.main_41;
     ext->unk84 = 0;
     ext->unk83 = 0;
@@ -236,7 +240,7 @@ void func_80062778(struct MainObj* self)
     if (self->ext.main_41.unk80 == direction)
         goto selected;
     animate_object(ANIMATED_OBJECT(self));
-    if ((self->x_speed >= 0 ? self->x_speed : -self->x_speed) >= 0x42000) {
+    if ((self->x_speed < 0 ? -self->x_speed : self->x_speed) >= 0x42000) {
         if (self->ext.main_41.unk80 == 1)
             self->x_speed = 0x42000;
         if (self->ext.main_41.unk80 == 2)
@@ -273,7 +277,9 @@ void data_hopper_blink(struct MainObj* self)
             self->unk5 = 2;
             self->unk6 = 0;
             if (self->on_screen != 0) {
+#ifndef VERSION_DEMO
                 func_8001540C(2, SATURN_SOUND(0xEB, 0xAC), self);
+#endif
             }
             return;
         }
@@ -309,6 +315,7 @@ void data_hopper_vanish(struct MainObj* self)
         if (self->animation_step.fields.relative_step < 0) {
             self->unk7C = animation_count + 1;
         }
+        animate_object(ANIMATED_OBJECT(self));
         break;
     case 2:
         if (self->animation_step.fields.relative_step < 0) {
@@ -317,20 +324,24 @@ void data_hopper_vanish(struct MainObj* self)
             self->unk6 = 0;
             return;
         }
+        animate_object(ANIMATED_OBJECT(self));
         break;
-    default:
-        return;
     }
-    animate_object(ANIMATED_OBJECT(self));
 }
 
 // data_hopper_check_player
+#ifdef VERSION_DEMO
+#define DATA_HOPPER_OPENS_CAPSULES 0
+#else
+#define DATA_HOPPER_OPENS_CAPSULES 1
+#endif
+
 void func_80062AEC(struct MainObj* self)
 {
     struct ItemObj* item;
 
     for (item = item_objects; item < item_objects + COUNT(item_objects); item++) {
-        if ((item->active != 0) && (item->id == 0x13) && ((u8)(item->unk2 - 1) < 3)) {
+        if (DATA_HOPPER_OPENS_CAPSULES && (item->active != 0) && (item->id == 0x13) && ((u8)(item->unk2 - 1) < 3)) {
             if (func_8002C160(self, item) != 0) {
                 self->unk5 = 7;
                 self->unk6 = 0;
@@ -346,8 +357,10 @@ void func_80062BBC(struct MainObj* self)
 {
     s32 status;
 
-    self->unk18 = self->x_pos;
+#ifndef VERSION_DEMO
     self->on_screen = 0;
+#endif
+    self->unk18 = self->x_pos;
     self->unk1C = self->y_pos;
     if (self->unk5 != 7)
         func_80062AEC(self);
@@ -397,6 +410,179 @@ void data_hopper_despawn(struct MainObj* self)
     }
 }
 
+#ifdef VERSION_DEMO
+union AnimationStep data_hopper_anim_0[] = {
+    { 5, 0, 1, 0x00 },
+    { 5, 1, 1, 0x01 },
+    { 5, 2, 1, 0x02 },
+    { 5, 3, 1, 0x03 },
+    { 5, 4, 1, 0x04 },
+    { 5, 5, -5, 0x05 },
+};
+
+union AnimationStep data_hopper_anim_1[] = {
+    { 2, 0, 1, 0x06 },
+    { 2, 0, 1, 0x07 },
+    { 2, 0, 1, 0x08 },
+    { 2, 0, 1, 0x09 },
+    { 2, 0, 1, 0x0A },
+    { 2, 0, -5, 0x0B },
+};
+
+union AnimationStep data_hopper_anim_2[] = {
+    { 1, 0, 1, 0x0F },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x0F },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x0F },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x10 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x11 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x12 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x13 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x14 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x15 },
+    { 1, 0, -17, 0x3B },
+};
+
+union AnimationStep data_hopper_anim_3[] = {
+    { 1, 0, 1, 0x16 },
+    { 1, 0, 1, 0x17 },
+    { 1, 0, -2, 0x18 },
+};
+
+union AnimationStep data_hopper_anim_4[] = {
+    { 4, 0, 1, 0x00 },
+    { 5, 0, 1, 0x0C },
+    { 6, 0, 1, 0x0D },
+    { 7, 0, 1, 0x0E },
+    { 6, 0, 1, 0x0D },
+    { 5, 0, 1, 0x0C },
+    { 4, 0, 1, 0x1C },
+    { 1, 0, 0, 0x1D },
+};
+
+union AnimationStep data_hopper_anim_5[] = {
+    { 5, 0, 1, 0x19 },
+    { 6, 0, 1, 0x1A },
+    { 7, 0, 1, 0x1B },
+    { 8, 0, 1, 0x1C },
+    { 9, 0, 0, 0x1D },
+};
+
+union AnimationStep data_hopper_anim_6[] = {
+    { 5, 0, 1, 0x1E },
+    { 6, 0, 1, 0x1F },
+    { 7, 0, 1, 0x20 },
+    { 8, 0, 1, 0x21 },
+    { 9, 0, 0, 0x22 },
+};
+
+union AnimationStep data_hopper_anim_7[] = {
+    { 5, 0, 1, 0x23 },
+    { 6, 0, 1, 0x24 },
+    { 7, 0, 1, 0x25 },
+    { 8, 0, 1, 0x26 },
+    { 9, 0, 0, 0x27 },
+};
+
+union AnimationStep data_hopper_anim_8[] = {
+    { 5, 0, 1, 0x28 },
+    { 6, 0, 1, 0x29 },
+    { 7, 0, 1, 0x2A },
+    { 8, 0, 1, 0x2B },
+    { 9, 0, 0, 0x2C },
+};
+
+union AnimationStep data_hopper_anim_9[] = {
+    { 5, 0, 1, 0x2D },
+    { 6, 0, 1, 0x2E },
+    { 7, 0, 1, 0x2F },
+    { 8, 0, 1, 0x30 },
+    { 9, 0, 0, 0x31 },
+};
+
+union AnimationStep data_hopper_anim_10[] = {
+    { 5, 0, 1, 0x32 },
+    { 6, 0, 1, 0x33 },
+    { 7, 0, 1, 0x34 },
+    { 8, 0, 1, 0x35 },
+    { 9, 0, 0, 0x36 },
+};
+
+union AnimationStep data_hopper_anim_11[] = {
+    { 1, 0, 1, 0x16 },
+    { 1, 0, 1, 0x3C },
+    { 1, 0, -2, 0x3D },
+};
+
+union AnimationStep data_hopper_anim_12[] = {
+    { 1, 0, 1, 0x16 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x15 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x14 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x13 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x12 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x11 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x10 },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x0F },
+    { 1, 0, 1, 0x3B },
+    { 1, 0, 1, 0x0F },
+    { 1, 0, -17, 0x3B },
+};
+
+union AnimationStep data_hopper_anim_14[] = {
+    { 1, 0, 0, 0x37 },
+};
+
+union AnimationStep data_hopper_anim_15[] = {
+    { 1, 0, 0, 0x38 },
+};
+
+union AnimationStep data_hopper_anim_16[] = {
+    { 1, 0, 0, 0x39 },
+};
+
+union AnimationStep data_hopper_anim_17[] = {
+    { 1, 0, 0, 0x3A },
+};
+
+union AnimationStep data_hopper_anim_13[] = {
+    { 9, 0, 0, 0x1D },
+};
+
+union AnimationStep* data_hopper_animations[DEMO_ALT(19, 18)] = {
+    data_hopper_anim_0,
+    data_hopper_anim_1,
+    data_hopper_anim_2,
+    data_hopper_anim_3,
+    data_hopper_anim_4,
+    data_hopper_anim_5,
+    data_hopper_anim_6,
+    data_hopper_anim_7,
+    data_hopper_anim_8,
+    data_hopper_anim_9,
+    data_hopper_anim_10,
+    data_hopper_anim_11,
+    data_hopper_anim_12,
+    data_hopper_anim_13,
+    data_hopper_anim_14,
+    data_hopper_anim_15,
+    data_hopper_anim_16,
+    data_hopper_anim_17,
+};
+#else
 union AnimationStep data_hopper_anim_0[] = {
     { 5, 0, 1, 0x00 },
     { 5, 1, 1, 0x01 },
@@ -682,6 +868,7 @@ union AnimationStep* data_hopper_animations[19] = {
     data_hopper_anim_17,
     data_hopper_anim_18,
 };
+#endif
 
 struct Unk_unk68 data_hopper_hurt_box = { 14, 15, 16, 17 };
 

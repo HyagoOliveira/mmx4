@@ -414,6 +414,88 @@ jobs:
           path: info-reports
           if-no-files-found: error
 
+  build-psx-mod:
+    name: Build PSX mod build (us)
+    if: github.event_name != 'pull_request_target'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install requirements
+        run: sudo apt-get install --yes gcc-mipsel-linux-gnu ninja-build
+      - name: Clone main repo
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Get submodules
+        run: git submodule update --init tools/maspsx tools/psy-q-decomp
+      - name: Get Compiler
+        run: sh compiler.sh
+      - name: Configure
+        run: python3 tools/psx_mod/configure.py --version us
+      - name: Build
+        run: ninja -f build/us-mod/build.ninja
+
+  build-demo:
+    name: Build PSX (demo)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment:
+      name: ${{ github.event_name == 'pull_request_target' && 'private-ci' || 'ci' }}
+    env:
+      VERSION: demo
+    steps:
+      - name: Install requirements
+        run: sudo apt-get install gcc-mipsel-linux-gnu ninja-build
+      - name: Install python requirements
+        run: pip3 install splat64==0.24.6 spimdisasm==1.26.0 rabbitizer==1.11.0 n64img==0.3.3 pygfxd crunch64 tabulate
+      - name: Clone main repo
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          submodules: true
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Get dependencies
+        uses: actions/checkout@v7
+        with:
+          repository: sozud/mmx4-deps
+          ref: main
+          token: ${{ secrets.MMX4_DEPS_TOKEN }}
+          path: 'disks/dependencies'
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: exe/X4.EXE
+      - name: Setting up dependencies
+        id: deps
+        run: |
+          if [ -f disks/dependencies/exe/X4.EXE ]; then
+            mkdir -p disks/demo
+            cp disks/dependencies/exe/X4.EXE disks/demo/
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::exe/X4.EXE (SLPM-80121 demo disc) is not in mmx4-deps; skipping the demo build"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get Compiler
+        if: steps.deps.outputs.present == 'true'
+        run: sh compiler.sh
+      - name: Split game data
+        if: steps.deps.outputs.present == 'true'
+        run: sh split.sh
+      - name: Build binaries
+        if: steps.deps.outputs.present == 'true'
+        run: sh build.sh
+      - name: Generate progress report
+        if: steps.deps.outputs.present == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: sh progress_report.sh
+      - name: Upload progress report
+        if: steps.deps.outputs.present == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo_report
+          path: build/demo/report.json
+
   publish-info:
     name: Publish reports to mmx4-info
     needs: [build-linux, oracle-scene-suite, build-and-test]
@@ -469,3 +551,46 @@ jobs:
       - name: Build Saturn image
         run: |
           python3 tools/saturn/saturn_native_build.py --output build/saturn-native --jobs $(nproc) --no-disc
+
+  gamecube:
+    name: Build GameCube (x4.rel)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment:
+      name: ${{ github.event_name == 'pull_request_target' && 'private-ci' || 'ci' }}
+    steps:
+      - name: Clone main repo
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Install requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ninja-build
+      - name: Get game dependencies
+        uses: actions/checkout@v7
+        with:
+          repository: sozud/mmx4-deps
+          ref: main
+          token: ${{ secrets.MMX4_DEPS_TOKEN }}
+          path: gc/orig/dependencies
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: gc/GXGE08/
+      - name: Set up the disc files
+        run: mv gc/orig/dependencies/gc/GXGE08 gc/orig/GXGE08
+      - name: Build and check x4.rel
+        working-directory: gc
+        run: |
+          python3 configure.py
+          ninja
+      - name: Upload progress report
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gc_report
+          path: gc/build/GXGE08/report.json

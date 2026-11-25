@@ -7,6 +7,7 @@
 #include "main/collision.h"
 #include "main/objects.h"
 #include "main/player_common.h"
+#include "main/player_special.h"
 
 // soul_body_state_funcs
 extern void (*soul_body_state_funcs[])(struct WeaponObj*);
@@ -26,15 +27,17 @@ void soul_body_load_palette(s16);
 
 void soul_body_update(struct WeaponObj* arg0)
 {
-    s32 var_a1;
+    u32 var_a1;
 
     var_a1 = 0;
     if (g_Player.input_locked != 0) {
         var_a1 = 1;
     }
+#ifndef VERSION_DEMO
     if (g_Player.capsule_state != 0) {
         var_a1 = 1;
     }
+#endif
     if (g_Player.weapon != 3) {
         var_a1 = 1;
     }
@@ -73,8 +76,8 @@ void soul_body_init(struct WeaponObj* arg0)
     weapon_3->unk90 = 0;
     weapon_3->unk91 = 8;
     func_8001540C(1, 9, arg0);
+    arg0->state++;
     arg0->unk5 = 0;
-    arg0->state = (u8)arg0->state + 1;
     update_on_screen(BASE_OBJECT(arg0), 0x80, 0x20);
 }
 
@@ -120,9 +123,9 @@ void soul_body_extend(struct WeaponObj* arg0)
     arg0->on_screen = 1;
     offset_ptr = (s16*)&arg0->ext.weapon_3.offset;
     if (arg0->unk15 != 0) {
-        arg0->x_pos.i.hi = g_Player.x_pos.u.hi + *offset_ptr;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi + *offset_ptr;
     } else {
-        arg0->x_pos.i.hi = g_Player.x_pos.u.hi - *offset_ptr;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi - *offset_ptr;
     }
 
     offset = *(s16*)offset_ptr;
@@ -140,9 +143,9 @@ void soul_body_hold(struct WeaponObj* arg0)
 
     field_8c = &arg0->ext.weapon_3.offset;
     if (arg0->unk15 != 0) {
-        arg0->x_pos.i.hi = g_Player.x_pos.u.hi + 0x40;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi + 0x40;
     } else {
-        arg0->x_pos.i.hi = g_Player.x_pos.u.hi - 0x40;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi - 0x40;
     }
 
     temp_v0 = field_8c[1];
@@ -168,9 +171,9 @@ void soul_body_retract(struct WeaponObj* arg0)
     arg0->on_screen = 1;
     field_8c = &arg0->ext.weapon_3.offset;
     if (arg0->unk15 != 0) {
-        arg0->x_pos.i.hi = (u16)g_Player.x_pos.i.hi + *field_8c;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi + *field_8c;
     } else {
-        arg0->x_pos.i.hi = (u16)g_Player.x_pos.i.hi - *field_8c;
+        arg0->x_pos.i.hi = g_Player.x_pos.i.hi - *field_8c;
     }
 
     temp_v0 = (s16)*field_8c;
@@ -207,10 +210,10 @@ void soul_body_load_palette(s16 arg0)
 
 void soul_body_clone_update(void)
 {
-    s32 var_a0;
+    u32 var_a0;
     struct PlayerObj* player = &g_Player;
-    struct BackgroundObj* obj;
     struct PlayerObj* entity = &g_Entity;
+    struct BackgroundObj* obj;
 
     obj = &background_objects[player->bg_offset];
     if (entity->active != 0) {
@@ -218,9 +221,11 @@ void soul_body_clone_update(void)
         if (player->input_locked != 0) {
             var_a0 = 1;
         }
+#ifndef VERSION_DEMO
         if (player->capsule_state != 0) {
             var_a0 = 1;
         }
+#endif
         if (player->weapon != 3) {
             var_a0 = 1;
         }
@@ -237,15 +242,17 @@ void soul_body_clone_update(void)
             entity->active = 0;
             entity->on_screen = 0;
             player->controlling_clone = 0;
+#ifndef VERSION_DEMO
             player->spike_immune = 0;
+#endif
             return;
         }
         engine_obj.controlled_player = entity;
-        if (entity->unk5 != 0x25) {
+        if (entity->unk5 != PLAYER_SOUL_BODY_VANISH) {
             if (--entity->clone_timer == 0) {
-                player_set_animation(entity, 0x62);
+                player_set_animation(entity, DEMO_ALT(0x62, 0x59));
                 entity->on_screen = 1;
-                entity->unk5 = 0x25;
+                entity->unk5 = PLAYER_SOUL_BODY_VANISH;
             }
         }
         entity->unk18.val = entity->x_pos.val;
@@ -272,6 +279,12 @@ void soul_body_clone_update(void)
     }
 }
 
+#ifdef VERSION_DEMO
+extern struct Unk_unk68 soul_body_hit_box[];
+extern void (*soul_body_state_funcs[])(struct WeaponObj*);
+extern void (*soul_body_step_funcs[])(struct WeaponObj*);
+extern u8 soul_body_palettes[];
+#else
 struct Unk_unk68 soul_body_hit_box[] = {
     { -21, -24, 0x28, 0x30 },
 };
@@ -299,3 +312,23 @@ u8 soul_body_palettes[] = {
     0x00,
     0x00,
 };
+#endif
+
+#ifdef VERSION_DEMO
+void (*soul_body_state_funcs[4])(struct WeaponObj*) = {
+    soul_body_init,
+    soul_body_main,
+    soul_body_despawn,
+    soul_body_despawn,
+};
+
+struct Unk_unk68 soul_body_hit_box[1] = { { -21, -24, 40, 48 } };
+
+void (*soul_body_step_funcs[3])(struct WeaponObj*) = {
+    soul_body_extend,
+    soul_body_hold,
+    soul_body_retract,
+};
+
+u8 soul_body_palettes[8] = { 0x35, 0x36, 0x37, 0x38, 0x37, 0x36, 0, 0 };
+#endif

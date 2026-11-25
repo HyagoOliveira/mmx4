@@ -11,13 +11,16 @@
 #include "main/128C4.h"
 #include "main/3D88.h"
 #include "main/CB184.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #include "main/collision_bounds.h"
 #include "main/1E1BC.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/1E1BC.h"
 #include "main/collision_bounds.h"
+#endif
+#ifdef MMX4_GAMECUBE
+extern u8 gc_sigma_music_opened;
 #endif
 
 extern struct Unk_unk68 D_80105374;
@@ -218,6 +221,7 @@ void double_death(struct MainObj* self);
 
 void double_update(struct MainObj* self);
 
+#ifndef VERSION_DEMO
 s32 sigma_spawn_sequencer(struct MainObj* self, s8 arg1)
 {
     struct EffectObj* effect;
@@ -232,7 +236,9 @@ s32 sigma_spawn_sequencer(struct MainObj* self, s8 arg1)
         sigma_sequencer = effect;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_emit_explosions(struct MainObj* self)
 {
     if (--self->ext.main_74.unk97 == 0) {
@@ -240,7 +246,9 @@ void sigma_emit_explosions(struct MainObj* self)
         func_800AF95C(OBJECT_HEADER(self), 1, 0x60, 0x60, 2);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_intro_lock_camera(struct MainObj* self)
 {
     D_8013B8B8 = 0;
@@ -255,11 +263,16 @@ void sigma_final_intro_lock_camera(struct MainObj* self)
     self->unk5++;
     D_80141BD0 = 1;
 #else
-    self->ext.main_74.timer = 0x64;
     self->unk5++;
+    self->ext.main_74.timer = 0x64;
+#ifdef MMX4_GAMECUBE
+    gc_sigma_music_opened = 0;
+    self->unk7 = 0;
+#endif
     func_80016FB4(3);
 #endif
 }
+#endif
 
 #ifdef MMX4_SATURN
 void sigma_final_intro_start_music(struct MainObj* self)
@@ -281,6 +294,57 @@ void sigma_final_intro_wait_load(struct MainObj* self)
     }
 }
 #else
+#ifndef VERSION_DEMO
+#ifdef MMX4_GAMECUBE
+s32 fn_4_12B4(s32 index);
+s32 fn_4_1290(s32 index, u8 arg1, CdLoadAddress dest);
+s32 fn_4_1288(void);
+void fn_4_1284(void);
+extern u8 gc_sigma_music_opened;
+extern s32 gc_sigma_music_timer;
+
+void sigma_final_intro_start_music(struct MainObj* self)
+{
+    s32 status;
+
+    switch (self->unk7) {
+    case 0:
+        if (--self->ext.main_74.timer == 0) {
+            gc_sigma_music_opened = 1;
+            self->unk7 = 1;
+        }
+        break;
+    case 1:
+        if (fn_4_12B4(0x81) != 0) {
+            self->unk7 = 2;
+        }
+        break;
+    case 2:
+        if (fn_4_1290(0x81, 4, D_80141F30[2]) != 0) {
+            self->unk7 = 3;
+            gc_sigma_music_timer = 0x708;
+        }
+        break;
+    case 3:
+        gc_disc_error_screen();
+        status = fn_4_1288();
+        if (status == 0) {
+            if (gc_sigma_music_timer <= 0) {
+                self->unk7 = 1;
+            }
+            gc_sigma_music_timer--;
+        } else if (status == 1) {
+            self->unk7 = 4;
+            fn_4_1284();
+        }
+        break;
+    case 4:
+        self->unk5++;
+        self->unk7 = 0;
+        break;
+    }
+}
+#else
 void sigma_final_intro_start_music(struct MainObj* self)
 {
     if (--self->ext.main_74.timer == 0) {
@@ -296,7 +360,10 @@ void sigma_final_intro_start_music(struct MainObj* self)
         self->unk5++;
     }
 }
+#endif
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_intro_wait_load(struct MainObj* self)
 {
     if ((D_801406AC == 2) && (D_8013BD40 == 0)) {
@@ -305,16 +372,22 @@ void sigma_final_intro_wait_load(struct MainObj* self)
     }
 }
 #endif
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_intro_load(struct MainObj* self)
 {
 #ifdef MMX4_SATURN
     saturn_music_request(14, 0, 0, 0);
 #else
     func_8001653C();
+#ifdef MMX4_GAMECUBE
+    gc_sigma_music_opened = 0;
+#endif
 #endif
     self->unk5++;
 }
+#endif
 
 // sigma_final_init
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
@@ -341,6 +414,7 @@ void func_8008F578(struct MainObj* self);
 #endif
 
 extern void* sigma_final_animations[39];
+#ifndef VERSION_DEMO
 void func_8008D5C8(struct MainObj* arg0)
 {
     struct ShotObj* shot;
@@ -390,17 +464,19 @@ void func_8008D5C8(struct MainObj* arg0)
     arg0->contact_damage = 9;
     engine_obj.boss_ptr = arg0;
     engine_obj.unk25 = 0;
-    arg0->unk5 = 3;
     arg0->state++;
+    arg0->unk5 = 3;
     arg0->unk6 = 0;
     arg0->unk7 = 0;
     arg0->ext.main_74.target = 0;
     arg0->ext.main_74.upper_health = 0;
     arg0->ext.main_74.lower_health = 0x30;
 }
+#endif
 
 #define MAIN_74_COLLISION_BOUNDS D_8013B8B4
 
+#ifndef VERSION_DEMO
 void sigma_final_set_target(struct MainObj* self, s32 arg1)
 {
     switch (arg1 & 0xFF) {
@@ -412,31 +488,41 @@ void sigma_final_set_target(struct MainObj* self, s32 arg1)
     case 1:
         D_8013B8B0 = &D_80105368;
         MAIN_74_COLLISION_BOUNDS = &D_8010536C;
+        self->attack_box = &D_8010535C;
         self->hp = self->ext.main_74.upper_health;
         self->unk5D = self->ext.main_74.upper_health;
-        self->attack_box = &D_8010535C;
         break;
     case 2:
         D_8013B8B0 = 0;
         MAIN_74_COLLISION_BOUNDS = &D_80105370;
+        self->attack_box = &D_80105360;
         self->hp = self->ext.main_74.lower_health;
         self->unk5D = self->ext.main_74.lower_health;
-        self->attack_box = &D_80105360;
         break;
     }
 
     self->ext.main_74.target = arg1;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_intro(struct MainObj* self)
 {
     sigma_final_intro_funcs[self->unk5](self);
 }
+#endif
 
 void sigma_final_idle(struct MainObj* self)
 {
 }
 
+#ifdef VERSION_DEMO
+void func_80083334_demo(struct MainObj* self)
+{
+}
+#endif
+
+#ifndef VERSION_DEMO
 void sigma_final_appear_start(struct MainObj* self)
 {
     self->x_pos.i.hi = 0x567;
@@ -446,7 +532,9 @@ void sigma_final_appear_start(struct MainObj* self)
     func_8001540C(2, SATURN_SOUND(9, 0xED), self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_appear_pose(struct MainObj* self)
 {
     if (self->animation_step.fields.relative_step < 0) {
@@ -460,7 +548,9 @@ void sigma_final_appear_pose(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_appear_dialogue(struct MainObj* self)
 {
     if (abc_object.unkC == 0) {
@@ -472,7 +562,9 @@ void sigma_final_appear_dialogue(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_appear_fill_health(struct MainObj* self)
 {
 
@@ -484,6 +576,7 @@ void sigma_final_appear_fill_health(struct MainObj* self)
             }
             self->hp++;
         }
+        update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
     } else {
         set_animation(self, 0);
         self->unk5 = 2;
@@ -492,14 +585,17 @@ void sigma_final_appear_fill_health(struct MainObj* self)
         D_8013B8B0 = &D_80105368;
         MAIN_74_COLLISION_BOUNDS = &D_8010536C;
         player_end_script_action();
+        update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
     }
-    update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_appear(struct MainObj* self)
 {
     sigma_final_appear_funcs[self->unk6](self);
 }
+#endif
 
 // sigma_final_pick_attack
 #ifdef VERSION_EU
@@ -569,6 +665,7 @@ void func_8008DAE8(struct MainObj* self)
     }
 }
 #else
+#ifndef VERSION_DEMO
 void func_8008DAE8(struct MainObj* self)
 {
     if (D_8013B8A0 != 0) {
@@ -635,14 +732,18 @@ void func_8008DAE8(struct MainObj* self)
     }
 }
 #endif
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser_start(struct MainObj* self)
 {
     sigma_spawn_sequencer(self, 5);
     self->unk7C = 5;
     self->unk6++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser_aim(struct MainObj* self)
 {
     if (g_Player.y_pos.i.hi < 0x250) {
@@ -658,7 +759,9 @@ void sigma_final_laser_aim(struct MainObj* self)
         sigma_final_laser_animations[self->ext.main_74.animation_index * 2]);
     self->unk6++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser_fire(struct MainObj* self)
 {
     struct QuadObj* quad;
@@ -687,7 +790,9 @@ void sigma_final_laser_fire(struct MainObj* self)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser_wait(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
@@ -698,7 +803,9 @@ void sigma_final_laser_wait(struct MainObj* self)
             sigma_final_laser_animations[self->ext.main_74.animation_index * 2 + 1]);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser_repeat(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
@@ -711,13 +818,17 @@ void sigma_final_laser_repeat(struct MainObj* self)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_laser(struct MainObj* self)
 {
     sigma_final_laser_funcs[self->unk6](self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam_start(struct MainObj* self)
 {
     self->ext.main_74.animation_index = 1;
@@ -727,7 +838,9 @@ void sigma_final_big_beam_start(struct MainObj* self)
     func_8001540C(2, SATURN_SOUND(1, 0xE5), self);
     self->unk6++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam_charge(struct MainObj* self)
 {
     struct MiscObj* miscObj;
@@ -749,11 +862,16 @@ void sigma_final_big_beam_charge(struct MainObj* self)
             shotObj->unk2 = self->ext.main_74.animation_index + 4;
             shotObj->unk7C = WEAPON_OBJECT(self);
         }
+#ifdef MMX4_GAMECUBE
+        func_8001540C(2, 1, self);
+#endif
         self->unk6++;
         D_8013B8A8 = OBJECT_HEADER(miscObj);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam_fire(struct MainObj* self)
 {
     struct QuadObj* quad;
@@ -771,7 +889,9 @@ void sigma_final_big_beam_fire(struct MainObj* self)
         self->unk6++;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam_wait(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
@@ -785,7 +905,9 @@ void sigma_final_big_beam_wait(struct MainObj* self)
         self->unk6++;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam_recover(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
@@ -794,13 +916,17 @@ void sigma_final_big_beam_recover(struct MainObj* self)
         self->unk6 = 0;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_big_beam(struct MainObj* self)
 {
     sigma_final_big_beam_funcs[self->unk6](self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_upper_start(struct MainObj* self)
 {
     self->ext.main_74.unk8C = 3;
@@ -809,10 +935,12 @@ void sigma_final_hide_upper_start(struct MainObj* self)
     func_8001540C(2, SATURN_SOUND(9, 0xED), self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_upper_wait(struct MainObj* self)
 {
-    s32 count;
+    u32 count;
     u32 i;
 
     count = 0;
@@ -836,12 +964,16 @@ void sigma_final_hide_upper_wait(struct MainObj* self)
     self->x_pos.i.hi = 0;
     self->y_pos.i.hi = 0;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_upper(struct MainObj* self)
 {
     sigma_final_hide_upper_funcs[self->unk6](self);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_upper_start(struct MainObj* self)
 {
     self->contact_damage = 9;
@@ -852,7 +984,9 @@ void sigma_final_show_upper_start(struct MainObj* self)
     set_animation(self, 0x18);
     func_8001540C(2, SATURN_SOUND(9, 0xED), self);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_upper_wait(struct MainObj* self)
 {
     if (self->animation_step.fields.relative_step < 0) {
@@ -863,13 +997,17 @@ void sigma_final_show_upper_wait(struct MainObj* self)
 
     animate_object(ANIMATED_OBJECT(self));
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_upper(struct MainObj* self)
 {
     sigma_final_show_upper_funcs[self->unk6](self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_lower_start(struct MainObj* self)
 {
     self->ext.main_74.unk8C = 3;
@@ -878,11 +1016,13 @@ void sigma_final_hide_lower_start(struct MainObj* self)
     func_8001540C(2, SATURN_SOUND(9, 0xED), self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_lower_wait(struct MainObj* self)
 {
     u32 i;
-    s32 count = 0;
+    u32 count = 0;
     for (i = 0; i < COUNT(self->ext.main_74.children); i++) {
         if (((struct Main74Ext*)&self->ext)->children[i]->unk5 == 3) {
             count++;
@@ -903,12 +1043,16 @@ void sigma_final_hide_lower_wait(struct MainObj* self)
     self->x_pos.i.hi = 0;
     self->y_pos.i.hi = 0;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_hide_lower(struct MainObj* self)
 {
     sigma_final_hide_lower_funcs[self->unk6](self);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_lower_start(struct MainObj* self)
 {
     self->contact_damage = 9;
@@ -919,7 +1063,9 @@ void sigma_final_show_lower_start(struct MainObj* self)
     set_animation(self, 0x1A);
     func_8001540C(2, SATURN_SOUND(9, 0xED), self);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_lower_wait(struct MainObj* self)
 {
     if (self->animation_step.fields.relative_step < 0) {
@@ -929,13 +1075,17 @@ void sigma_final_show_lower_wait(struct MainObj* self)
     }
     animate_object(ANIMATED_OBJECT(self));
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_show_lower(struct MainObj* self)
 {
     sigma_final_show_lower_funcs[self->unk6](self);
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_grab_start(struct MainObj* self)
 {
     sigma_spawn_sequencer(self, 7);
@@ -947,8 +1097,10 @@ void sigma_final_grab_start(struct MainObj* self)
     self->unk6++;
     func_8001540C(2, SATURN_SOUND(0xB, 0xEF), self);
 }
+#endif
 
 // sigma_final_grab_hold
+#ifndef VERSION_DEMO
 void func_8008E748(struct MainObj* self)
 {
     struct ShotObj* shot;
@@ -957,17 +1109,17 @@ void func_8008E748(struct MainObj* self)
 
     if (g_Player.stun_timer != 0) {
         self->unk7C = 0x1E;
-        g_Player.x_pos.u.hi = self->x_pos.u.hi + 0x10;
-        g_Player.y_pos.u.hi = self->y_pos.u.hi + 0x10;
+        g_Player.x_pos.i.hi = self->x_pos.i.hi + 0x10;
+        g_Player.y_pos.i.hi = self->y_pos.i.hi + 0x10;
         set_animation(self, 5);
         self->unk6++;
         return;
     }
 
     if (g_Player.x_pos.i.hi > self->x_pos.i.hi + 0x10) {
-        g_Player.x_pos.u.hi -= 3;
+        g_Player.x_pos.i.hi -= 3;
     } else {
-        g_Player.x_pos.u.hi += 3;
+        g_Player.x_pos.i.hi += 3;
     }
 
     if (self->unk7C != 0) {
@@ -989,8 +1141,8 @@ void func_8008E748(struct MainObj* self)
             }
         }
         if (!found) {
-            self->contact_damage = 9;
             self->unk62 = 0;
+            self->contact_damage = 9;
             self->unk5 = 0xB;
             self->unk6 = 0;
             STOP_SOUND(2, 0xB, 0x5);
@@ -998,16 +1150,16 @@ void func_8008E748(struct MainObj* self)
     }
     animate_object(ANIMATED_OBJECT(self));
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_grab_release(struct MainObj* self)
 {
     struct ShotObj* current;
     s32 found;
-    s16 timer;
 
-    timer = self->unk7C;
-    if (timer != 0) {
-        self->unk7C = timer - 1;
+    if (self->unk7C != 0) {
+        self->unk7C--;
         return;
     }
 
@@ -1030,7 +1182,9 @@ void sigma_final_grab_release(struct MainObj* self)
         self->unk6++;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_grab_finish(struct MainObj* self)
 {
     self->unk62 = 0;
@@ -1038,7 +1192,9 @@ void sigma_final_grab_finish(struct MainObj* self)
     self->unk5 = 0xB;
     self->unk6 = 0;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_grab(struct MainObj* self)
 {
     sigma_final_grab_funcs[self->unk6](self);
@@ -1049,7 +1205,9 @@ void sigma_final_grab(struct MainObj* self)
     }
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_spit_open(struct MainObj* self)
 {
     set_animation(self, 3);
@@ -1057,7 +1215,9 @@ void sigma_final_spit_open(struct MainObj* self)
     self->unk6++;
     self->attack_box = (const u8*)&D_80105360;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_spit_wait(struct MainObj* self)
 {
     if (--self->unk7C == 0) {
@@ -1066,7 +1226,9 @@ void sigma_final_spit_wait(struct MainObj* self)
         self->unk7C = 0xF1;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_spit_fire(struct MainObj* self)
 {
     s16 timer;
@@ -1085,13 +1247,15 @@ void sigma_final_spit_fire(struct MainObj* self)
             shot->active = 0x41;
             shot->id = 0x38;
             shot->unk2 = 1;
-            shot->x_pos.i.hi = (u16)self->x_pos.i.hi + 0x10;
-            shot->y_pos.i.hi = (u16)self->y_pos.i.hi + 0x10;
+            shot->x_pos.i.hi = self->x_pos.i.hi + 0x10;
+            shot->y_pos.i.hi = self->y_pos.i.hi + 0x10;
             shot->unk7C = WEAPON_OBJECT(self);
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_spit(struct MainObj* self)
 {
     sigma_final_spit_funcs[self->unk6](self);
@@ -1102,8 +1266,10 @@ void sigma_final_spit(struct MainObj* self)
         D_8013B8B0 = NULL;
     }
 }
+#endif
 
 // sigma_final_wind_spikes
+#ifndef VERSION_DEMO
 void func_8008EC48(struct MainObj* self)
 {
     struct ShotObj* shot;
@@ -1125,15 +1291,16 @@ void func_8008EC48(struct MainObj* self)
     }
     self->unk6++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_wind_start(struct MainObj* self)
 {
     struct MiscObj* miscObj;
 
-    self->unk7C--;
-    if (self->unk7C == 0) {
-        self->unk7C = 0x3C;
+    if (--self->unk7C == 0) {
         self->unk6++;
+        self->unk7C = 0x3C;
     }
     if ((self->unk7C % 10) == 0) {
         func_8001540C(2, SATURN_SOUND(0xA, 0xEE), self);
@@ -1146,7 +1313,9 @@ void sigma_final_wind_start(struct MainObj* self)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_wind_push(struct MainObj* self)
 {
     struct MiscObj* misc;
@@ -1155,8 +1324,8 @@ void sigma_final_wind_push(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
 
     if (--self->unk7C == 0) {
-        self->unk7C = 0x5A;
         self->unk6++;
+        self->unk7C = 0x5A;
     }
     if (self->unk7C % 10 == 0) {
         func_8001540C(2, SATURN_SOUND(10, 0xEE), self);
@@ -1169,22 +1338,26 @@ void sigma_final_wind_push(struct MainObj* self)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_wind_push_hard(struct MainObj* self)
 {
     g_Player.x_pos.i.hi += 4;
     animate_object(ANIMATED_OBJECT(self));
 
     if (--self->unk7C == 0) {
-        self->unk7C = 0x5A;
         self->unk6++;
+        self->unk7C = 0x5A;
     }
 
     if (self->unk7C % 10 == 0) {
         func_8001540C(2, SATURN_SOUND(0xA, 0xEE), self);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_wind_finish(struct MainObj* self)
 {
     if (--self->unk7C == 0) {
@@ -1196,7 +1369,9 @@ void sigma_final_wind_finish(struct MainObj* self)
         func_8001540C(2, SATURN_SOUND(10, 0xEE), self);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_wind(struct MainObj* self)
 {
     sigma_final_wind_funcs[self->unk6](self);
@@ -1207,7 +1382,9 @@ void sigma_final_wind(struct MainObj* self)
     }
     D_8013B8B0 = NULL;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_summon_start(struct MainObj* self)
 {
     u8 choice = (u32)(get_random() & 0xFF) % 3;
@@ -1224,7 +1401,9 @@ void sigma_final_summon_start(struct MainObj* self)
     }
     self->unk6++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_summon_wait(struct MainObj* self)
 {
     if (sigma_sequencer->active == 0) {
@@ -1233,21 +1412,25 @@ void sigma_final_summon_wait(struct MainObj* self)
         D_8013B8A0 = 0x1E;
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_summon(struct MainObj* self)
 {
     sigma_final_summon_funcs[self->unk6](self);
 }
+#endif
 
 // sigma_final_fight
+#ifndef VERSION_DEMO
 void func_8008F1A8(struct MainObj* self)
 {
     s32 hit;
 
     sigma_final_step_funcs[self->unk5](self);
     if (self->ext.main_74.target != 0) {
-        self->unk65 = D_8013B89C;
         self->collision_data = D_801060F0;
+        self->unk65 = D_8013B89C;
         self->hurt_box = D_8013B8B4;
         func_8002DD04(self);
         D_8013B89C = self->unk65;
@@ -1262,11 +1445,11 @@ void func_8008F1A8(struct MainObj* self)
         D_8013B898 = self->unk65;
         if (hit < 0) {
             STOP_SOUND(2, 1, 0x5);
+            self->state++;
             self->unk5 = 0;
             self->unk6 = 0;
-            self->unk62 = 0;
-            self->state++;
             self->unk42 &= 0x7FFF;
+            self->unk62 = 0;
             if (D_8013B8B8 != 0) {
                 self->ext.main_74.death_kind = 2;
                 player_start_script_action(0x14, g_Player.unk15);
@@ -1300,8 +1483,10 @@ void func_8008F1A8(struct MainObj* self)
     }
     func_8002D9BC(self);
 }
+#endif
 
 // sigma_final_death_start
+#ifndef VERSION_DEMO
 void func_8008F3F4(struct MainObj* self)
 {
     if (self->ext.main_74.target == 2) {
@@ -1325,15 +1510,15 @@ done:
     self->ext.main_74.death_kind = 0;
     update_on_screen(BASE_OBJECT(self), 0x90, 0x90);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death_blink(struct MainObj* self)
 {
-
     if (--self->unk7E == 0) {
         self->unk7C = 0x12C;
         self->unk42 ^= 0x8000;
-        self->invincibility_timer -= 5;
-        if (self->invincibility_timer > 0x19) {
+        if ((self->invincibility_timer -= 5) > 0x19) {
             self->invincibility_timer = 0;
         }
         self->unk7E = self->invincibility_timer > 5 ? self->invincibility_timer : 5;
@@ -1343,16 +1528,17 @@ void sigma_final_death_blink(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
 // sigma_final_death_explode
+#ifndef VERSION_DEMO
 void func_8008F578(struct MainObj* self)
 {
-    self->unk7C = (u16)(self->unk7C - 1);
-    if (self->unk7C != 0) {
+    if (--self->unk7C != 0) {
         sigma_emit_explosions(self);
         if (self->unk7E-- == 0) {
-            self->unk7E = 5;
             self->unk42 ^= 0x8000;
+            self->unk7E = 5;
         }
         if (self->unk7C == 0x1B) {
             if (self->ext.main_74.target == 2)
@@ -1383,7 +1569,9 @@ void func_8008F578(struct MainObj* self)
     }
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death_collapse(struct MainObj* self)
 {
     struct EffectObj* effect;
@@ -1400,7 +1588,9 @@ void sigma_final_death_collapse(struct MainObj* self)
     }
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death_wait_player(struct MainObj* self)
 {
     if (g_Player.script_state != -1) {
@@ -1417,7 +1607,9 @@ void sigma_final_death_wait_player(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death_explosion(struct MainObj* self)
 {
     struct EffectObj* effect;
@@ -1437,7 +1629,9 @@ void sigma_final_death_explosion(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death_finish(struct MainObj* self)
 {
     if (D_8013B8A8->active == 0) {
@@ -1456,12 +1650,16 @@ void sigma_final_death_finish(struct MainObj* self)
         update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_death(struct MainObj* self)
 {
     sigma_final_death_funcs[self->unk5](self);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void sigma_final_update(struct MainObj* self)
 {
 #define MAIN_74_BOSS_ACTIVE engine_obj.enable_boss
@@ -1479,7 +1677,73 @@ void sigma_final_update(struct MainObj* self)
     }
     self->ext.main_74.lower_health = self->hp;
 }
+#endif
 
+#ifdef VERSION_DEMO
+extern struct Unk_unk68 D_8010535C;
+extern struct Unk_unk68 D_80105360;
+extern struct Unk_unk68 D_80105364;
+extern struct Unk_unk68 D_80105368;
+extern struct Unk_unk68 D_8010536C;
+extern struct Unk_unk68 D_80105370;
+extern struct Unk_unk68 D_80105374;
+extern struct Unk_unk68 D_80105378[5];
+extern struct Unk_unk68 D_8010538C[5];
+extern struct Unk_unk68 D_801053A0[3];
+extern u8 D_801053AC[8];
+extern u8 D_801053B4[8];
+extern struct Unk_unk68 D_801053BC[5];
+extern struct Unk_unk68 D_801053D0[6];
+extern union AnimationStep D_801053E8[];
+extern union AnimationStep D_801053EC[];
+extern union AnimationStep D_801053FC[];
+extern union AnimationStep D_8010540C[];
+extern union AnimationStep D_80105424[];
+extern union AnimationStep D_8010543C[];
+extern struct Unk_unk68 D_80105440[6];
+extern struct Unk_unk68 D_80105458[4];
+extern struct Unk_unk68 D_80105468[7];
+extern struct Unk_unk68 D_80105484[7];
+extern union AnimationStep D_801054A0[];
+extern struct Unk_unk68 D_801054B0[5];
+extern struct Unk_unk68 D_801054C4[5];
+extern union AnimationStep D_801054D8[];
+extern union AnimationStep D_801054DC[];
+extern struct Unk_unk68 D_801054EC[5];
+extern struct Unk_unk68 D_80105500[5];
+extern struct Unk_unk68 D_80105514[27];
+extern union AnimationStep D_80105580[];
+extern struct Unk_unk68 D_801055E0[27];
+extern union AnimationStep D_8010564C[];
+extern u8 D_801056AC[24];
+extern u8 D_801056C4[32];
+extern u8 D_801056E4[20];
+extern u8 D_801056F8[28];
+extern u8 D_80105714[36];
+extern union AnimationStep D_80105738[];
+extern union AnimationStep D_80105750[];
+extern union AnimationStep D_80105774[];
+extern union AnimationStep D_8010578C[];
+extern union AnimationStep D_801057AC[];
+extern union AnimationStep D_801057D4[];
+extern void* sigma_final_animations[39];
+extern void (*sigma_final_intro_funcs[5])();
+extern void (*sigma_final_appear_funcs[4])();
+extern u8 sigma_final_laser_animations[8];
+extern void (*sigma_final_laser_funcs[5])();
+extern void (*sigma_final_big_beam_funcs[5])();
+extern void (*sigma_final_hide_upper_funcs[2])();
+extern void (*sigma_final_show_upper_funcs[2])();
+extern void (*sigma_final_hide_lower_funcs[2])();
+extern void (*sigma_final_show_lower_funcs[2])();
+extern void (*sigma_final_grab_funcs[4])(struct MainObj*);
+extern void (*sigma_final_spit_funcs[3])(struct MainObj*);
+extern void (*sigma_final_wind_funcs[5])(struct MainObj*);
+extern void (*sigma_final_summon_funcs[2])();
+extern void (*sigma_final_step_funcs[14])();
+extern void (*sigma_final_death_funcs[7])();
+extern void (*sigma_final_state_funcs[3])(struct MainObj*);
+#else
 struct Unk_unk68 D_8010535C = { -10, -81, 103, 70 };
 
 struct Unk_unk68 D_80105360 = { -59, -31, 68, 74 };
@@ -2013,3 +2277,4 @@ void (*sigma_final_state_funcs[3])(struct MainObj*) = {
     func_8008F1A8,
     sigma_final_death,
 };
+#endif

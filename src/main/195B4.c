@@ -103,7 +103,7 @@ struct StageObjectMarginData D_800F4334 = {
     0,
 };
 
-const u8* s_StageMainIds[13][2] = {
+const u8* s_StageMainIds[DEMO_ALT(13, 12)][2] = {
     { D_800F4A50, D_800F4A60 },
     { D_800F5008, D_800F5014 },
     { D_800F55E0, D_800F55EC },
@@ -116,7 +116,9 @@ const u8* s_StageMainIds[13][2] = {
     { D_800F817C, NULL },
     { D_800F81E0, NULL },
     { D_800F8470, D_800F847C },
+#ifndef VERSION_DEMO
     { D_800F87C8, D_800F87D0 },
+#endif
 };
 
 struct ObjectHeader* (*g_MakeObjectFuncs[8])() = {
@@ -168,15 +170,14 @@ void func_80028E24(void)
 void func_80028E24(void)
 {
     struct BackgroundObj* bg = background_objects;
-    s16 x = background_objects[0].x_pos.i.hi;
 
-    if (background_objects[0].unk14.i.hi != x) {
-        if (background_objects[0].unk14.i.hi < x) {
-            func_80028FEC(x + 0x150, x + 0x170, background_objects[0].y_pos.i.hi - 0x30,
-                background_objects[0].y_pos.i.hi + 0x120, 1);
+    if (bg->unk14.i.hi != bg->x_pos.i.hi) {
+        if (bg->unk14.i.hi < bg->x_pos.i.hi) {
+            func_80028FEC(bg->x_pos.i.hi + 0x150, bg->x_pos.i.hi + 0x170, bg->y_pos.i.hi - 0x30,
+                bg->y_pos.i.hi + 0x120, 1);
         } else {
-            func_80028FEC(x - 0x30, x - 0x10, background_objects[0].y_pos.i.hi - 0x30,
-                background_objects[0].y_pos.i.hi + 0x120, 2);
+            func_80028FEC(bg->x_pos.i.hi - 0x30, bg->x_pos.i.hi - 0x10, bg->y_pos.i.hi - 0x30,
+                bg->y_pos.i.hi + 0x120, 2);
         }
     }
     if (bg->unk18.i.hi != bg->y_pos.i.hi) {

@@ -22,9 +22,8 @@ void aimed_bullet_update(struct ShotObj* self)
     aimed_bullet_state_funcs[self->state](self);
 }
 
-void aimed_bullet_init(struct ShotObj* arg0)
+void aimed_bullet_init(struct ShotObj* self)
 {
-    struct ShotObj* self = arg0;
 
     self->state = 1;
     self->on_screen = 1;
@@ -38,10 +37,10 @@ void aimed_bullet_init(struct ShotObj* arg0)
         MOVING_OBJECT(self),
         angle_to_object(OBJECT_HEADER(self), OBJECT_HEADER(&g_Player)) & 0xFF);
 
-    self->unk5C = 1;
     self->x_vel.val *= 2;
     self->y_vel.val *= 2;
-    self->unk60 = 3;
+    self->unk5C = 1;
+    self->unk60 = DEMO_ALT(3, 2);
     set_animation(self, 0xC);
 }
 
@@ -52,11 +51,14 @@ void aimed_bullet_fly(struct ShotObj* self)
     func_8002D9BC(self);
     if (func_8002DD04(MAIN_OBJECT(self)) < 0) {
         spawn_explosion(BASE_OBJECT(self));
-    } else if (func_8002BB80(self, &g_Player) == 0 && func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0) {
+        self->state = 2;
+    } else if (func_8002BB80(self, &g_Player) != 0) {
+        self->state = 2;
+    } else if (func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x10, 0x10);
-        return;
+    } else {
+        self->state = 2;
     }
-    self->state = 2;
 }
 
 void aimed_bullet_despawn(struct ShotObj* self)

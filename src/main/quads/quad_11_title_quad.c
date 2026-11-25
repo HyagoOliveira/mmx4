@@ -34,9 +34,9 @@ void title_quad_init(struct QuadObj* arg0)
 
     entity->bg_offset = -1;
     entity->ext.title_quad.unk42 = 1; // 0x42
+    entity->active |= 0x80;
     entity->x_pos.i.hi = 0;
     entity->y_pos.i.hi = 0;
-    entity->active |= 0x80;
 
     ptr = title_quad_shapes[entity->unk2];
     entity->vertices[0].x.i.hi = *ptr++;
@@ -178,10 +178,12 @@ void TitleSetWhiteQuadSpeed(struct QuadObj* arg0)
     }
     quad_is_on_screen(arg0);
 #else
-    if (game_info.unkA == 2) {
-        arg0->ext.title_quad.unk38 = 0x2C; // sets animation speed of white quad that transforms into "MEGAMAN"
-        arg0->state = 5;
+    if (game_info.unkA != 2) {
+        quad_is_on_screen(arg0);
+        return;
     }
+    arg0->ext.title_quad.unk38 = 0x2C; // sets animation speed of white quad that transforms into "MEGAMAN"
+    arg0->state = 5;
     quad_is_on_screen(arg0);
 #endif
 }
@@ -190,12 +192,12 @@ void TitleSetWhiteQuadSpeed(struct QuadObj* arg0)
 #ifdef VERSION_JP
 void title_quad_morph(struct QuadObj* quad)
 {
-    f32* xy_ptr;
     s32 x_diff;
     s32 y_diff;
     s32 i;
     s16* ptr;
     u8 temp_v0;
+    f32* xy_ptr;
 
     xy_ptr = &quad->vertices[0].x;
     for (i = 0; i < 4; ++i) {
@@ -226,8 +228,7 @@ void title_quad_morph(struct QuadObj* quad)
                                         [++quad->ext.title_quad.unk43 < 14 ? ++quad->ext.title_quad.unk43 : 14];
     }
 
-    quad->ext.title_quad.unk38--;
-    if (quad->ext.title_quad.unk38 == 0) {
+    if (--quad->ext.title_quad.unk38 == 0) {
         ptr = title_quad_shapes[quad->unk2 + 5];
         quad->vertices[0].x.i.hi = *(u16*)ptr++;
         quad->vertices[0].y.i.hi = *(u16*)ptr++;
@@ -249,7 +250,6 @@ INCLUDE_ASM("main/nonmatchings/quads/quad_11_title_quad", title_quad_morph);
 #else
 void title_quad_morph(struct QuadObj* arg0)
 {
-    f32* xy_ptr;
     s32 x_diff;
     s32 y_diff;
     s32 pos;
@@ -259,6 +259,7 @@ void title_quad_morph(struct QuadObj* arg0)
     u8 temp_v0;
     u8 temp_v0_2;
     u8 temp_v1;
+    f32* xy_ptr;
 
     xy_ptr = &arg0->vertices[0].x;
     pos = 0;
@@ -305,8 +306,7 @@ void title_quad_morph(struct QuadObj* arg0)
     }
 #endif
 
-    arg0->ext.title_quad.unk38--;
-    if (arg0->ext.title_quad.unk38 == 0) {
+    if (--arg0->ext.title_quad.unk38 == 0) {
         arg0->state = 2;
         ptr = title_quad_morph_targets[0];
         arg0->vertices[0].x.i.hi = *(u16*)ptr++;
@@ -339,8 +339,8 @@ void func_800D7468(struct QuadObj* quad)
     vertex = quad->vertices;
     for (i = 0; i < 4; i++) {
         point = &title_quad_shapes[quad->unk2][i * 2];
-        dx = vertex->x.val - FIXED(point[0]);
         dy = vertex->y.val - FIXED(point[1]);
+        dx = vertex->x.val - FIXED(point[0]);
         hit = angle_from_delta(dx, dy);
         if ((((((struct TitleQuadExt*)&quad->ext)->unk3E[i] ^ hit) & 0x10) || ((struct TitleQuadExt*)&quad->ext)->unk3A[i] != 0) && quad->ext.title_quad.unk42 == 0) {
             vertex->x.val = FIXED(point[0]);
@@ -388,15 +388,15 @@ void TitleUpdate2(struct QuadObj* arg0)
 #ifdef VERSION_JP
 s16 title_quad_shapes[10][8] = {
     { 0, 0, 319, 0, 319, 120, 0, 120 },
-    { 80, 192, 319, 121, 319, 240, 80, 240 },
+    { 80, 192, 319, 121, 319, DEMO_ALT(240, 239), 80, DEMO_ALT(240, 239) },
     { 330, 120, 80, 191, 81, 192, 331, 121 },
     { 80, 191, 0, 120, 4, 121, 84, 192 },
     { 0, 120, 330, 120, 331, 121, 1, 121 },
-    { 0, 120, 330, 120, 80, 192, 80, 192 },
+    { 0, 120, 330, 120, 80, DEMO_ALT(192, 191), 80, DEMO_ALT(192, 191) },
     { 6, 122, 316, 122, 81, 188, 81, 188 },
     { 80, 104, 19, 59, 230, 59, 230, 59 },
     { 80, 102, 24, 61, 217, 61, 217, 61 },
-    { 80, 191, 0, 119, 0, 240, 80, 240 },
+    { 80, 191, 0, DEMO_ALT(119, 121), 0, DEMO_ALT(240, 239), 80, DEMO_ALT(240, 239) },
 };
 
 s16 title_quad_delays[4] = { 0, 20, 40, 0 };
@@ -420,6 +420,23 @@ u16 title_quad_palette[2][15] = {
         0xFFFF,
     },
     {
+#ifdef VERSION_DEMO
+        0x8000,
+        0x8002,
+        0x8004,
+        0x8006,
+        0x8008,
+        0x800A,
+        0x800C,
+        0x800E,
+        0x8030,
+        0x8032,
+        0x8033,
+        0x8035,
+        0x8037,
+        0x8039,
+        0x805F,
+#else
         0x8421,
         0x8422,
         0x8424,
@@ -435,6 +452,7 @@ u16 title_quad_palette[2][15] = {
         0x8437,
         0x8439,
         0x845F,
+#endif
     },
 };
 #else
@@ -507,7 +525,6 @@ u16 title_quad_palette[30] = {
     0x8439,
     0x845F,
 };
-
 #endif
 
 void TitleSetWhiteQuadSpeed(struct QuadObj*);

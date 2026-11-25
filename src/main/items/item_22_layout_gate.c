@@ -8,7 +8,7 @@
 #include "main/1E1BC.h"
 #include "main/55C4.h"
 #include "main/collision_bounds.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 
 // layout_gate_state_funcs
 extern void (*layout_gate_state_funcs[])(struct ItemObj*);
@@ -24,7 +24,7 @@ void func_800C580C(struct ItemObj*);
 #include "weapon_resources.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #endif
 
 struct Item22LayoutDescriptor {
@@ -134,10 +134,12 @@ void layout_gate_despawn(struct ItemObj* arg0)
 void layout_gate_finish(struct ItemObj* arg0)
 {
     func_8002B560(0x25, arg0->unk2);
+#ifndef VERSION_DEMO
     g_FilterAmountR = 0;
     g_FilterAmountG = 0;
     g_FilterAmountB = 0;
     need_palette_load |= 1;
+#endif
     despawn_object_permanently(OBJECT_HEADER(arg0));
 }
 
@@ -147,8 +149,8 @@ void layout_gate_wait_hit(struct ItemObj* arg0)
 
     hit = func_8002DD04(MAIN_OBJECT(arg0));
     if (hit < 0) {
-        arg0->ext.item_22.collision_side = 1;
         arg0->unk5++;
+        arg0->ext.item_22.collision_side = 1;
         layout_gate_spawn_alarm(arg0);
         return;
     }
@@ -180,8 +182,10 @@ void func_800C580C(struct ItemObj* self)
             layout_gate_apply_layout(self);
         }
     } else {
-        self->state = 3;
+#ifndef VERSION_DEMO
         self->unk2 = self->tail_ext.unk1.unk84.bytes[0];
+#endif
+        self->state = 3;
         self->unk5 = 0;
     }
 }
@@ -255,6 +259,7 @@ void layout_gate_check_layout(struct ItemObj* arg0)
     }
 }
 
+#ifndef VERSION_DEMO
 void layout_gate_spawn_alarm(struct ItemObj* arg0)
 {
     struct EffectObj* effect;
@@ -272,6 +277,7 @@ void layout_gate_spawn_alarm(struct ItemObj* arg0)
         effect->ext.effect_37.unk21 = 0x14;
     }
 }
+#endif
 
 void (*layout_gate_state_funcs[])(struct ItemObj*) = {
     layout_gate_init,

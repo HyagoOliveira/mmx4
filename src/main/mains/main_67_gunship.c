@@ -9,6 +9,8 @@
 #include "main/collision_bounds.h"
 #include "main/object_motion.h"
 
+void gunship_bob(struct MainObj* self);
+
 extern struct Unk_unk68 gunship_debris[];
 
 // gunship_state_funcs
@@ -71,35 +73,35 @@ void func_80082470(struct MainObj* obj)
     obj->contact_damage = 0;
     obj->invincibility_timer = 0;
     obj->bg_offset = g_Player.bg_offset;
+    obj->unk18.val = obj->x_pos.val;
+    obj->unk1C.val = obj->y_pos.val;
     obj->collision_data = D_80107F04;
-    obj->animation_table = (const u8* const*)gunship_animations;
-    obj->unk16 = VISUAL_SATURN_LAYER(6);
-    obj->terrain_box = &gunship_terrain_box;
-    obj->hurt_box = &gunship_hurt_box;
     obj->x_speed = 0;
     obj->y_speed = 0;
     obj->x_accel = 0;
     obj->gravity = 0;
     obj->air_state = 0;
+    obj->animation_table = (const u8* const*)gunship_animations;
+    obj->unk16 = VISUAL_SATURN_LAYER(6);
+    obj->terrain_box = &gunship_terrain_box;
+    obj->hurt_box = &gunship_hurt_box;
     obj->attack_box = NULL;
     obj->unk15 = 0;
     obj->unk75 = 1;
-    obj->unk18.val = obj->x_pos.val;
-    obj->unk1C.val = obj->y_pos.val;
     set_animation(obj, 0);
     /* volatile: the clear and the real value are both stored to this word */
     *(volatile u32*)&obj->ext.main_67.vertical_speed = 0;
-    obj->ext.main_67.vertical_speed = FIXED(-11.0 / 32);
-    obj->unk5 = 2;
     obj->ext.raw[1] = 0;
     obj->ext.raw[2] = 0;
     obj->ext.raw[3] = 0;
     obj->ext.raw[4] = 0;
     obj->ext.raw[5] = 0;
+    obj->ext.main_67.vertical_speed = FIXED(-11.0 / 32);
     obj->ext.raw[1] = 0;
+    obj->state++;
+    obj->unk5 = 2;
     obj->unk6 = 0;
     obj->unk7C = 0x28;
-    obj->state++;
 }
 
 // gunship_main
@@ -130,11 +132,11 @@ void func_80082574(struct MainObj* arg0)
     if (arg0->unk5 != 0)
         arg0->ext.main_67.saved_unk5 = arg0->unk5;
     if (collision < 0) {
+        arg0->unk42 &= 0x7FFF;
         arg0->unk7C = 0x64;
         arg0->unk7E = 5;
-        arg0->unk5 = 0;
-        arg0->unk42 &= 0x7FFF;
         arg0->state++;
+        arg0->unk5 = 0;
         return;
     }
     if (collision != 0) {
@@ -168,8 +170,8 @@ void gunship_destroyed_start(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
     set_animation(self, 0x13);
-    self->y_speed = FIXED(-0.5);
     self->x_speed = 0;
+    self->y_speed = FIXED(-0.5);
     self->x_accel = 0;
     self->gravity = FIXED(0.0078125);
     self->terrain_box = NULL;
@@ -217,8 +219,8 @@ void func_800828B4(struct MainObj* arg0)
 {
     animate_object(ANIMATED_OBJECT(arg0));
     if (--arg0->unk7C == 0) {
-        if (ABS(g_Player.x_pos.i.hi, arg0->x_pos.i.hi) < 0xC1) {
-            if (ABS(g_Player.y_pos.i.hi, arg0->y_pos.i.hi) < 0x31)
+        if (ABS(g_Player.x_pos.i.hi, arg0->x_pos.i.hi) <= 0xC0) {
+            if (ABS(g_Player.y_pos.i.hi, arg0->y_pos.i.hi) <= 0x30)
                 arg0->unk5 = 3;
             else
                 arg0->unk5 = 4;
@@ -228,7 +230,7 @@ void func_800828B4(struct MainObj* arg0)
         arg0->unk6 = 0;
         arg0->ext.main_67.unk8D = 0;
     }
-    if ((u8)arg0->unk72 == 8 && arg0->ext.main_67.unk8D != 0 && ABS(g_Player.x_pos.i.hi, arg0->x_pos.i.hi) < 0xC1) {
+    if ((u8)arg0->unk72 == 8 && arg0->ext.main_67.unk8D != 0 && ABS(g_Player.x_pos.i.hi, arg0->x_pos.i.hi) <= 0xC0) {
         arg0->unk5 = 4;
         arg0->unk6 = 0;
         arg0->ext.main_67.unk8D = 1;
@@ -437,26 +439,24 @@ void gunship_bob(struct MainObj* self)
 void gunship_spawn_exhaust(struct MainObj* self)
 {
     u8 var_s1;
-    struct VisualObj* temp_v0;
+    struct VisualObj* visual;
 
-    var_s1 = 0;
-    do {
-        temp_v0 = find_free_visual_obj();
-        if (temp_v0 != 0) {
-            temp_v0->active = 0x41;
-            temp_v0->id = 0x1F;
-            temp_v0->unk2 = var_s1;
-            temp_v0->unk50 = PLAYER_OBJECT(self);
-            temp_v0->unk42 = self->unk42;
-            temp_v0->animation_table = (u32**)gunship_animations;
-            temp_v0->unk3C = self->sprite_frames;
-            temp_v0->unk40 = self->unk40;
-            temp_v0->bg_offset = self->bg_offset;
-            temp_v0->unk16 = VISUAL_SATURN_LAYER(5);
-            temp_v0->unk15 = self->unk15;
+    for (var_s1 = 0; var_s1 < 4; var_s1++) {
+        visual = find_free_visual_obj();
+        if (visual != 0) {
+            visual->active = 0x41;
+            visual->id = 0x1F;
+            visual->unk2 = var_s1;
+            visual->unk50 = PLAYER_OBJECT(self);
+            visual->unk42 = self->unk42;
+            visual->animation_table = (u32**)gunship_animations;
+            visual->unk3C = self->sprite_frames;
+            visual->unk40 = self->unk40;
+            visual->bg_offset = self->bg_offset;
+            visual->unk16 = VISUAL_SATURN_LAYER(5);
+            visual->unk15 = self->unk15;
         }
-        var_s1 += 1;
-    } while ((var_s1 & 0xFF) < 4U);
+    }
 }
 
 s32 gunship_is_within(struct MainObj* self, s32 arg1, s32 arg2)

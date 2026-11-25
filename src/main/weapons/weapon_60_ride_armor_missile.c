@@ -65,16 +65,18 @@ void func_80098F88(struct WeaponObj* self)
     }
     self->ext.weapon_60.direction = direction;
     set_velocity_from_angle(MOVING_OBJECT(self), direction);
+    self->x_vel.val *= 6;
+    self->y_vel.val *= 6;
+    self->unk28.val = 0;
+    self->unk2C = 0;
     self->unk5C = 1;
     self->unk60 = 3;
     self->unk88.half = 8;
-    self->unk28.val = 0;
-    self->unk2C = 0;
     self->unk8A = 1;
     self->ext.target = NULL;
+#ifndef VERSION_DEMO
     self->unk84.word = 0;
-    self->x_vel.val *= 6;
-    self->y_vel.val *= 6;
+#endif
     set_animation(self, 0x21);
 }
 
@@ -91,13 +93,17 @@ void func_80099118(struct WeaponObj* arg0)
     timer = arg0->unk88.half;
     if (timer != 0) {
         arg0->unk88.half = timer - 1;
+#ifndef VERSION_DEMO
         arg0->unk84.word = 0;
+#endif
     }
     if (!(WEAPON_FRAME_COUNTER & 1) && (s16)arg0->unk88.half == 0) {
+#ifndef VERSION_DEMO
         frames = arg0->unk84.word + 1;
         arg0->unk84.word = frames;
         if (frames >= 0x1E0)
             arg0->unk88.half = 0x3C;
+#endif
         func_80098DA0(arg0);
         if (arg0->ext.target != NULL) {
             target = angle_to_object(OBJECT_HEADER(arg0), OBJECT_HEADER(arg0->ext.target));

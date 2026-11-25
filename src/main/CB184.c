@@ -252,14 +252,14 @@ void refresh_visible_tile_effect(s32 effect_id, s32 x_offset, s32 y_offset)
 
     record = tile_effect_tables[engine_obj.stage * 2 + engine_obj.substage][effect_id & 0xFF];
     while (1) {
-        s16 x = (u16)record->x + origin_x;
-        s16 y = (u16)record->y + origin_y;
+        s16 x = record->x + origin_x;
+        s16 y = record->y + origin_y;
         u8 index = record->layer; /* Reused as the tile index below. */
         u8 horizontal = record->packed_count;
         u32 tile_count = horizontal >> 1;
         s32 byte_mask = 0xFF;
-        s16 bg_x = background_objects[index].x_pos.u.hi;
-        s16 bg_y = background_objects[index].y_pos.u.hi;
+        s16 bg_x = background_objects[index].x_pos.i.hi;
+        s16 bg_y = background_objects[index].y_pos.i.hi;
 
         horizontal &= 1; /* Low bit selects horizontal (1) or vertical (0). */
         for (index = 0; index != tile_count; index++) {
@@ -344,14 +344,14 @@ void apply_tile_effect(u8 effect_id, s32 x_offset, s32 y_offset)
 
     record = tile_effect_tables[engine_obj.stage * 2 + engine_obj.substage][effect_id & 0xFF];
     while (1) {
-        s16 x = (u16)record->x + origin_x;
-        s16 y = (u16)record->y + origin_y;
+        s16 x = record->x + origin_x;
+        s16 y = record->y + origin_y;
         u8 index = record->layer; /* Reused as the tile index below. */
-        s16 bg_x = background_objects[index].x_pos.u.hi;
+        s16 bg_x = background_objects[index].x_pos.i.hi;
         u8 horizontal = record->packed_count;
         u32 tile_count = horizontal >> 1;
         s32 byte_mask = 0xFF;
-        s16 bg_y = background_objects[index].y_pos.u.hi;
+        s16 bg_y = background_objects[index].y_pos.i.hi;
 
         horizontal &= 1; /* Low bit selects horizontal (1) or vertical (0). */
         for (index = 0; index != tile_count; index++) {
@@ -389,7 +389,4 @@ void func_800DADA0(struct TileEffectRecord* arg0, u16 arg1, u16 arg2, u8 arg3,
     if (arg4 != 0) {
         D_801441C8[arg0->layer][row][col] = arg0->tiles[arg3];
     }
-}
-void tile_effect_nop(void)
-{
 }

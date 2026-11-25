@@ -16,7 +16,7 @@
 #define MENU_PAD_ANY SATURN_PAD_ANY
 #else
 #define MENU_PAD_PRESSED controller_input.pressed
-#define MENU_PAD_ANY 0x8FF
+#define MENU_PAD_ANY (PADstart | PADRup | PADRright | PADRdown | PADRleft | PADL1 | PADL2 | PADR1 | PADR2)
 #endif
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
@@ -41,6 +41,41 @@ extern void (*D_800F23B8[])(struct EngineObj*);
 extern void (*D_800F23D4[])(struct EngineObj*);
 
 void func_80016F0C();
+
+#ifdef VERSION_DEMO
+#include "main/102FC.h"
+
+void func_8001F968(struct EngineObj* arg0)
+{
+    if (main_bss_state.transition.active == 0 && (controller_input.pressed & PADRright)) {
+        func_800129F0(8);
+        arg0->unk1++;
+    }
+}
+
+void func_8001F9DC(struct EngineObj* arg0)
+{
+    if (main_bss_state.transition.active == 0) {
+        func_80012740(1, func_8001FB50);
+        func_800127FC();
+    }
+}
+
+void func_8001FAC0(struct EngineObj* arg0)
+{
+    D_800F23D4[arg0->unk1](arg0);
+    update_misc_objects();
+    func_8002A484();
+    func_80023D68();
+}
+
+void func_8001EC90(struct GameInfo* arg0);
+void (*D_800F23D4[3])(struct EngineObj*) = {
+    func_8001EC90,
+    func_8001F968,
+    func_8001F9DC,
+};
+#else
 
 void func_8001F118(void)
 {
@@ -79,9 +114,9 @@ void func_8001F5D8(struct EngineObj*);
 
 void func_8001F198(struct EngineObj* arg0)
 {
-    s32* dst;
-    s32* src;
     u32 i;
+    s32* src;
+    s32* dst;
 
     for (i = 0; i < 0x10; i++)
         arg0->character_state.bytes[i] = 0;
@@ -133,8 +168,8 @@ void func_8001F2BC(struct EngineObj* arg0)
     func_800129A4(8);
     func_8001663C(0x17, 0x70);
 #endif
-    arg0->unk2 = 0;
     arg0->unk1++;
+    arg0->unk2 = 0;
     if (arg0->cur_character == 0) {
         D_801396B8 = 0x100000;
         background_objects[0].x_pos.val = 0;
@@ -168,7 +203,12 @@ void func_8001F3D4(struct MainObj* obj)
     s32 background_index;
     u32 i;
 
+#ifdef MMX4_BIG_ENDIAN
+    obj->state = 6;
+    obj->unk5 = 0;
+#else
     *(s16*)&obj->state = 6;
+#endif
     obj->on_screen = 0;
     obj->unk2++;
     background_index = ((struct EngineObj*)obj)->cur_character;
@@ -239,9 +279,9 @@ void func_8001F634(struct EngineObj* arg0)
         g_FilterAmountG = 0;
         g_FilterAmountB = 0;
         if (arg0->character_state.bytes[2] == 0) {
+            arg0->unk2++;
             arg0->unk3 = 0;
             arg0->unk4 = 0x1E;
-            arg0->unk2++;
             arg0->character_state.bytes[1] = 1;
         } else {
             arg0->unk2 = 4;
@@ -257,17 +297,17 @@ void func_8001F634(struct EngineObj* arg0)
 void func_8001F6E8(struct EngineObj* arg0)
 {
     if (D_801396C0->unk5 == 2 && D_801396C4->unk5 == 2) {
+        arg0->unk2++;
         arg0->unk3 = 0;
         arg0->unk4 = 6;
-        arg0->unk2++;
     } else if (MENU_PAD_PRESSED & MENU_PAD_ANY) {
         D_801396C0->state = 1;
         D_801396C4->state = 1;
         D_801396C0->unk5 = 4;
         D_801396C4->unk5 = 4;
+        arg0->unk2++;
         arg0->unk3 = 0;
         arg0->unk4 = 6;
-        arg0->unk2++;
     }
 }
 
@@ -282,8 +322,8 @@ void func_8001F798(struct EngineObj* arg0)
         g_FilterAmountR = 0;
         g_FilterAmountG = 0;
         g_FilterAmountB = 0;
-        arg0->unk3 = 0;
         arg0->unk2++;
+        arg0->unk3 = 0;
 
 #ifdef MMX4_SATURN
         if (arg0->cur_character != 0) {
@@ -358,8 +398,8 @@ s32 func_8001F8FC(struct GameInfo* arg0)
 void func_8001F93C(struct EngineObj* arg0)
 {
     if (abc_object.unkC == 0) {
+        arg0->unk2++;
         arg0->unk4 = 0x3C;
-        arg0->unk2 = (u8)arg0->unk2 + 1;
     }
 }
 
@@ -388,12 +428,10 @@ void func_8001F9DC(struct EngineObj* arg0)
 
 void func_8001FA24(struct EngineObj* arg0)
 {
-    s32 flags;
     u32 i;
 
-    flags = (u8)arg0->palette_flags | (1 << (arg0->character_state.bytes[0] - 1));
-    arg0->palette_flags = flags;
-    if ((u8)g_Player.boss_flags != 0xFF && (u8)flags == 0xFF)
+    arg0->palette_flags |= 1 << (arg0->character_state.bytes[0] - 1);
+    if ((u8)g_Player.boss_flags != 0xFF && (u8)arg0->palette_flags == 0xFF)
         arg0->unk5F = 5;
     g_Player.boss_flags |= 1 << (arg0->character_state.bytes[0] - 1);
     arg0->state = 9;
@@ -429,3 +467,4 @@ void (*D_800F23D4[2])(struct EngineObj*) = {
     func_8001F9DC,
     func_8001FA24,
 };
+#endif

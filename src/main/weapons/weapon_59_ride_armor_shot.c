@@ -71,10 +71,10 @@ void func_80098AF8(struct WeaponObj* arg0)
     else
         direction = arg0->unk15 == 0 ? 0x14 : 0x1C;
     set_velocity_from_angle(MOVING_OBJECT(arg0), direction);
-    arg0->unk5C = 1;
-    arg0->unk60 = 3;
     arg0->x_vel.val *= 8;
     arg0->y_vel.val *= 8;
+    arg0->unk5C = 1;
+    arg0->unk60 = 3;
     set_animation(arg0, arg0->unk2 + 0x1F);
 }
 
@@ -101,9 +101,8 @@ void ride_armor_shot_despawn(struct WeaponObj* arg0)
     ZeroObjectState(OBJECT_HEADER(arg0));
 }
 
-void enemy_ride_armor_shot_main(struct WeaponObj* arg0)
+void enemy_ride_armor_shot_main(struct WeaponObj* self)
 {
-    struct WeaponObj* self = arg0;
 
     animate_object(ANIMATED_OBJECT(self));
     move_object(MOVING_OBJECT(self));
@@ -139,7 +138,11 @@ void func_80098DA0(struct WeaponObj* arg0)
     s32 ty;
 
     for (main = main_objects; main < main_objects + COUNT(main_objects); main++) {
+#ifdef VERSION_DEMO
+        if (main->active == 0 || main->on_screen == 0)
+#else
         if (main->active == 0 || main->on_screen == 0 || main->unk7A != 0)
+#endif
             continue;
         target = arg0->ext.target;
         if (target != NULL) {
@@ -171,8 +174,8 @@ void func_80098EA8(struct WeaponObj* shot)
         visual->active = shot->active;
         visual->id = 0x16;
         visual->unk2 = 0;
-        visual->x_pos.u.hi = shot->x_pos.u.hi;
-        visual->y_pos.u.hi = shot->y_pos.u.hi;
+        visual->x_pos.i.hi = shot->x_pos.i.hi;
+        visual->y_pos.i.hi = shot->y_pos.i.hi;
         visual->animation_table = shot->animation_table;
         visual->unk40 = shot->unk40;
         visual->unk3C = shot->unk3C;

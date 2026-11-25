@@ -38,7 +38,7 @@
     u32** animation_table;              \
     u32* animation_cursor;              \
     void* unk38;                        \
-    void* unk3C;                        \
+    const void* unk3C;                  \
     u16 unk40;                          \
     u16 unk42;                          \
     union AnimationStep animation_step; \
@@ -114,9 +114,9 @@ struct Main2Ext {
 };
 
 struct Main3Ext {
-    u32 alerted;
+    s32 alerted;
     s32 roll_timer;
-    u32 player_ahead;
+    s32 player_ahead;
     u32 turn_timer;
     u32 saved_step;
 };
@@ -137,7 +137,7 @@ struct Main5Ext {
 };
 
 struct Main6Ext {
-    u32 armor_broken;
+    s32 armor_broken;
     u32 ground_probe_distance;
     u32 armor_health;
     u32 core_health;
@@ -153,11 +153,11 @@ struct Main58Ext {
     u32 saved_unk5, unk84, unk88, unk8C, unk90, unk94;
 };
 struct Main10Ext {
-    u32 timer;
+    s32 timer;
     s32 turn_delay;
     s32 struggle;
-    u32 hold_state;
-    u32 can_grab;
+    s32 hold_state;
+    s32 can_grab;
     u32 saved_unk5;
 };
 
@@ -170,16 +170,16 @@ struct Main14Ext {
     u32 unk80;
     u32 unk84;
     s32 visual_variant;
-    u32 unk8C;
+    s32 unk8C;
     u32 saved_unk5;
-    u32 unk94;
+    s32 unk94;
 };
 
 struct Main16Ext {
-    u32 unk80;
+    s32 unk80;
     s32 unk84;
     s32 unk88;
-    u32 unk8C;
+    s32 unk8C;
     u32 unk90;
     u32 shot_09_active;
     u32 unk98;
@@ -197,12 +197,13 @@ struct Main17Ext {
 union Main37Unk80 {
     u32 word;
     u8 saved_direction;
+    s16 halves[2];
 };
 
 struct Main37Ext {
     union Main37Unk80 unk80;
-    f32 unk84;
-    f32 unk88;
+    f32_halves unk84;
+    f32_halves unk88;
     f32 unk8C;
     u8 pad90[4];
     u32 saved_unk5;
@@ -251,7 +252,7 @@ struct Main38Ext {
     u32 saved_unk5;
     s32 unk84;
     u32 unk88;
-    u32 unk8C;
+    s32 unk8C;
     u32 unk90;
     u32 unk94;
 };
@@ -303,11 +304,11 @@ struct Main51Ext {
 };
 
 struct Main7Ext {
-    u32 unk80;
+    s32 unk80;
     u32 unk84;
     s32 saved_x_velocity;
     s32 saved_y_velocity;
-    u32 unk90;
+    s32 unk90;
     u32 saved_unk5;
 };
 
@@ -324,7 +325,7 @@ struct Main52Ext {
 };
 
 struct Main13Ext {
-    u32 unk80;
+    s32 unk80;
     u32 unk84;
     u32 unk88;
     u32 saved_unk5;
@@ -354,8 +355,8 @@ struct Main12Ext {
 struct Main22Ext {
     u32 saved_unk5;
     u32 unk84;
-    u32 destroyed;
-    u32 unk8C;
+    s32 destroyed;
+    s32 unk8C;
     u32 unk90;
     u32 parts_mask;
 };
@@ -380,7 +381,10 @@ struct Main24Ext {
 struct Main47Ext {
     struct Main45Ext* train_boss;
     s8* boss_hp;
-    u32 unk88;
+    union {
+        u32 word;
+        u8 flag;
+    } unk88;
     u32 unk8C;
     u32 unk90;
     u32 unk94;
@@ -395,7 +399,7 @@ struct Main76Ext {
 struct Main25Ext {
     u32 unk80;
     u32 unk84;
-    u32 unk88;
+    s32 unk88;
     u8 pad8C[8];
     u32 saved_unk5;
 };
@@ -449,8 +453,8 @@ union Main73EffectData {
         u8 pad8F;
     } bytes;
     struct {
-        u16 x;
-        u16 y;
+        s16 x;
+        s16 y;
     } position;
 };
 
@@ -676,7 +680,9 @@ struct Main72Ext {
 
 struct Main60Ext {
     struct EffectObj* effect;
+#ifndef VERSION_DEMO
     u8* pattern;
+#endif
     u16 feather_mask;
     u8 saved_unk5;
     u8 corner;
@@ -701,7 +707,7 @@ struct Main61Ext {
     u8 flash_timer;
     u8 split;
     u8 blink_timer;
-    u8 combo_count;
+    s8 combo_count;
     u8 stunned;
     u8 split_hits;
     u8 merge;
@@ -726,7 +732,7 @@ struct Main65Ext {
 
 struct Main64Ext {
     void* object;
-    u16 target_x;
+    s16 target_x;
     u16 target_y;
     u8 skip_attack;
     u8 next_step;
@@ -748,7 +754,7 @@ struct Main74Ext {
     u8 timer;
     u8 animation_index;
     u8 target;
-    u8 upper_health;
+    s8 upper_health;
     u8 lower_health;
     u8 death_kind;
     u8 pad95;
@@ -792,7 +798,7 @@ struct Main9Ext {
     const u8* animation_2;
     u8 animation_timer;
     u8 pad89[4];
-    u8 object_id;
+    s8 object_id;
     u8 pad8E[2];
     struct EffectObj* effect;
 };
@@ -890,7 +896,7 @@ struct Main68Ext {
     u8 shot_type;
     u8 active_shots;
     u8 next_attack;
-    u8 blink_delay;
+    s8 blink_delay;
     u8 flash_timer;
     s8 bob_step;
 };
@@ -1124,10 +1130,10 @@ struct BackgroundObj {
     s16 unk26;
     s16 unk28;
     s16 unk2A;
-    s16 unk2C;
-    s16 unk2E;
-    s16 unk30;
-    s16 unk32;
+    u16 unk2C;
+    u16 unk2E;
+    u16 unk30;
+    u16 unk32;
     u16 unk34;
     s8 unk36;
     s8 unk37;
@@ -1137,8 +1143,8 @@ struct BackgroundObj {
     s8 unk3C;
     s8 unk3D;
     union BackgroundUnk3E unk3E;
-    u16 unk40;
-    u16 unk42;
+    s16 unk40;
+    s16 unk42;
     s8 unk44;
     s8 unk45;
     s8 unk46;
@@ -1278,11 +1284,13 @@ struct PlayerObj {
     union PlayerUnkDC clone_offset;
     s8 controlling_clone;
     s8 unkDF;
+#ifndef VERSION_DEMO
     s8 nova_strike_active;
     s8 nova_strike_timer;
     u8 item_step;
     s8 : 8;
-}; // size 0xE4
+#endif
+};
 
 MMX4_STATIC_ASSERT(player_unk68_offset,
     MMX4_OFFSET_OF(struct PlayerObj, unk68) == MMX4_OFFSET_OF(struct MainObj, terrain_box));
@@ -1339,7 +1347,7 @@ struct Shot29Ext {
 };
 
 union ShotUnk8C {
-    s32 word;
+    u32 word;
     struct ShotObj* shot;
     u16 half;
     s16 halves[2];
@@ -1417,7 +1425,7 @@ struct ShotObj {
         s32 value;
         u32* collision_state;
         struct EffectObj* effect;
-        u16 halves[2];
+        s16 halves[2];
         u8 bytes[4];
         struct Shot24Ext shot_24;
         struct Shot55Unk84 shot_55;
@@ -1600,7 +1608,7 @@ struct WeaponObj {
     u32** animation_table;
     u32* animation_cursor;
     void* unk38;
-    void* unk3C;
+    const void* unk3C;
     u16 unk40;
     u16 unk42;
     union AnimationStep animation_step;
@@ -1663,6 +1671,7 @@ union UnkObjLink {
     u8* data;
     struct UnkObj* previous;
     struct PlayerObj* player;
+    s32 value;
 };
 
 struct PlayerAfterimageExt {
@@ -1756,7 +1765,7 @@ union ItemUnk7C {
 
 struct ItemTailExtUnk {
     union ItemUnk84 unk84;
-    s32 unk88;
+    u32 unk88;
 };
 
 struct ItemTailExtUnk2 {
@@ -1857,6 +1866,7 @@ struct ReadyTextExt {
 
 struct MiscPointerExt {
     void* unk50;
+    u8 unk54;
 };
 
 struct Misc7Ext {
@@ -2177,7 +2187,7 @@ union RideArmorUnk94 {
     u16 halves[2];
     struct {
         u8 pad94[3];
-        s8 unk97;
+        u8 unk97;
     } bytes;
 };
 
@@ -2251,7 +2261,7 @@ struct RideArmorObj {
     u8 unk86;
     s8 unk87;
     u16 collision_flags;
-    s16 unk8A;
+    u16 unk8A;
     union RideArmorInputState unk8C;
     union RideArmorTapState unk8E;
     union RideArmorUnk90 unk90;
@@ -2592,7 +2602,7 @@ union QuadScale {
 };
 
 struct Quad2Ext {
-    const s32* vertices;
+    s32* vertices;
     union QuadScale x_scale;
     union QuadScale y_scale;
     u8 direction[2];
@@ -2648,7 +2658,7 @@ union QuadExt {
     struct QuadUnkExt3 unk_ext3;
     struct QuadUnkExt4 unk_ext4;
     struct Quad10Ext quad_10;
-    u32 unk38;
+    s32 unk38;
 };
 
 struct SearchLightRuntime {
@@ -2718,7 +2728,7 @@ struct QuadObj {
     struct PlayerObj* unk5C; // might be something else
 }; // size 0x60
 
-#if defined(MMX4_WIN32) || defined(_MSC_VER)
+#if defined(MMX4_WIN32) || defined(_MSC_VER) || defined(__MWERKS__)
 #pragma pack(push, 1)
 #endif
 union EngineCharacterState {
@@ -2737,13 +2747,13 @@ union EngineCharacterState {
 #endif
         u8 reserved[6];
     }
-#if !defined(MMX4_WIN32) && !defined(MMX4_SHC) && !defined(_MSC_VER)
+#if !defined(MMX4_WIN32) && !defined(MMX4_SHC) && !defined(_MSC_VER) && !defined(__MWERKS__)
     __attribute((packed))
 #endif
     fields;
 };
 
-#if defined(MMX4_WIN32) || defined(_MSC_VER)
+#if defined(MMX4_WIN32) || defined(_MSC_VER) || defined(__MWERKS__)
 #pragma pack(pop)
 #endif
 
@@ -2803,9 +2813,11 @@ struct EngineObj {
     u16 collected_upgrades;
     s8 sub_tanks[3];
     u8 unk5F;
+#ifndef VERSION_DEMO
     u8 unk60;
     u8 pad61[3];
-}; // size 0x64
+#endif
+};
 
 #define engine_flags engine_obj.character_state.fields.flags
 
@@ -2909,8 +2921,8 @@ struct Effect12Ext {
 
 struct Effect16Ext {
     u8 pad14[4];
-    u16 saved_background_2A;
-    u16 saved_background_28;
+    s16 saved_background_2A;
+    s16 saved_background_28;
 };
 
 struct Effect38Ext {
@@ -2960,7 +2972,7 @@ struct Effect8Ext {
 
 struct Effect9Ext {
     s16 transition_timer;
-    u16 movement_timer;
+    s16 movement_timer;
     s16 direction;
     u16 target_x;
     u8* movement_table;
@@ -3017,13 +3029,20 @@ struct Effect14Ext {
 };
 struct Effect17Ext {
     struct AnimatedObj* source;
+#ifdef VERSION_DEMO
+    u8 unk18[5];
+    s8 timer;
+    u8 unk1E[6];
+    s8 phase;
+#else
     u8 timer;
     u8 phase;
+#endif
 };
 union Effect32Palette {
     s32 packed;
     struct {
-        u8 timer;
+        s8 timer;
         u8 unk1;
         s8 step;
         u8 id;

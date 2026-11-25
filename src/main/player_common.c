@@ -16,13 +16,13 @@
 #include "main/player_special.h"
 
 struct PlayerDashEffectOffset {
-    u16 x, y;
+    s16 x, y;
 };
 
 extern u8 player_death_orb_directions[4][8];
 
 extern struct PlayerDashEffectOffset player_dash_spark_offsets[2];
-extern u16 player_dash_splash_offsets[2];
+extern s16 player_dash_splash_offsets[2];
 
 #ifdef MMX4_PC
 extern void func_80036BF4(struct PlayerObj* arg0, s16 arg1);
@@ -275,18 +275,30 @@ s16 player_afterimage_cluts[4] = { 0xD, 0xE, 0xF, 0 };
 s16 player_afterimage_cluts[4] = { 0x780D, 0x780E, 0x780F, 0 };
 #endif
 
+#ifdef VERSION_DEMO
+void func_80041704_demo(struct PlayerObj* self);
+#endif
+
 void (*player_entry_funcs[])(struct PlayerObj*) = {
     player_entry_beam_in,
-    player_entry_placed,
+    DEMO_ALT(player_entry_placed, func_80041704_demo),
     player_entry_ride,
 };
 
-u16 player_stage_3_entry_y[2][4] = {
+#ifdef VERSION_DEMO
+u16 D_800CC6AC_demo[4][3] = {
+    { 0xAB, 0x9CB, 0x25B },
+    { 0x1AB, 0x8AB, 0 },
+    { 0xAA, 0x9CA, 0x25A },
+    { 0x1AA, 0x8AA, 0 },
+};
+#else
+s16 player_stage_3_entry_y[2][4] = {
     { 0x0000, 0x00AB, 0x09CB, 0x025B },
     { 0x0000, 0x01AB, 0x08AB, 0x0000 },
 };
 
-u16 player_stage_6_entry_y[6] = {
+s16 player_stage_6_entry_y[6] = {
     0x00CB,
     0x03BB,
     0x02CB,
@@ -295,7 +307,7 @@ u16 player_stage_6_entry_y[6] = {
     0x03BB,
 };
 
-u16 player_stage_12_entry_y[20] = {
+s16 player_stage_12_entry_y[20] = {
     0x0000,
     0x0000,
     0x069B,
@@ -317,6 +329,7 @@ u16 player_stage_12_entry_y[20] = {
     0x043B,
     0x0000,
 };
+#endif
 
 void (*player_death_funcs[])(struct PlayerObj*) = {
     player_death_start,
@@ -339,7 +352,7 @@ struct PlayerDashEffectOffset player_dash_spark_offsets[2] = {
     { 0x10, 0x0E },
     { 0x1A, 0x11 },
 };
-u16 player_dash_splash_offsets[2] = { 0x10, 0x1A };
+s16 player_dash_splash_offsets[2] = { 0x10, 0x1A };
 
 #ifdef MMX4_SATURN
 struct PlayerDashEffectOffset player_wall_kick_spark_offsets[2] = {
@@ -356,6 +369,8 @@ f32 player_wall_kick_spark_offsets[2] = {
 #define PLAYER_WALL_KICK_X(index) player_wall_kick_spark_offsets[index].u.lo
 #define PLAYER_WALL_KICK_Y(index) player_wall_kick_spark_offsets[index].u.hi
 #endif
+
+void func_80036BF4(struct PlayerObj* self, s16 ground_y);
 
 s32 player_set_animation(struct PlayerObj* self, s32 animation)
 {
@@ -374,27 +389,15 @@ s32 player_set_animation(struct PlayerObj* self, s32 animation)
 
 void player_set_animation_frame(struct PlayerObj* self, s32 animation, s32 frame)
 {
-    s32* x_gfx;
-    s32* zero_gfx;
-    s32* zero_saber_gfx;
-    s32* x_frames;
-    s32* zero_frames;
-    s32* zero_saber_frames;
     if (self->unk2 == 0) {
-        x_gfx = SP_PLAYER_GFX;
-        x_frames = SP_SPRITE_FRAMES;
-        self->unk38 = SP_ARCHIVE_ENTRY(x_gfx, 0);
-        self->unk3C = SP_ARCHIVE_ENTRY(x_frames, 0);
+        self->unk38 = SP_ARCHIVE_ENTRY(SP_PLAYER_GFX, 0);
+        self->unk3C = SP_ARCHIVE_ENTRY(SP_SPRITE_FRAMES, 0);
     } else if (D_8011AF60[animation] == 0) {
-        zero_gfx = SP_PLAYER_GFX;
-        zero_frames = SP_SPRITE_FRAMES;
-        self->unk38 = SP_ARCHIVE_ENTRY(zero_gfx, 0);
-        self->unk3C = SP_ARCHIVE_ENTRY(zero_frames, 0);
+        self->unk38 = SP_ARCHIVE_ENTRY(SP_PLAYER_GFX, 0);
+        self->unk3C = SP_ARCHIVE_ENTRY(SP_SPRITE_FRAMES, 0);
     } else {
-        zero_saber_gfx = SP_PLAYER_GFX;
-        zero_saber_frames = SP_SPRITE_FRAMES;
-        self->unk38 = SP_ARCHIVE_ENTRY(zero_saber_gfx, 1);
-        self->unk3C = SP_ARCHIVE_ENTRY(zero_saber_frames, 5);
+        self->unk38 = SP_ARCHIVE_ENTRY(SP_PLAYER_GFX, 1);
+        self->unk3C = SP_ARCHIVE_ENTRY(SP_SPRITE_FRAMES, 5);
     }
 
     set_animation_frame(ANIMATED_OBJECT(self), animation, frame);
@@ -402,6 +405,129 @@ void player_set_animation_frame(struct PlayerObj* self, s32 animation, s32 frame
 
 extern s16 player_afterimage_cluts[];
 
+#ifdef VERSION_DEMO
+void player_spawn(void)
+{
+    struct PlayerObj* player = &g_Player;
+    struct EngineObj* engine = &engine_obj;
+    struct UnkObj* object;
+    struct UnkObj* active_object;
+    struct UnkObj* previous;
+    struct BazObj* baz;
+    struct VisualObj* visual;
+    s32* sprite_frames;
+    s8* initial_data;
+    s8* player_data;
+    s32 frame_offset;
+    u32 i;
+
+    player->active = 1;
+    player->unk2 = engine->cur_character;
+    player->on_screen = 0;
+    player->bg_offset = 0;
+    player->is_clone = 0;
+    player->armor_parts = engine->armor_parts;
+    player->arm_type = engine->arm_type;
+    player->boss_flags = 0x24;
+
+    if (engine->unk1E == 0) {
+        i = 0;
+        player->hp = engine->max_hp;
+        player->hud_hp = engine->max_hp;
+        player->spawn_hp = engine->max_hp;
+        do {
+            player->weapon_energy[i++] = 0x30;
+        } while (i < 0x10);
+    } else {
+        player_data = player->weapon_energy;
+        initial_data = engine->player_initial_data;
+        i = 0;
+        player->hp = engine->checkpoint_hp;
+        player->hud_hp = engine->checkpoint_hp;
+        player->spawn_hp = engine->checkpoint_hp;
+        do {
+            *player_data++ = *initial_data++;
+            i++;
+        } while (i < 0x10);
+    }
+
+    if (player->unk2 == 0) {
+        player->animation_table = D_80119DF0;
+    } else {
+        player->animation_table = D_8011AFF0;
+    }
+
+    player->unk50 = 0;
+    player->unk54 = 0;
+    player->unk68 = NULL;
+    player->unk38 = (s32*)((u8*)SP_PLAYER_GFX + SP_PLAYER_GFX[0]);
+    player->unk3C = (u8*)SP_SPRITE_FRAMES + SP_SPRITE_FRAMES[0];
+    player->unk40 = PLAYER_TEXTURE_BASE;
+    player->unk16 = 2;
+    player->unk42 = PLAYER_PALETTE_BASE;
+    player->unk49 = 3;
+    player_reset_palette(player);
+    player_init_clone();
+
+    i = 0;
+    active_object = foo_objects;
+    object = foo_objects;
+    do {
+        active_object->active = 0x11;
+        object->unk2 = i;
+        object->bg_offset = player->bg_offset;
+        object->unk38 = player->unk38;
+        object->unk3C = player->unk3C;
+        object->unk40 = player->unk40;
+        object->unk42 = player_afterimage_cluts[object->unk2];
+        object->unk16 = PLAYER_AFTERIMAGE_DRAW_FLAGS;
+        if (i != 0) {
+            object->link.previous = previous;
+        } else {
+            object->link.player = &g_Player;
+        }
+        previous = object;
+        object++;
+        i++;
+        active_object++;
+    } while (i < 3);
+
+    baz = baz_objects;
+    i = 0;
+    do {
+        baz->active = 0x21;
+        baz->unk2 = i;
+        baz->bg_offset = player->bg_offset;
+        baz->unk38 = 0;
+        sprite_frames = SP_SPRITE_FRAMES;
+        frame_offset = sprite_frames[1];
+        baz->unk3C = (u8*)sprite_frames + frame_offset;
+        baz->animation_table = D_8011BF40;
+        baz->unk40 = PLAYER_EFFECT_TEXTURE_BASE;
+        baz->unk42 = PLAYER_PALETTE_BASE;
+        baz->unk16 = 2;
+        baz->unk15 = 0;
+        baz++;
+    } while (++i < 2);
+
+    if (engine->stage == 1) {
+        i = 0;
+        do {
+            visual = find_free_visual_obj();
+            if (visual != 0) {
+                visual->active = 0x41;
+                visual->id = 7;
+                visual->unk2 = i;
+            }
+            i++;
+        } while (i < 4);
+    }
+
+    background_objects[0].unk44 = 0;
+    background_objects[1].unk44 = 0;
+    background_objects[2].unk44 = 0;
+}
+#else
 void player_spawn(void)
 {
     struct PlayerObj* player = &g_Player;
@@ -537,20 +663,21 @@ void player_spawn(void)
     background_objects[1].unk44 = 0;
     background_objects[2].unk44 = 0;
 }
+#endif
 
 void player_init_clone(void)
 {
     struct PlayerObj* entity = &g_Entity;
 
     reset_entity(entity);
-    entity->hp = engine_obj.max_hp;
     entity->is_clone = 1;
+    entity->hp = engine_obj.max_hp;
+    entity->hud_hp = engine_obj.max_hp;
+    entity->spawn_hp = engine_obj.max_hp;
     entity->animation_table = D_80119DF0;
     entity->unk50 = 0;
     entity->unk54 = 0;
     entity->unk68 = NULL;
-    entity->hud_hp = engine_obj.max_hp;
-    entity->spawn_hp = engine_obj.max_hp;
     entity->unk38 = (s32*)((u8*)SP_PLAYER_GFX + SP_PLAYER_GFX[0]);
     entity->unk3C = (u8*)SP_PLAYER_GFX + SP_PLAYER_GFX[0];
     entity->unk40 = PLAYER_CLONE_TEXTURE_BASE;
@@ -559,15 +686,46 @@ void player_init_clone(void)
     entity->unk49 = 1;
 }
 
+#ifdef VERSION_DEMO
+void func_800415B0_demo(struct PlayerObj* self)
+{
+    struct EngineObj* engine;
+    u32 entry;
+
+    if (self->is_clone == 0) {
+        engine = &engine_obj;
+        if (engine->unk1E != 0) {
+            engine->unk1F = 1;
+            self->on_screen = 1;
+            self->state++;
+            entry = 0;
+            if (engine->stage == 3 && engine->unk1E == -1) {
+                entry = engine->checkpoint != 0;
+            }
+            if (engine->stage == 5) {
+                entry = 2;
+            }
+            player_entry_funcs[entry](self);
+        }
+    } else {
+        self->on_screen = 1;
+        player_set_animation(self, 0x58);
+        self->unk5 = 0x23;
+        self->state++;
+    }
+}
+#endif
+
+#ifndef VERSION_DEMO
 void player_update_init(struct PlayerObj* self)
 {
-    s32 entry;
+    u32 entry;
 
     if (self->is_clone != 0) {
         self->on_screen = 1;
         player_set_animation(self, 0x61);
-        self->unk5 = PLAYER_SOUL_BODY_CLONE;
         self->state++;
+        self->unk5 = PLAYER_SOUL_BODY_CLONE;
         return;
     }
     {
@@ -610,6 +768,7 @@ void player_update_init(struct PlayerObj* self)
         }
     }
 }
+#endif
 
 void player_entry_beam_in(struct PlayerObj* self)
 {
@@ -627,6 +786,25 @@ void player_entry_beam_in(struct PlayerObj* self)
     self->unk5 = PLAYER_BEAM_IN;
 }
 
+#ifdef VERSION_DEMO
+extern u16 D_800CC6AC_demo[][3];
+
+void func_80041704_demo(struct PlayerObj* self)
+{
+    s32 row = self->unk2 * 2 + engine_obj.substage;
+    s32 checkpoint = engine_obj.checkpoint - 1;
+
+    self->y_pos.i.hi = D_800CC6AC_demo[row][checkpoint];
+    self->y_pos.i.lo = 0;
+    player_set_collision_bounds(self);
+    player_enter_idle(self);
+    background_objects[0].unk44 = 1;
+    background_objects[1].unk44 = 1;
+    background_objects[2].unk44 = 1;
+}
+#endif
+
+#ifndef VERSION_DEMO
 void player_entry_placed(struct PlayerObj* self)
 {
     struct EngineObj* engine = &engine_obj;
@@ -665,15 +843,18 @@ void player_entry_placed(struct PlayerObj* self)
     background_objects[1].unk44 = 1;
     background_objects[2].unk44 = 1;
 }
+#endif
 
 void player_entry_ride(struct PlayerObj* self)
 {
     qux_object.active = 1;
+#ifndef VERSION_DEMO
     self->armor_parts = engine_obj.armor_parts;
     self->arm_type = engine_obj.arm_type;
+#endif
     self->ride_state = -1;
     self->air_state = 1;
-    self->ride_animation = 0x29;
+    self->ride_animation = PLAYER_ANIM(0x29);
     self->unk5 = PLAYER_RIDE;
     self->unk6 = 1;
 }
@@ -705,9 +886,9 @@ void player_death_start(struct PlayerObj* self)
         engine_obj.unk19 = 1;
         engine_obj.unk1A = 1;
         self->death_timer = 8;
-        player_set_animation(self, 0x21);
+        player_set_animation(self, PLAYER_ANIM(0x21));
     }
-    self->unk5 = (u8)self->unk5 + 1;
+    self->unk5++;
 }
 
 void player_death_wait(struct PlayerObj* self)
@@ -726,7 +907,7 @@ void player_death_wait(struct PlayerObj* self)
         func_8001540C(3, 0xC, self);
         self->death_timer = 0;
         self->unkC6 = 0;
-        self->unk5 = (u8)self->unk5 + 1;
+        self->unk5++;
         func_80035C20(self);
     }
 }
@@ -931,6 +1112,10 @@ void player_clear_dash_and_attack(struct PlayerObj* self)
 
 void player_clear_flash(struct PlayerObj* self)
 {
+#ifdef VERSION_DEMO
+    self->flash_delay = 0;
+    self->flash_phase = 0;
+#endif
     self->flash_palette = 0;
 }
 
@@ -965,6 +1150,7 @@ void player_update_flash(struct PlayerObj* self)
     }
 }
 
+#ifndef VERSION_DEMO
 void player_copy_palette(struct PlayerObj* self, s32 source, s32 dest)
 {
     u16* src;
@@ -978,7 +1164,31 @@ void player_copy_palette(struct PlayerObj* self, s32 source, s32 dest)
         *dst++ = *src++;
     }
 }
+#endif
 
+#ifdef VERSION_DEMO
+void player_reset_palette(struct PlayerObj* self)
+{
+    u16* dst;
+    u16* src;
+    u32 a2;
+
+    if (self->weapon != 0) {
+        src = (u16*)SP_PALETTE_BANK + (((self->weapon - 1) << 6) + 0x30);
+        dst = SP_PALETTE;
+        for (a2 = 0; a2 < 0x20; a2++) {
+            *dst++ = *src++;
+        }
+        dst = SP_PALETTE + 0x130;
+        for (a2 = 0; a2 < 0x20; a2++) {
+            *dst++ = *src++;
+        }
+        need_palette_load |= 1;
+    } else {
+        player_set_palette(self, 0);
+    }
+}
+#else
 void player_reset_palette(struct PlayerObj* self)
 {
     u16* dst;
@@ -986,56 +1196,75 @@ void player_reset_palette(struct PlayerObj* self)
     u32 a2;
 
     if (self->unk2 == 0) {
-        if (self->is_clone == 0) {
-            if (self->weapon == 0) {
-                player_set_palette(self, 0);
-            } else {
-                src = (u16*)SP_PALETTE_BANK + 0x30 + (((self->weapon - 1) << 6));
-                dst = SP_PALETTE;
-                for (a2 = 0; a2 < 0x20; a2++) {
-                    *dst++ = *src++;
-                }
-                dst = SP_PALETTE + 0x130;
-                for (a2 = 0; a2 < 0x20; a2++) {
-                    *dst++ = *src++;
-                }
-            }
-            need_palette_load |= 1;
+        if (self->is_clone != 0) {
+            return;
         }
-    } else {
-        if (engine_obj.unk37) {
-            player_copy_palette(self, 0xD, 0);
+        if (self->weapon == 0) {
+            player_set_palette(self, 0);
         } else {
-            player_copy_palette(self, 0, 0);
-        }
-        need_palette_load |= 1;
-    }
-}
-
-void player_set_palette(struct PlayerObj* self, s32 palette)
-{
-    u16* dst;
-    u16* src;
-    u32 i;
-
-    if (self->unk2 == 0) {
-        if (self->is_clone == 0) {
-            src = SP_PALETTE_BANK[palette];
+            src = (u16*)SP_PALETTE_BANK + (((self->weapon - 1) << 6) + 0x30);
             dst = SP_PALETTE;
-            for (i = 0; i < 0x10; i++) {
+            for (a2 = 0; a2 < 0x20; a2++) {
                 *dst++ = *src++;
             }
             dst = SP_PALETTE + 0x130;
-            for (i = 0; i < 0x20; i++) {
+            for (a2 = 0; a2 < 0x20; a2++) {
                 *dst++ = *src++;
             }
-            need_palette_load |= 1;
+        }
+    } else if (engine_obj.unk37) {
+        player_copy_palette(self, 0xD, 0);
+    } else {
+        player_copy_palette(self, 0, 0);
+    }
+    need_palette_load |= 1;
+}
+#endif
+
+#ifdef VERSION_DEMO
+void player_set_palette(struct PlayerObj* self, s32 palette)
+{
+    u16* src;
+    u32 i;
+    u16* dst;
+
+    src = SP_PALETTE_BANK[palette];
+    dst = SP_PALETTE;
+    for (i = 0; i < 0x10; i++) {
+        *dst++ = *src++;
+    }
+    dst = SP_PALETTE + 0x130;
+    for (i = 0; i < 0x20; i++) {
+        *dst++ = *src++;
+    }
+    need_palette_load |= 1;
+}
+#else
+void player_set_palette(struct PlayerObj* self, s32 palette)
+{
+    u16* src;
+    u32 i;
+    u16* dst;
+
+    if (self->unk2 == 0) {
+        if (self->is_clone != 0) {
+            return;
+        }
+        src = SP_PALETTE_BANK[palette];
+        dst = SP_PALETTE;
+        for (i = 0; i < 0x10; i++) {
+            *dst++ = *src++;
+        }
+        dst = SP_PALETTE + 0x130;
+        for (i = 0; i < 0x20; i++) {
+            *dst++ = *src++;
         }
     } else {
         player_copy_palette(self, palette, 0);
-        need_palette_load |= 1;
     }
+    need_palette_load |= 1;
 }
+#endif
 
 void player_play_voice(struct PlayerObj* self, u8 voice)
 {
@@ -1047,7 +1276,7 @@ void player_play_voice(struct PlayerObj* self, u8 voice)
 void player_check_low_hp_alarm(struct PlayerObj* self)
 {
     if (self->voice_timer == 0 && self->hp < (engine_obj.max_hp / 3)) {
-        func_8001540C(3, 0xB, 0);
+        func_8001540C(3, 0xB, DEMO_ALT(NULL, self));
         self->voice_timer = 0x78;
     }
 }
@@ -1055,11 +1284,14 @@ void player_check_low_hp_alarm(struct PlayerObj* self)
 void player_damage(s8 damage)
 {
     struct PlayerObj* player;
-    u8 amount;
+    s8 amount;
     s8 value;
 
     player = &g_Player;
     g_Player.stun_timer = -1;
+#ifdef VERSION_DEMO
+    player->hp = (u8)(player->hp - damage);
+#else
     if (damage != 0) {
         if (g_Player.armor_parts & 2) {
             if (damage < 3) {
@@ -1088,6 +1320,7 @@ void player_damage(s8 damage)
             }
         }
     }
+#endif
     if (player->hp > 0) {
         value = player->hp | 0x80;
         player->hp = value;
@@ -1112,28 +1345,29 @@ void player_set_idle_animation(struct PlayerObj* self)
 
 void player_air_steer(struct PlayerObj* self)
 {
-    if (!self->input_locked && (self->input.buttons.held & (PLAYER_INPUT_RIGHT | PLAYER_INPUT_LEFT))) {
+    if (self->input_locked) {
+        self->x_vel.val = 0;
+        move_with_gravity(ANIMATED_OBJECT(self));
+        return;
+    }
+    if (self->input.buttons.held & (PLAYER_INPUT_RIGHT | PLAYER_INPUT_LEFT)) {
         if (self->input.buttons.held & PLAYER_INPUT_RIGHT) {
             self->unk15 = PLAYER_FACING_RIGHT;
-            if (!(self->unk88.bytes.collision_flags & PLAYER_COLLIDE_RIGHT)) {
-                if (self->dash_momentum != 0) {
-                    self->x_vel.val = FIXED(4.125);
-                } else {
-                    self->x_vel.val = FIXED(2);
-                }
-            } else {
+            if (self->unk88.bytes.collision_flags & PLAYER_COLLIDE_RIGHT) {
                 self->x_vel.val = 0;
+            } else if (self->dash_momentum != 0) {
+                self->x_vel.val = FIXED(4.125);
+            } else {
+                self->x_vel.val = FIXED(2);
             }
         } else {
             self->unk15 = 0;
-            if (!(self->unk88.bytes.collision_flags & PLAYER_COLLIDE_LEFT)) {
-                if (self->dash_momentum != 0) {
-                    self->x_vel.val = FIXED(-4.125);
-                } else {
-                    self->x_vel.val = FIXED(-2);
-                }
-            } else {
+            if (self->unk88.bytes.collision_flags & PLAYER_COLLIDE_LEFT) {
                 self->x_vel.val = 0;
+            } else if (self->dash_momentum != 0) {
+                self->x_vel.val = FIXED(-4.125);
+            } else {
+                self->x_vel.val = FIXED(-2);
             }
         }
     } else {
@@ -1161,7 +1395,6 @@ void player_spawn_dash_dust(struct PlayerObj* self)
 
 void player_spawn_dash_spark(struct PlayerObj* self)
 {
-    u8 facing;
     struct VisualObj* visual_obj;
     s32* sprite_frames;
 
@@ -1188,19 +1421,17 @@ void player_spawn_dash_spark(struct PlayerObj* self)
     visual_obj->unk40 = PLAYER_EFFECT_TEXTURE_BASE;
     visual_obj->unk42 = PLAYER_PALETTE_BASE + 4;
     visual_obj->unk16 = 1;
-    facing = self->unk15;
-    visual_obj->unk15 = facing;
-    if (facing == 0) {
-        visual_obj->x_pos.i.hi = self->x_pos.u.hi + player_dash_spark_offsets[self->unk2].x;
+    visual_obj->unk15 = self->unk15;
+    if (visual_obj->unk15 == 0) {
+        visual_obj->x_pos.i.hi = self->x_pos.i.hi + player_dash_spark_offsets[self->unk2].x;
     } else {
-        visual_obj->x_pos.i.hi = self->x_pos.u.hi - player_dash_spark_offsets[self->unk2].x;
+        visual_obj->x_pos.i.hi = self->x_pos.i.hi - player_dash_spark_offsets[self->unk2].x;
     }
-    visual_obj->y_pos.i.hi = self->y_pos.u.hi + player_dash_spark_offsets[self->unk2].y;
+    visual_obj->y_pos.i.hi = self->y_pos.i.hi + player_dash_spark_offsets[self->unk2].y;
 }
 
 void player_spawn_dash_splash(struct PlayerObj* self)
 {
-    u8 facing;
     struct VisualObj* visual_obj;
     s32* menu_frames;
     s32 index;
@@ -1218,22 +1449,19 @@ void player_spawn_dash_splash(struct PlayerObj* self)
             index = func_8002938C(0x84) & 0xFF;
             visual_obj->unk40 = PLAYER_STAGE_TEXTURE(index);
             visual_obj->unk42 = PLAYER_STAGE_PALETTE();
-            facing = self->unk15;
-            visual_obj->unk15 = facing;
-            if (facing == 0) {
-                visual_obj->x_pos.i.hi = self->x_pos.u.hi + player_dash_splash_offsets[self->unk2];
-                visual_obj->y_pos.i.hi = self->y_pos.u.hi;
+            visual_obj->unk15 = self->unk15;
+            if (visual_obj->unk15 == 0) {
+                visual_obj->x_pos.i.hi = self->x_pos.i.hi + player_dash_splash_offsets[self->unk2];
             } else {
-                visual_obj->x_pos.i.hi = self->x_pos.u.hi - player_dash_splash_offsets[self->unk2];
-                visual_obj->y_pos.i.hi = self->y_pos.u.hi;
+                visual_obj->x_pos.i.hi = self->x_pos.i.hi - player_dash_splash_offsets[self->unk2];
             }
+            visual_obj->y_pos.i.hi = self->y_pos.i.hi;
         }
     }
 }
 
 void player_spawn_wall_kick_spark(struct PlayerObj* self)
 {
-    u8 facing;
     struct VisualObj* visual_obj;
     s32* sprite_frames;
 
@@ -1253,14 +1481,13 @@ void player_spawn_wall_kick_spark(struct PlayerObj* self)
         visual_obj->unk40 = PLAYER_EFFECT_TEXTURE_BASE;
         visual_obj->unk42 = PLAYER_PALETTE_BASE + 2;
         visual_obj->unk16 = 0;
-        facing = self->unk15;
-        visual_obj->unk15 = facing;
-        if (facing == 0) {
-            visual_obj->x_pos.i.hi = self->x_pos.u.hi + PLAYER_WALL_KICK_X(self->unk2);
+        visual_obj->unk15 = self->unk15;
+        if (visual_obj->unk15 == 0) {
+            visual_obj->x_pos.i.hi = self->x_pos.i.hi + PLAYER_WALL_KICK_X(self->unk2);
         } else {
-            visual_obj->x_pos.i.hi = self->x_pos.u.hi - PLAYER_WALL_KICK_X(self->unk2);
+            visual_obj->x_pos.i.hi = self->x_pos.i.hi - PLAYER_WALL_KICK_X(self->unk2);
         }
-        visual_obj->y_pos.i.hi = self->y_pos.u.hi + PLAYER_WALL_KICK_Y(self->unk2);
+        visual_obj->y_pos.i.hi = self->y_pos.i.hi + PLAYER_WALL_KICK_Y(self->unk2);
     }
 }
 
@@ -1284,27 +1511,36 @@ void player_start_script_action(s8 action, s8 facing)
     g_Player.script_state = 1;
     g_Player.script_action = action;
     g_Player.script_facing = facing;
+#ifndef VERSION_DEMO
     g_Player.spike_immune = 1;
     engine_obj.gameplay_locked = 1;
+#endif
 }
 
 void player_end_script_action(void)
 {
     g_Player.script_state = 0;
+#ifndef VERSION_DEMO
     g_Player.spike_immune = 0;
     engine_obj.gameplay_locked = 0;
+#endif
 }
 
 void player_check_splash_tile(struct PlayerObj* self)
 {
     if (func_8002D994(self) == 0x24) {
-        s16 y = self->y_pos.u.hi & 0xFFF0;
+        s16 y = self->y_pos.i.hi & 0xFFF0;
         func_80036BF4(self, y);
     }
 }
 
 void player_check_splash(struct PlayerObj* self)
 {
+#ifdef MMX4_GAMECUBE
+    if (self->unk68 == NULL) {
+        return;
+    }
+#endif
     if (func_8002D900(self) == 0x24) {
 #ifdef MMX4_PC
         s16 temp = self->y_pos.i.hi;
@@ -1388,7 +1624,7 @@ void func_80036BF4(struct PlayerObj* self, s16 ground_y)
         visual->y_pos.i.hi = ground_y - 8;
     }
 
-    if (engine_obj.stage == 1) {
+    if (DEMO_ALT(engine_obj.stage == 1, 1)) {
 #ifdef MMX4_SATURN
         func_8001540C(5, (get_random() & 1) + 0x13, self);
 #else
@@ -1403,6 +1639,293 @@ void func_80036BF4(struct PlayerObj* self, s16 ground_y)
     }
 }
 #endif
+
+#ifdef VERSION_DEMO
+// player_shot_has_pose
+extern s8 D_800CC728_demo[];
+void func_8004345C_demo(struct PlayerObj* self); // player_update_shooting
+void func_80043D90_demo(struct PlayerObj* self);
+void func_80043DD4_demo(struct PlayerObj* self);
+void func_80043E4C_demo(struct PlayerObj* self);
+void func_80043E98_demo(struct PlayerObj* self);
+void func_80043EE4_demo(struct PlayerObj* self);
+void player_enter_ladder_shoot(struct PlayerObj* self);
+
+s32 player_check_shoot(struct PlayerObj* self)
+{
+    func_8004345C_demo(self);
+    if (self->shot_fired == 0) {
+        return 0;
+    }
+    if (D_800CC728_demo[self->shot_type] == 0) {
+        return 0;
+    }
+    self->dash_momentum = 0;
+    self->air_action = 0;
+    self->afterimage = 0;
+    switch (self->shot_type) {
+    case 2:
+    case 11:
+        func_80043EE4_demo(self);
+        break;
+    case 4:
+        func_80043E4C_demo(self);
+        break;
+    case 7:
+    case 16:
+        func_80043DD4_demo(self);
+        break;
+    case 12:
+        func_80043D90_demo(self);
+        break;
+    }
+    return 1;
+}
+
+s32 player_check_shoot_air(struct PlayerObj* self)
+{
+    func_8004345C_demo(self);
+    if (self->shot_fired == 0) {
+        return 0;
+    }
+    if (D_800CC728_demo[self->shot_type] == 0) {
+        return 0;
+    }
+    self->dash_momentum = 0;
+    self->air_action = 0;
+    self->afterimage = 0;
+    switch (self->shot_type) {
+    case 2:
+    case 11:
+        func_80043EE4_demo(self);
+        break;
+    case 4:
+        func_80043E98_demo(self);
+        break;
+    case 7:
+    case 16:
+        func_80043DD4_demo(self);
+        break;
+    case 12:
+        func_80043D90_demo(self);
+        break;
+    }
+    return 1;
+}
+
+s32 player_check_shoot_ladder(struct PlayerObj* self)
+{
+    func_8004345C_demo(self);
+    if (self->shot_fired == 0) {
+        return 0;
+    }
+    if (D_800CC728_demo[self->shot_type] == 0) {
+        player_enter_ladder_shoot(self);
+        return 1;
+    }
+    switch (self->shot_type) {
+    case 2:
+    case 11:
+        func_80043EE4_demo(self);
+        break;
+    case 4:
+        func_80043E98_demo(self);
+        break;
+    case 7:
+    case 16:
+        func_80043DD4_demo(self);
+        break;
+    case 12:
+        func_80043D90_demo(self);
+        break;
+    }
+    return 1;
+}
+
+const s32 player_common_rodata_pad = 0;
+#endif
+
+#ifdef VERSION_DEMO
+s32 player_check_air_move(struct PlayerObj* self)
+{
+    if (0) {
+        func_8001540C(2, 0xAE, self);
+    }
+}
+#endif
+
+#ifdef VERSION_DEMO
+s32 func_80042D60_demo(struct PlayerObj* self);
+void func_80042DC0_demo(struct PlayerObj* self);
+void func_80042F08_demo(struct PlayerObj* self);
+
+void player_update_charge(struct PlayerObj* self)
+{
+    if (self->unk2 != 0 || self->is_clone != 0)
+        return;
+    if (self->unk5 == PLAYER_BEAM_IN)
+        return;
+    if (self->unk5 == PLAYER_BEAM_OUT)
+        return;
+    if (self->ride_state < 0)
+        return;
+    if (func_80042D60_demo(self) != 0) {
+        if (self->stock_charge == 0) {
+            stop_sound(1, 7);
+            if (self->shot_palette_timer != 0) {
+                player_set_palette(self, 0x32);
+            } else {
+                player_reset_palette(self);
+            }
+            player_clear_flash(self);
+        }
+        self->charge_state[0] = PLAYER_CHARGE_NONE;
+        self->charge_state[1] = PLAYER_CHARGE_NONE;
+        self->charge_timer = 0;
+        self->special_charge_timer = 0;
+    } else if (self->shot_cooldown == 0) {
+        func_80042DC0_demo(self);
+        func_80042F08_demo(self);
+        if (self->charge_state[0] != PLAYER_CHARGE_NONE) {
+            self->flash_palette = (self->charge_state[0] - 1) * 3 + 0x26;
+        }
+        if (self->charge_state[1] != PLAYER_CHARGE_NONE) {
+            self->flash_palette = (self->charge_state[1] - 1) * 3 + 0x26;
+        }
+    }
+    if (self->stock_charge != 0) {
+        if (self->stock_charge < 3) {
+            self->flash_palette = 0x29;
+        } else {
+            self->flash_palette = 0x2C;
+        }
+    }
+}
+#endif
+
+#ifdef VERSION_DEMO
+s32 func_80042D60_demo(struct PlayerObj* self)
+{
+    if (self->pressed_input & 0x10) {
+        return 1;
+    }
+    if (self->pressed_input & 0x20) {
+        return 1;
+    }
+    if ((self->input.history & 0x100010) != 0x100000) {
+        return (self->input.history & 0x200020) == 0x200000;
+    }
+    return 1;
+}
+#endif
+
+#ifdef VERSION_DEMO
+void func_80042DC0_demo(struct PlayerObj* self)
+{
+    u8 full_charge_time;
+
+    if (self->input.buttons.held & PLAYER_INPUT_SHOOT) {
+        if (self->weapon != 0) {
+            if (!(self->armor_parts & 4)) {
+                return;
+            }
+            full_charge_time = 0x5A;
+        } else {
+            if (self->arm_type == 0) {
+                full_charge_time = 0x5A;
+            }
+            if (self->arm_type == 1) {
+                full_charge_time = 0x96;
+            }
+            if (self->arm_type == 2) {
+                full_charge_time = 0x3C;
+            }
+        }
+        if (self->charge_state[0] != PLAYER_CHARGE_FULL) {
+            if (++self->charge_timer == 0x19) {
+                func_8001540C(1, 7, self);
+                self->charge_state[0] = PLAYER_CHARGE_PARTIAL;
+                return;
+            }
+            if (self->charge_timer == full_charge_time) {
+                self->charge_state[0] = PLAYER_CHARGE_FULL;
+            }
+            if (full_charge_time == 0x96) {
+                if (self->charge_timer == 0x5A) {
+                    if (self->stock_charge < 2) {
+                        self->stock_charge = 2;
+                    }
+                }
+                if (self->charge_timer == 0x78) {
+                    self->stock_charge = 3;
+                }
+                if (self->charge_timer == 0x96) {
+                    self->stock_charge = 4;
+                }
+            }
+        }
+    }
+}
+#endif
+
+#ifdef VERSION_DEMO
+void func_80042F08_demo(struct PlayerObj* self)
+{
+    u8 full_charge_time;
+
+    if (self->input.buttons.held & PLAYER_INPUT_SPECIAL) {
+        if (self->arm_type == 0) {
+            full_charge_time = 0x5A;
+        }
+        if (self->arm_type == 1) {
+            full_charge_time = 0x96;
+        }
+        if (self->arm_type == 2) {
+            full_charge_time = 0x3C;
+        }
+        if (self->charge_state[1] != PLAYER_CHARGE_FULL) {
+            if (++self->special_charge_timer == 0x19) {
+                func_8001540C(1, 7, self);
+                self->charge_state[1] = PLAYER_CHARGE_PARTIAL;
+                return;
+            }
+            if (self->special_charge_timer == full_charge_time) {
+                self->charge_state[1] = PLAYER_CHARGE_FULL;
+            }
+            if (full_charge_time == 0x96) {
+                if (self->special_charge_timer == 0x5A) {
+                    if (self->stock_charge < 2) {
+                        self->stock_charge = 2;
+                    }
+                }
+                if (self->special_charge_timer == 0x78) {
+                    self->stock_charge = 3;
+                }
+                if (self->special_charge_timer == 0x96) {
+                    self->stock_charge = 4;
+                }
+            }
+        }
+    }
+}
+#endif
+
+#ifdef VERSION_DEMO
+void player_reset_weapon(struct PlayerObj* self)
+{
+    if (self->unk2 == 0) {
+        stop_sound(1, 7);
+        player_reset_palette(self);
+        player_clear_flash(self);
+        self->charge_state[0] = PLAYER_CHARGE_NONE;
+        self->charge_state[1] = PLAYER_CHARGE_NONE;
+        self->charge_timer = 0;
+        self->special_charge_timer = 0;
+        self->input.buttons.previous = 0;
+    }
+}
+#endif
+#ifndef VERSION_DEMO
 struct WeaponObj* player_spawn_weapon(s8 active, s8 id, s8 type, struct PlayerObj* owner)
 {
     struct WeaponObj* weapon = find_free_weapon_obj();
@@ -1419,7 +1942,9 @@ struct WeaponObj* player_spawn_weapon(s8 active, s8 id, s8 type, struct PlayerOb
     }
     return NULL;
 }
+#endif
 
+#ifndef VERSION_DEMO
 struct VisualObj* player_spawn_visual(s8 active, s8 id, s8 variant, void* owner)
 {
     struct VisualObj* visual_obj = find_free_visual_obj();
@@ -1436,3 +1961,4 @@ struct VisualObj* player_spawn_visual(s8 active, s8 id, s8 variant, void* owner)
     }
     return NULL;
 }
+#endif

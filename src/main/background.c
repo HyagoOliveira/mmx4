@@ -5,6 +5,8 @@
 #ifdef MMX4_SATURN
 #include "saturn/platform.h"
 #include "saturn/game_low.h"
+#endif
+#if defined(MMX4_SATURN) || defined(MMX4_BIG_ENDIAN)
 #define BG_Y_HIGH_OFFSET 0xC
 #define BG_PREVIOUS_Y_HIGH_OFFSET 0x18
 #else
@@ -222,7 +224,7 @@ void func_800279D8(struct BackgroundObj* arg0)
     func_80027AFC(arg0);
     func_80027BE4(arg0);
     scroll_x = background_objects[0].x_pos.i.hi;
-    background_objects[0].y_pos.i.hi = (u16)background_objects[0].unk20 - (scroll_x / 4);
+    background_objects[0].y_pos.i.hi = background_objects[0].unk20 - (scroll_x / 4);
 }
 
 void func_80027A5C(struct BackgroundObj* a0)
@@ -303,6 +305,12 @@ void func_80027B70(struct Unk9* arg0)
     *(u16*)((u8*)arg0 + BG_Y_HIGH_OFFSET) = delta + base;
 }
 
+#ifdef VERSION_DEMO
+#define FALL_DEATH_MARGIN 32
+#else
+#define FALL_DEATH_MARGIN 8
+#endif
+
 void func_80027BE4(struct BackgroundObj* arg0)
 {
     s16 temp_v1;
@@ -332,7 +340,7 @@ void func_80027BE4(struct BackgroundObj* arg0)
     if (arg0->unk20 < arg0->y_pos.i.hi) {
         arg0->y_pos.i.hi = arg0->unk20;
         temp_v1 = arg0->unk20 + 0x100;
-        if (g_Player.y_pos.i.hi - 8 >= temp_v1) {
+        if (g_Player.y_pos.i.hi - FALL_DEATH_MARGIN >= temp_v1) {
             EASY_HP_SET(0);
             g_Player.hp = -0x80;
         }
@@ -431,7 +439,7 @@ void func_80027F08(struct BackgroundObj* arg0)
     u16 v1 = arg0->unk40;
     v0 >>= 2;
     v0 += v1;
-    arg0->x_pos.u.hi = v0;
+    arg0->x_pos.i.hi = v0;
 }
 
 void func_80027F28(struct BackgroundObj* arg0)
@@ -440,7 +448,7 @@ void func_80027F28(struct BackgroundObj* arg0)
     value >>= 1;
     value = value + (value >> 1);
     value = arg0->unk40 + value;
-    arg0->x_pos.u.hi = value;
+    arg0->x_pos.i.hi = value;
 }
 
 void func_80027F50(struct BackgroundObj* arg0)
@@ -689,91 +697,135 @@ void func_80028658(struct BackgroundObj* arg0)
     func_80028450(arg0);
 }
 
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
-void func_80028690(struct BackgroundObj* bg);
-#endif
-
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
 void func_80028690(struct BackgroundObj* bg)
 {
-    s16 target;
-    s16 origin;
-    s16 delta;
-    s16 next;
+    s16 value;
 
-    target = bg->unk26;
-    if (bg->unk1E != target) {
-        origin = bg->x_pos.i.hi;
-        if (target >= origin) {
-            next = origin + (s8)bg->unk47;
-        } else if ((s16)(g_Player.x_pos.i.hi - origin - bg->unk30 + 2) < 5) {
-            next = target;
-        } else {
-            delta = g_Player.x_pos.i.hi - g_Player.unk18.i.hi;
-            if (delta >= 0)
-                delta = 0;
-            next = delta + origin - (s8)bg->unk47;
-        }
-        bg->unk1E = next < target ? next : target;
-    }
-
-    target = bg->unk24;
-    if (bg->unk1C != target) {
-        origin = bg->x_pos.i.hi;
-        if (target < origin) {
-            next = origin - (s8)bg->unk47;
-            bg->unk1C = next < target ? target : next;
-        } else if ((s16)(g_Player.x_pos.i.hi - origin - bg->unk32 + 2) >= 4) {
-            bg->unk1C = target;
-        } else {
-            delta = g_Player.x_pos.i.hi - g_Player.unk18.i.hi;
-            if (delta < 0)
-                delta = 0;
-            next = delta + origin + (s8)bg->unk47;
-            bg->unk1C = target < next ? next : target;
-        }
-    }
-
-    target = bg->unk2A;
-    if (bg->unk22 != target) {
-        origin = bg->y_pos.i.hi;
-        if (target >= origin) {
-            next = origin + (s8)bg->unk47;
-            bg->unk22 = next < target ? next : target;
-        } else {
-            next = g_Player.y_pos.i.hi - origin - bg->unk2C + 2;
-            if (next < 4) {
-                delta = g_Player.y_pos.i.hi - g_Player.unk1C.i.hi;
-                if (delta >= 0)
-                    delta = 0;
-                next = delta + origin - (s8)bg->unk47;
-                if (next < target)
-                    next = target;
+    if (bg->unk26 != bg->unk1E) {
+        if (bg->unk26 >= bg->x_pos.i.hi) {
+            value = bg->x_pos.i.hi;
+            value += (s8)bg->unk47;
+            if (value >= bg->unk26) {
+                bg->unk1E = bg->unk26;
+            } else {
+                bg->unk1E = value;
             }
-            bg->unk22 = next;
+        } else {
+            value = g_Player.x_pos.i.hi;
+            value -= bg->x_pos.i.hi;
+            value -= bg->unk30;
+            value += 2;
+            if (value > 4) {
+                value = g_Player.x_pos.i.hi - g_Player.unk18.i.hi;
+                if (value >= 0) {
+                    value = 0;
+                }
+                value += bg->x_pos.i.hi;
+                value -= (s8)bg->unk47;
+                if (value >= bg->unk26) {
+                    bg->unk1E = bg->unk26;
+                } else {
+                    bg->unk1E = value;
+                }
+            } else {
+                bg->unk1E = bg->unk26;
+            }
         }
     }
 
-    target = bg->unk28;
-    if (bg->unk20 != target) {
-        origin = bg->y_pos.i.hi;
-        if (target < origin) {
-            next = origin - (s8)bg->unk47;
-            bg->unk20 = next < target ? target : next;
-        } else if ((s16)(g_Player.y_pos.i.hi - origin - bg->unk2E + 2) >= 4) {
-            bg->unk20 = target;
+    if (bg->unk24 != bg->unk1C) {
+        if (bg->unk24 < bg->x_pos.i.hi) {
+            value = bg->x_pos.i.hi;
+            value -= (s8)bg->unk47;
+            if (value >= bg->unk24) {
+                bg->unk1C = value;
+            } else {
+                bg->unk1C = bg->unk24;
+            }
         } else {
-            delta = g_Player.y_pos.i.hi - g_Player.unk1C.i.hi;
-            if (delta < 0)
-                delta = 0;
-            next = delta + origin + (s8)bg->unk47;
-            bg->unk20 = next < target ? next : target;
+            value = g_Player.x_pos.i.hi;
+            value -= bg->x_pos.i.hi;
+            value -= bg->unk32;
+            value += 2;
+            if (value < 4) {
+                value = g_Player.x_pos.i.hi - g_Player.unk18.i.hi;
+                if (value < 0) {
+                    value = 0;
+                }
+                value += bg->x_pos.i.hi;
+                value += (s8)bg->unk47;
+                if (value > bg->unk24) {
+                    bg->unk1C = value;
+                } else {
+                    bg->unk1C = bg->unk24;
+                }
+            } else {
+                bg->unk1C = bg->unk24;
+            }
+        }
+    }
+
+    if (bg->unk2A != bg->unk22) {
+        if (bg->unk2A >= bg->y_pos.i.hi) {
+            value = bg->y_pos.i.hi;
+            value += (s8)bg->unk47;
+            if (value < bg->unk2A) {
+                bg->unk22 = value;
+            } else {
+                bg->unk22 = bg->unk2A;
+            }
+        } else {
+            value = g_Player.y_pos.i.hi;
+            value -= bg->y_pos.i.hi;
+            value -= bg->unk2C;
+            value += 2;
+            if (value >= 4) {
+                bg->unk22 = value;
+            } else {
+                value = g_Player.y_pos.i.hi - g_Player.unk1C.i.hi;
+                if (value >= 0) {
+                    value = 0;
+                }
+                value += bg->y_pos.i.hi;
+                value -= (s8)bg->unk47;
+                if (value < bg->unk2A) {
+                    value = bg->unk2A;
+                }
+                bg->unk22 = value;
+            }
+        }
+    }
+
+    if (bg->unk28 != bg->unk20) {
+        if (bg->unk28 < bg->y_pos.i.hi) {
+            value = bg->y_pos.i.hi;
+            value -= (s8)bg->unk47;
+            if (value < bg->unk28) {
+                value = bg->unk28;
+            }
+            bg->unk20 = value;
+        } else {
+            value = g_Player.y_pos.i.hi;
+            value -= bg->y_pos.i.hi;
+            value -= bg->unk2E;
+            value += 2;
+            if (value < 4) {
+                value = g_Player.y_pos.i.hi - g_Player.unk1C.i.hi;
+                if (value < 0) {
+                    value = 0;
+                }
+                value += bg->y_pos.i.hi;
+                value += (s8)bg->unk47;
+                if (value >= bg->unk28) {
+                    value = bg->unk28;
+                }
+                bg->unk20 = value;
+            } else {
+                bg->unk20 = bg->unk28;
+            }
         }
     }
 }
-#else
-INCLUDE_ASM("main/nonmatchings/background", func_80028690);
-#endif
 
 void update_screen_shake_x(struct BackgroundObj* arg0)
 {
@@ -915,7 +967,7 @@ struct BackgroundLayoutConfigData D_800F3188 = {
         BACKGROUND_CONFIG(7, 3, 9, 10, 5, 9, 4, 8, 6, 10),
         BACKGROUND_CONFIG(7, 3, 9, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(6, 3, 9, 10, 4, 7, 5, 8, 9, 10),
-        BACKGROUND_CONFIG(7, 3, 8, 10, 4, 8, 5, 9, 6, 10),
+        BACKGROUND_CONFIG(7, 3, DEMO_ALT(8, 9), 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(7, 3, 9, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(7, 3, 9, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(7, 3, 7, 10, 4, 8, 5, 9, 6, 10),
@@ -925,15 +977,29 @@ struct BackgroundLayoutConfigData D_800F3188 = {
         BACKGROUND_CONFIG(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
         BACKGROUND_CONFIG(7, 3, 7, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(7, 3, 7, 10, 4, 8, 5, 9, 6, 10),
+#ifdef VERSION_DEMO
+        BACKGROUND_CONFIG(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        BACKGROUND_CONFIG(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        BACKGROUND_CONFIG(7, 3, 9, 10, 4, 8, 5, 9, 6, 10),
+        BACKGROUND_CONFIG(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+#else
         BACKGROUND_CONFIG(7, 3, 7, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(7, 3, 6, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(4, 3, 9, 10, 4, 8, 5, 9, 6, 10),
         BACKGROUND_CONFIG(4, 3, 9, 10, 9, 10, 4, 6, 5, 7),
+#endif
         BACKGROUND_CONFIG(8, 7, 5, 4, 3, 6, 5, 10, 4, 9),
+#ifdef VERSION_DEMO
+        BACKGROUND_CONFIG(7, 3, 9, 10, 4, 8, 5, 9, 6, 10),
+        BACKGROUND_CONFIG(6, 8, 9, 10, 5, 8, 4, 7, 9, 10),
+        BACKGROUND_CONFIG(6, 8, 9, 10, 5, 7, 4, 8, 9, 10),
+        BACKGROUND_CONFIG(6, 8, 9, 10, 5, 8, 4, 7, 9, 10),
+#else
         BACKGROUND_CONFIG(6, 3, 9, 10, 4, 7, 5, 8, 9, 9),
         BACKGROUND_CONFIG(6, 3, 9, 10, 4, 7, 5, 8, 9, 9),
         BACKGROUND_CONFIG(9, 8, 9, 10, 4, 5, 7, 8, 10, 10),
         BACKGROUND_CONFIG(6, 8, 9, 10, 4, 5, 10, 10, 6, 7),
+#endif
     },
     { 0, 0 },
 };
@@ -947,15 +1013,15 @@ struct BackgroundCameraModePair D_800F32D4[16][2] = {
     { { 3, 5 }, { 2, 2 } },
     { { 5, 5 }, { 5, 5 } },
     { { 1, 3 }, { 2, 1 } },
-    { { 8, 6 }, { 2, 4 } },
+    { { 8, 6 }, { 2, DEMO_ALT(4, 3) } },
     { { 1, 3 }, { 1, 3 } },
     { { 5, 5 }, { 5, 5 } },
     { { 5, 5 }, { 5, 5 } },
-    { { 1, 1 }, { 0, 0 } },
+    { { DEMO_ALT(1, 5), DEMO_ALT(1, 5) }, { 0, 0 } },
     { { 5, 1 }, { 0, 0 } },
     { { 5, 3 }, { 5, 3 } },
-    { { 2, 1 }, { 2, 3 } },
-    { { 0, 0 }, { 5, 5 } },
+    { { DEMO_ALT(2, 0), DEMO_ALT(1, 0) }, { DEMO_ALT(2, 0), DEMO_ALT(3, 0) } },
+    { { 0, 0 }, { DEMO_ALT(5, 0), DEMO_ALT(5, 0) } },
     { { 0, 0 }, { 0, 0 } },
-    { { 5, 5 }, { 2, 3 } },
+    { { DEMO_ALT(5, 2), DEMO_ALT(5, 3) }, { 2, 3 } },
 };

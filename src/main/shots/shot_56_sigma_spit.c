@@ -70,7 +70,8 @@ void func_800ADF30(struct ShotObj* self)
     self->unk40 = owner->unk40;
     self->animation_table = owner->animation_table;
     self->unk3C = owner->unk3C;
-    self->unk42 = owner->unk42 & 0x7FFF;
+    self->unk42 = owner->unk42;
+    self->unk42 &= 0x7FFF;
     self->unk68 = NULL;
     frame = get_random() & 3;
     set_animation_frame(ANIMATED_OBJECT(self), 0x15, frame);
@@ -86,32 +87,32 @@ void func_800ADF30(struct ShotObj* self)
         self->unk60 = 6;
         switch (get_random() & 3) {
         case 0:
-            self->x_pos.u.hi = background_objects[0].x_pos.u.hi + (get_random() & 0xFF);
-            self->y_pos.u.hi = background_objects[0].y_pos.u.hi - 0x20;
+            self->x_pos.i.hi = background_objects[0].x_pos.i.hi + (get_random() & 0xFF);
+            self->y_pos.i.hi = background_objects[0].y_pos.i.hi - 0x20;
             break;
         case 1:
-            self->x_pos.u.hi = background_objects[0].x_pos.u.hi + 0x160;
-            self->y_pos.u.hi = background_objects[0].y_pos.u.hi + (get_random() & 0xFF);
+            self->x_pos.i.hi = background_objects[0].x_pos.i.hi + 0x160;
+            self->y_pos.i.hi = background_objects[0].y_pos.i.hi + (get_random() & 0xFF);
             break;
         case 2:
-            self->x_pos.u.hi = background_objects[0].x_pos.u.hi + (get_random() & 0xFF);
-            self->y_pos.u.hi = background_objects[0].y_pos.u.hi + 0x110;
+            self->x_pos.i.hi = background_objects[0].x_pos.i.hi + (get_random() & 0xFF);
+            self->y_pos.i.hi = background_objects[0].y_pos.i.hi + 0x110;
             break;
         case 3:
-            self->x_pos.u.hi = background_objects[0].x_pos.u.hi - 0x20;
-            self->y_pos.u.hi = background_objects[0].y_pos.u.hi + (get_random() & 0xFF);
+            self->x_pos.i.hi = background_objects[0].x_pos.i.hi - 0x20;
+            self->y_pos.i.hi = background_objects[0].y_pos.i.hi + (get_random() & 0xFF);
             break;
         }
     } else {
         self->unk5 = 3;
         set_velocity_from_angle(MOVING_OBJECT(self), (u8)((get_random() & 0xFF) % 7u + 1));
-        self->unk2C = 0x4200;
-        self->timer = 0x1E;
-        self->unk60 = 6;
-        self->unk28 = 0;
-        self->unk5C = 3;
         self->x_vel.val = (u32)self->x_vel.val * 8;
         self->y_vel.val = (u32)self->y_vel.val * 10;
+        self->unk28 = 0;
+        self->unk2C = 0x4200;
+        self->timer = 0x1E;
+        self->unk5C = 3;
+        self->unk60 = 6;
     }
     self->state++;
     update_on_screen(BASE_OBJECT(self), 0x50, 0x50);

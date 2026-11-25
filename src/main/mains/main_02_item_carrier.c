@@ -83,23 +83,29 @@ void func_80042950(struct MainObj* arg0)
     u8 weapon;
     u8 flags;
 
+#ifndef VERSION_DEMO
     arg0->active |= 4;
+#endif
     weapon = player->weapon;
     flags = 0;
     if (player->hp <= (s8)engine_obj.max_hp / 2) {
         flags |= 1;
-        HD_MODE(arg0) = 1;
+        HD_MODE(arg0) = DEMO_ALT(1, 2);
     }
+#ifdef VERSION_DEMO
+    if (weapon != 0 && player->weapon_energy[weapon] <= 0x18) {
+#else
     if (engine_obj.cur_character == 0 && weapon != 0 && player->weapon_energy[weapon] <= 0x18) {
+#endif
         flags |= 2;
-        HD_MODE(arg0) = 3;
+        HD_MODE(arg0) = DEMO_ALT(3, 4);
     }
     if (flags != 0) {
         if (flags == 3) {
             if (player->hp <= player->weapon_energy[weapon])
-                HD_MODE(arg0) = 1;
+                HD_MODE(arg0) = DEMO_ALT(1, 2);
             else
-                HD_MODE(arg0) = 3;
+                HD_MODE(arg0) = DEMO_ALT(3, 4);
         }
         arg0->state++;
     } else {
@@ -110,19 +116,19 @@ void func_80042950(struct MainObj* arg0)
 // item_carrier_init
 void func_80042A48(struct MainObj* self)
 {
+    self->state++;
     self->unk5 = 0;
     self->unk2 = 0;
-    self->state++;
     self->bg_offset = g_Player.bg_offset;
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
     self->unk15 = (g_Player.x_pos.val >= self->x_pos.val) << PLAYER_FACING_SHIFT;
     self->animation_table = (const u8* const*)item_carrier_animations;
-    self->unk16 = VISUAL_SATURN_LAYER(4);
+    self->attack_box = NULL;
+    self->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(4), 6);
+    self->terrain_box = NULL;
     self->hp = 1;
     self->contact_damage = 1;
-    self->attack_box = NULL;
-    self->terrain_box = NULL;
     self->collision_data = (const u16*)D_801063F0;
     self->air_state = 0;
     self->x_speed = 0;
@@ -148,6 +154,13 @@ static inline void item_carrier_spawn_item(struct MainObj* arg0)
     }
 }
 
+#ifdef VERSION_DEMO
+#define ITEM_CARRIER_DROP(arg0) \
+    ((void (*)(struct BaseObj*, u8))drop_item)(BASE_OBJECT(arg0), (arg0)->ext.main_2.item_subtype)
+#else
+#define ITEM_CARRIER_DROP(arg0) item_carrier_spawn_item(arg0)
+#endif
+
 void func_80042AFC(struct MainObj* arg0)
 {
     s32 hit;
@@ -167,16 +180,16 @@ void func_80042AFC(struct MainObj* arg0)
                     arg0->hp = 1;
                     break;
                 }
-                item_carrier_spawn_item(arg0);
-                arg0->state = (u8)arg0->state + 1;
+                ITEM_CARRIER_DROP(arg0);
+                arg0->state++;
                 return;
             }
         }
     } else if ((hit = func_8002DD04(arg0)) < 0) {
         spawn_explosion(BASE_OBJECT(arg0));
         spawn_debris(3, item_carrier_capsule_debris, arg0);
-        item_carrier_spawn_item(arg0);
-        arg0->state = (u8)arg0->state + 1;
+        ITEM_CARRIER_DROP(arg0);
+        arg0->state++;
         return;
     }
 
@@ -185,12 +198,16 @@ void func_80042AFC(struct MainObj* arg0)
         update_on_screen(BASE_OBJECT(arg0), 0x20, 0x20);
         return;
     }
-    arg0->state = (u8)arg0->state + 1;
+    arg0->state++;
 }
 
 void item_carrier_hide(struct MainObj* self)
 {
     self->on_screen = 0;
+#ifdef VERSION_DEMO
+    stop_sound(0, 8);
+    stop_sound(0, 9);
+#endif
     self->state++;
 }
 
@@ -209,6 +226,10 @@ void item_carrier_approach_start(struct MainObj* self)
     self->unk6++;
     self->x_speed = self->unk15 != 0 ? 0x20000 : -0x20000;
     set_animation(self, 0);
+#ifdef VERSION_DEMO
+    stop_sound(0, 9);
+    func_8001540C(0, 8, self);
+#endif
 }
 
 void item_carrier_approach_fly(struct MainObj* self)
@@ -216,11 +237,7 @@ void item_carrier_approach_fly(struct MainObj* self)
     s32 distance;
     animate_object(ANIMATED_OBJECT(self));
     move_object(MOVING_OBJECT(self));
-    if (self->x_pos.val - g_Player.x_pos.val < 0) {
-        distance = g_Player.x_pos.val - self->x_pos.val;
-    } else {
-        distance = self->x_pos.val - g_Player.x_pos.val;
-    }
+    distance = ABS(self->x_pos.val, g_Player.x_pos.val);
     if (distance > FIXED(64)) {
         return;
     }
@@ -247,6 +264,10 @@ void item_carrier_hover(struct MainObj* self)
 
 void item_carrier_hover_start(struct MainObj* self)
 {
+#ifdef VERSION_DEMO
+    stop_sound(0, 8);
+    func_8001540C(0, 9, self);
+#endif
     self->unk6++;
     self->unk7C = 0x12C;
     self->unk7E = 0xA;
@@ -257,18 +278,13 @@ void item_carrier_hover_start(struct MainObj* self)
 
 void item_carrier_hover_bob(struct MainObj* self)
 {
-    s16 timer;
-    s16 countdown;
-
-    timer = self->unk7E;
-    if (timer == 0) {
+    if (self->unk7E == 0) {
+        self->y_speed *= -1;
         self->unk7E = 0x14;
-        self->y_speed = -self->y_speed;
     } else {
-        self->unk7E = timer - 1;
+        self->unk7E--;
     }
-    countdown = --self->unk7C;
-    if ((countdown << 0x10) == 0) {
+    if (--self->unk7C == 0) {
         self->unk5 = 3;
         self->unk6 = 0;
     }
@@ -305,6 +321,10 @@ void item_carrier_drop_start(struct MainObj* self)
     self->attack_box = NULL;
     self->air_state = -1;
     set_animation(self, 4);
+#ifdef VERSION_DEMO
+    stop_sound(0, 8);
+    stop_sound(0, 9);
+#endif
     CollisionRelated(PLAYER_OBJECT(self));
     if ((self->collision_flags & 0xF) == 0xF) {
         self->x_pos.val = self->unk18.val;
@@ -319,9 +339,9 @@ void item_carrier_drop_rise(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     move_with_gravity(ANIMATED_OBJECT(self));
     if (self->y_speed < 0) {
+        self->unk6++;
         self->y_speed = 0;
         self->gravity = FIXED(0.2578125);
-        self->unk6++;
     }
     CollisionRelated(PLAYER_OBJECT(self));
 }
@@ -335,6 +355,9 @@ void item_carrier_drop_fall(struct MainObj* self)
         self->gravity = 0;
         self->air_state = 0;
         set_animation(self, 4);
+#ifdef VERSION_DEMO
+        func_8001540C(0, 7, self);
+#endif
     }
     CollisionRelated(PLAYER_OBJECT(self));
 }
@@ -380,8 +403,8 @@ void item_carrier_leave_side(struct MainObj* self)
 
 void item_carrier_leave_side_start(struct MainObj* self)
 {
-    self->y_speed = 0;
     self->unk7++;
+    self->y_speed = 0;
     set_animation(self, 2);
 }
 
@@ -395,13 +418,16 @@ void item_carrier_leave_side_turn(struct MainObj* self)
         if (self->unk15 != 0) {
             velocity = FIXED(2);
         }
-        self->y_speed = FIXED(0.14453125);
         self->x_speed = velocity;
+        self->y_speed = FIXED(0.14453125);
         set_animation(self, 0);
+#ifdef VERSION_DEMO
+        stop_sound(0, 9);
+        func_8001540C(0, 8, self);
+#endif
         self->unk7C = 0x258;
     }
 }
-
 void item_carrier_leave_side_fly(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));

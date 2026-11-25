@@ -21,9 +21,8 @@ void jet_drone_bullet_update(struct ShotObj* self)
     jet_drone_bullet_state_funcs[self->state](self);
 }
 
-void jet_drone_bullet_init(struct ShotObj* arg0)
+void jet_drone_bullet_init(struct ShotObj* self)
 {
-    struct ShotObj* self = arg0;
 
     self->state = 1;
     self->on_screen = 1;
@@ -35,14 +34,14 @@ void jet_drone_bullet_init(struct ShotObj* arg0)
             OBJECT_HEADER(self),
             OBJECT_HEADER(&g_Player))
             & 0xFF);
-    self->unk54 = jet_drone_bullet_hit_box;
-    self->unk50.data = jet_drone_bullet_hit_box;
-    self->unk16 = 0;
-    self->unk68 = 0;
-    self->unk5C = 1;
-    self->unk60 = 3;
     self->x_vel.val *= 2;
     self->y_vel.val *= 2;
+    self->unk16 = 0;
+    self->unk68 = 0;
+    self->unk54 = jet_drone_bullet_hit_box;
+    self->unk50.data = jet_drone_bullet_hit_box;
+    self->unk5C = 1;
+    self->unk60 = DEMO_ALT(3, 2);
     set_animation(self, 3);
 }
 

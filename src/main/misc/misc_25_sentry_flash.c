@@ -21,10 +21,15 @@ void sentry_flash_despawn(struct MiscObj*);
 
 void sentry_flash_update(struct MiscObj* self)
 {
+#ifndef VERSION_DEMO
     struct ObjectHeader* owner;
+#endif
 
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
+#ifdef VERSION_DEMO
+    sentry_flash_state_funcs[self->state](self);
+#else
     owner = OBJECT_HEADER(self->ext.unk.unk50);
     if (owner->active != 0x41) {
         ZeroObjectState(OBJECT_HEADER(self));
@@ -33,6 +38,7 @@ void sentry_flash_update(struct MiscObj* self)
     } else {
         sentry_flash_state_funcs[self->state](self);
     }
+#endif
 }
 
 // sentry_flash_init
@@ -47,7 +53,8 @@ void func_800CC4E0(struct MiscObj* misc)
     misc->unk2C = 0;
     misc->unk16 = 0;
     misc->unk40 = ext->owner->unk40;
-    misc->unk42 = ext->owner->unk42 & 0x7FFF;
+    misc->unk42 = ext->owner->unk42;
+    misc->unk42 &= 0x7FFF;
     misc->animation_table = (u32**)ext->owner->animation_table;
     misc->unk3C = ext->owner->sprite_frames;
     misc->unk15 = ext->owner->unk15;
@@ -104,11 +111,12 @@ void sentry_flash_animate(struct MiscObj* self)
     animate_object(ANIMATED_OBJECT(self));
     if (func_8002B160(BASE_OBJECT(self)) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x30, 0x10);
-        if (self->animation_step.fields.relative_step != 0) {
-            return;
+        if (self->animation_step.fields.relative_step == 0) {
+            self->state++;
         }
+    } else {
+        self->state++;
     }
-    self->state++;
 }
 
 void sentry_flash_despawn(struct MiscObj* self)

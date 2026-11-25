@@ -57,17 +57,25 @@ void drop_pillar_land(struct ItemObj* arg0)
     if (arg0->unk2 != 2) {
         apply_tile_effect(
             0xC,
-            (s16)(arg0->x_pos.u.hi - 0x10),
-            (s16)(arg0->y_pos.u.hi - 0x30));
+            (s16)(arg0->x_pos.i.hi - 0x10),
+            (s16)(arg0->y_pos.i.hi - 0x30));
     } else {
         apply_tile_effect(
             0xD,
-            (s16)(arg0->x_pos.u.hi - 0x10),
-            (s16)(arg0->y_pos.u.hi - 0x70));
+            (s16)(arg0->x_pos.i.hi - 0x10),
+#ifdef VERSION_DEMO
+            (s16)(arg0->y_pos.u.hi - 0x50));
+#else
+            (s16)(arg0->y_pos.i.hi - 0x70));
+#endif
     }
 
     start_screen_shake_y(0x10, 4, 2);
+#ifdef VERSION_DEMO
+    despawn_object(OBJECT_HEADER(arg0));
+#else
     ZeroObjectState(OBJECT_HEADER(arg0));
+#endif
 }
 
 void (*drop_pillar_state_funcs[])(struct ItemObj*) = {

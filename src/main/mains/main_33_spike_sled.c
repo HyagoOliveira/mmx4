@@ -10,12 +10,12 @@
 #include "main/collision_bounds.h"
 #include "main/object_motion.h"
 #include "main/objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #include "main/stage_objects.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/stage_objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #endif
 
 extern u8 D_800FDF40[12];
@@ -71,19 +71,19 @@ void spike_sled_init(struct MainObj* self)
     self->y_pos.i.hi = 0x2E8;
     self->unk16 = VISUAL_SATURN_LAYER(6);
     y_pos = self->y_pos.val;
-    self->animation_table = (const u8* const*)spike_sled_animations;
-    self->hurt_box = &D_800FDD88;
-    self->attack_box = &D_800FDD8C;
+    self->bg_offset = bg_offset;
+    self->unk18.val = x_pos;
+    self->unk1C.val = y_pos;
     self->x_speed = 0;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
     self->air_state = 0;
+    self->animation_table = (const u8* const*)spike_sled_animations;
     self->terrain_box = NULL;
+    self->hurt_box = &D_800FDD88;
+    self->attack_box = &D_800FDD8C;
     self->unk15 = PLAYER_FACING_RIGHT;
-    self->bg_offset = bg_offset;
-    self->unk18.val = x_pos;
-    self->unk1C.val = y_pos;
     set_animation(self, 0);
     self->ext.main_33.unk80 = 0x7F;
     unk42 = self->unk42;
@@ -109,11 +109,16 @@ void spike_sled_run(struct MainObj* self)
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
     spike_sled_step_funcs[self->unk5](self);
+#ifdef VERSION_DEMO
+    func_8002D9BC(self);
+#endif
     if (self->ext.main_33.intro_active == 0) {
         self->ext.main_33.saved_unk5 = self->unk5;
         hit = func_8002DD04(self);
         if (hit < 0) {
+#ifndef VERSION_DEMO
             g_Player.spike_immune = 1;
+#endif
             g_Player.invincibility_timer = 0x7F;
             spawn_explosion(BASE_OBJECT(self));
             spawn_debris(9, D_800FDF40, self);
@@ -128,7 +133,9 @@ void spike_sled_run(struct MainObj* self)
             return;
         }
     }
+#ifndef VERSION_DEMO
     func_8002D9BC(self);
+#endif
     if (self->ext.main_33.flash_timer != 0) {
         self->ext.main_33.flash_timer--;
         if (--self->ext.main_33.unk91 == 0) {
@@ -149,8 +156,8 @@ void spike_sled_run(struct MainObj* self)
 
 extern u8 D_800FDD90[8];
 extern u8 D_800FDF4C[8];
-#define MAIN_33_SLOT_X(index) ((s16)D_800FDDA0[(index)*2])
-#define MAIN_33_SLOT_Y(index) ((s16)D_800FDDA0[(index)*2 + 1])
+#define MAIN_33_SLOT_X(index) (D_800FDDA0[(index)*2])
+#define MAIN_33_SLOT_Y(index) (D_800FDDA0[(index)*2 + 1])
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 void func_8005D4E0(struct MainObj* arg0);
 void func_8005DC58(struct MainObj* arg0);
@@ -185,7 +192,8 @@ void func_8005D4E0(struct MainObj* arg0)
             arg0->unk5 = 1;
             return;
         }
-        if (!(--arg0->unk7E & 1)) {
+        arg0->unk7E--;
+        if (!(arg0->unk7E & 1)) {
             x = arg0->x_pos.val;
             y = arg0->y_pos.val;
             arg0->x_pos.i.hi = 0x12A0;
@@ -527,7 +535,7 @@ void spike_sled_charge_approach(struct MainObj* self)
 {
     s16 distance;
 
-    distance = (self->ext.main_33.target_x - self->x_pos.i.hi) < 0 ? self->x_pos.i.hi - self->ext.main_33.target_x : self->ext.main_33.target_x - self->x_pos.i.hi;
+    distance = ABS(self->ext.main_33.target_x, self->x_pos.i.hi);
 
     if (distance == 0) {
         set_animation(self, 5);
@@ -685,7 +693,7 @@ void spike_sled_intro_fill_health(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
     if (--self->unk7E == 0) {
-        func_8001540C(0, SATURN_SOUND(0xE, 0x14), NULL);
+        func_8001540C(0, SATURN_SOUND(DEMO_ALT(0xE, 0xF), 0x14), NULL);
         self->unk7E = 3;
     }
     if (++self->hp == 0x30) {
@@ -724,7 +732,7 @@ u8 D_800FDD98[8] = {
     0x00,
 };
 
-u16 D_800FDDA0[14] = {
+s16 D_800FDDA0[14] = {
     0x1200,
     0x02A0,
     0x1240,

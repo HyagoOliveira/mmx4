@@ -2,6 +2,7 @@
 #include "common.h"
 #include "main/objects.h"
 #include "main/object_motion.h"
+#include "main/player_check.h"
 
 extern s32 D_800F459C[];
 extern s32 D_800F45C0[];
@@ -32,9 +33,9 @@ struct ItemObj* find_free_item_obj(void);
 
 struct MiscObj* find_free_misc_obj(void);
 
-struct MiscObj* func_8002AE90(struct MiscObj* arg0, s32 arg1);
+struct MiscObj* func_8002AE90(struct MiscObj* arg0, u32 arg1);
 
-struct VisualObj* func_8002AF4C(struct VisualObj* arg0, s32 arg1);
+struct VisualObj* func_8002AF4C(struct VisualObj* arg0, u32 arg1);
 
 struct QuadObj* find_free_quad_obj(void);
 
@@ -186,7 +187,6 @@ ret_u8 angle_to_object(struct ObjectHeader* arg0, struct ObjectHeader* arg1)
 
 u8 angle_from_delta(s32 arg0, s32 arg1)
 {
-    extern u32 D_800F45E4[];
     s32 temp_lo;
     s16 var_a3, var_a2;
     u32* ptr;
@@ -315,7 +315,7 @@ s16 func_8002BAA4(void)
 {
     u16 flags = g_Player.pressed_input;
     s16 count = (flags & 0xF) != 0;
-    if (flags & 0x1B0) {
+    if (flags & (PLAYER_INPUT_SHOOT | PLAYER_INPUT_SPECIAL | PLAYER_INPUT_JUMP | PLAYER_INPUT_DASH)) {
         count++;
     }
     return count;

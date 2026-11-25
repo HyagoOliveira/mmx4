@@ -11,24 +11,30 @@ extern void (*storm_owl_fx_state_funcs[])(struct VisualObj*);
 void storm_owl_fx_despawn(struct VisualObj*);
 #include "weapon_resources.h"
 
+#ifdef VERSION_DEMO
+extern void (*camera_trigger_state_funcs[])(struct EffectObj*);
+
+void storm_owl_fx_update(struct VisualObj* arg0)
+{
+    camera_trigger_state_funcs[arg0->state]((struct EffectObj*)arg0);
+}
+#else
 void storm_owl_fx_update(struct VisualObj* arg0)
 {
     storm_owl_fx_state_funcs[arg0->state](arg0);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void storm_owl_fx_init(struct VisualObj* obj)
 {
-    u16 flags;
-    u8 player_direction;
     s8 type;
     s8 mode;
     struct MainObj* owner = MAIN_OBJECT(obj->unk50);
 
-    flags = obj->unk42;
-    player_direction = owner->unk15;
-    obj->unk42 = flags & 0x7FFF;
+    obj->unk15 = owner->unk15;
+    obj->unk42 &= 0x7FFF;
     obj->on_screen = 1;
-    obj->unk15 = player_direction;
     type = obj->unk2;
 
     switch (type) {
@@ -60,7 +66,9 @@ void storm_owl_fx_init(struct VisualObj* obj)
     obj->unk5C.value = 0;
     obj->state++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void storm_owl_fx_main(struct VisualObj* arg0)
 {
     struct MainObj* owner = MAIN_OBJECT(arg0->unk50);
@@ -92,8 +100,8 @@ void storm_owl_fx_main(struct VisualObj* arg0)
                 break;
             case 1:
                 set_animation(arg0, 0x1D);
-                arg0->unk54 = 0x3E;
                 arg0->unk5C.value++;
+                arg0->unk54 = 0x3E;
                 break;
             case 2:
                 set_animation(arg0, 0x1C);
@@ -116,14 +124,21 @@ void storm_owl_fx_main(struct VisualObj* arg0)
         update_on_screen(BASE_OBJECT(arg0), 0x20, 0x80);
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void storm_owl_fx_despawn(struct VisualObj* arg0)
 {
     ZeroObjectState(OBJECT_HEADER(arg0));
 }
+#endif
 
+#ifdef VERSION_DEMO
+extern void (*storm_owl_fx_state_funcs[])(struct VisualObj*);
+#else
 void (*storm_owl_fx_state_funcs[])(struct VisualObj*) = {
     storm_owl_fx_init,
     storm_owl_fx_main,
     storm_owl_fx_despawn,
 };
+#endif

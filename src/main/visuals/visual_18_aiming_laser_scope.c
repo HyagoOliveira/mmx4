@@ -10,19 +10,19 @@
 void aiming_laser_scope_update(struct VisualObj* arg0)
 {
     struct PlayerObj* player = &g_Player;
-    s32 var_a0;
+    u32 despawn;
 
-    var_a0 = 0;
+    despawn = 0;
     if (engine_obj.unkF != 0) {
-        var_a0 = 1;
+        despawn = 1;
     }
     if (6 != player->weapon) {
-        var_a0 = 1;
+        despawn = 1;
     }
     if (player->hp == 0) {
-        var_a0 = 1;
+        despawn = 1;
     }
-    if (var_a0 != 0) {
+    if (despawn != 0) {
         ZeroObjectState(arg0);
         return;
     }
@@ -34,7 +34,7 @@ void aiming_laser_scope_update(struct VisualObj* arg0)
         arg0->animation_table = &D_8011C0E4;
         arg0->unk40 = WEAPON_TEXTURE_SPECIAL_0;
         arg0->unk42 = WEAPON_PALETTE_1;
-        arg0->unk16 = VISUAL_SATURN_LAYER(0x12);
+        arg0->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(0x12), 0x10);
         arg0->unk49 = 0;
         set_animation(arg0, 0);
         arg0->state++;

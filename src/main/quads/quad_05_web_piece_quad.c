@@ -21,7 +21,7 @@ void web_piece_quad_init(struct QuadObj* arg0)
 {
     arg0->active |= 0x80;
     arg0->unk36 = VISUAL_SATURN_LAYER(4);
-    arg0->unk34 = SATURN_ALT(0x7EC0, 0xFEC0);
+    arg0->unk34 = SATURN_ALT(DEMO_ALT(0x7EC0, 0x101), 0xFEC0);
     arg0->state = 1;
     arg0->bg_offset = 0;
     arg0->ext.quad_5.scale = 0x100;
@@ -88,7 +88,7 @@ s32 web_piece_quad_is_visible(struct QuadObj* arg0)
     u16 x, y, x2, y2;
     u16 width, height;
     s32 x_p, y_p;
-    s32 result;
+    u32 result;
 
     result = 0;
     x = arg0->x_pos.u.hi - background_objects[arg0->bg_offset].x_pos.u.hi;

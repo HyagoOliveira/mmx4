@@ -8,7 +8,7 @@
 #include "main/effects/effect_29_tile_anim_trigger.h"
 #include "main/objects.h"
 #include "main/stage_objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 
 // fortress_collapse_state_funcs
 extern void (*fortress_collapse_state_funcs[])(struct EffectObj*);
@@ -98,12 +98,8 @@ void fortress_collapse_despawn(struct EffectObj* self)
 
 void fortress_collapse_flash_red(struct EffectObj* self)
 {
-    u8 temp_v0;
-
-    temp_v0 = self->ext.effect_28.filter_timer - 1;
-    self->ext.effect_28.filter_timer = temp_v0;
-    if (0 == temp_v0) {
-        need_palette_load |= 1;
+    if (--self->ext.effect_28.filter_timer == 0) {
+        REQUEST_PALETTE_LOAD();
         self->ext.effect_28.timer = 0x5A;
         self->ext.effect_28.filter_timer = 4;
         self->ext.effect_28.palette_index ^= 1;
@@ -121,7 +117,7 @@ void fortress_collapse_flash_red(struct EffectObj* self)
 void fortress_collapse_flash_white(struct EffectObj* self)
 {
     if (--self->ext.effect_28.filter_timer == 0) {
-        need_palette_load |= 1;
+        REQUEST_PALETTE_LOAD();
         self->ext.effect_28.timer = 0x28;
         self->ext.effect_28.filter_timer = 4;
         self->ext.effect_28.palette_index ^= 1;

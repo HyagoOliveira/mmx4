@@ -35,15 +35,15 @@ void func_8009B6B8(struct ShotObj* arg0)
 {
     arg0->state = 1;
     arg0->on_screen = 1;
+    arg0->unk16 = 0;
+    arg0->unk68 = NULL;
     arg0->unk54 = enemy_bullet_hit_box;
     arg0->unk50.data = enemy_bullet_hit_box;
     arg0->unk58.collision_data = D_80106070;
-    arg0->unk16 = 0;
-    arg0->unk68 = NULL;
-    arg0->unk60 = 3;
     arg0->x_vel.val *= 3;
     arg0->y_vel.val *= 3;
     arg0->unk5C = 1;
+    arg0->unk60 = 3;
     set_animation(ANIMATED_OBJECT(arg0), 0x11);
 }
 
@@ -54,11 +54,14 @@ void enemy_bullet_fly(struct ShotObj* self)
     func_8002D9BC(self);
     if (func_8002DD04(MAIN_OBJECT(self)) < 0) {
         spawn_explosion(BASE_OBJECT(self));
-    } else if (func_8002BB80(self, &g_Player) == 0 && func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0) {
+        self->state = 2;
+    } else if (func_8002BB80(self, &g_Player) != 0) {
+        self->state = 2;
+    } else if (func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x10, 0x10);
-        return;
+    } else {
+        self->state = 2;
     }
-    self->state = 2;
 }
 
 void enemy_bullet_despawn(struct ShotObj* self)

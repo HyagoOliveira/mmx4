@@ -1,5 +1,5 @@
 // ItemObj, item_object_update_funcs[2]
-// 800BF730..800C0404
+// 800BF60C..800C0404
 #include "common.h"
 #include "main/items/item_02_pickup.h"
 #include "main/55C4.h"
@@ -207,7 +207,7 @@ struct Item02AnimationStep pickup_anim_9[33] = {
     { 0x03, 0x00, 0x01, 0x6B },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x05, 0x00, 0x01, 0x6D },
-    { 0x06, 0x00, 0x01, 0x72 },
+    { 0x06, 0x00, 0x01, DEMO_ALT(0x72, 0x7B) },
     { 0x05, 0x00, 0x01, 0x6D },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x03, 0x00, 0x01, 0x6B },
@@ -219,13 +219,13 @@ struct Item02AnimationStep pickup_anim_9[33] = {
     { 0x03, 0x00, 0x01, 0x6B },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x05, 0x00, 0x01, 0x6D },
-    { 0x06, 0x00, 0x01, 0x72 },
+    { 0x06, 0x00, 0x01, DEMO_ALT(0x72, 0x7B) },
     { 0x05, 0x00, 0x01, 0x6D },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x03, 0x00, 0x01, 0x6B },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x05, 0x00, 0x01, 0x6D },
-    { 0x06, 0x00, 0x01, 0x72 },
+    { 0x06, 0x00, 0x01, DEMO_ALT(0x72, 0x7B) },
     { 0x05, 0x00, 0x01, 0x6D },
     { 0x04, 0x00, 0x01, 0x6C },
     { 0x03, 0x00, 0x01, 0x6B },
@@ -243,7 +243,7 @@ struct Item02AnimationStep pickup_anim_10[4] = {
     { 0x05, 0x00, 0x01, 0x73 },
     { 0x05, 0x00, 0x01, 0x74 },
     { 0x05, 0x00, 0x01, 0x75 },
-    { 0x05, 0x00, 0xFD, 0x76 },
+    { 0x05, 0x00, DEMO_ALT(0xFD, 0x01), 0x76 },
 };
 
 struct Item02AnimationStep* pickup_animations[11] = {
@@ -303,15 +303,61 @@ u8 drop_item_table[24][6] = {
     { 0x80, 0x00, 0x00, 0x40, 0x40, 0x00 },
     { 0xC0, 0x00, 0x00, 0x10, 0x30, 0x00 },
     { 0x80, 0x00, 0x00, 0x30, 0x50, 0x00 },
+#ifdef VERSION_DEMO
+    { 0x80, 0x38, 0x28, 0x18, 0x08, 0x00 },
+    { 0xC0, 0x20, 0x0A, 0x06, 0x10, 0x00 },
+    { 0xC0, 0x20, 0x06, 0x10, 0x0A, 0x00 },
+    { 0x80, 0x08, 0x38, 0x28, 0x18, 0x00 },
+#else
     { 0x80, 0x38, 0x24, 0x18, 0x08, 0x04 },
     { 0xC0, 0x1C, 0x0A, 0x06, 0x10, 0x04 },
     { 0xC0, 0x1E, 0x07, 0x10, 0x0A, 0x01 },
     { 0x80, 0x08, 0x34, 0x28, 0x18, 0x04 },
+#endif
     { 0x80, 0x28, 0x38, 0x18, 0x08, 0x00 },
     { 0xC0, 0x0A, 0x20, 0x06, 0x10, 0x00 },
     { 0xC0, 0x10, 0x0A, 0x20, 0x06, 0x00 },
     { 0x80, 0x18, 0x28, 0x38, 0x08, 0x00 },
 };
+
+void drop_item(struct BaseObj* arg0, s8 arg1)
+{
+    func_800BF638(arg0, arg1, arg0->x_pos.i.hi, arg0->y_pos.i.hi);
+}
+
+// drop_item_at
+void func_800BF638(struct BaseObj* arg0, s8 arg1, s16 arg2, s16 arg3)
+{
+    u8 offset;
+    s32 roll;
+    u8 i;
+    struct ItemObj* item;
+    struct BaseObj* owner;
+
+    if (DEMO_ALT(engine_obj.stage != 5, 1)) {
+        offset = arg1 * 6;
+        owner = arg0;
+        roll = get_random() & 0xFF;
+        i = 0xFF;
+        do {
+            i++;
+            roll = (roll & 0xFF) - drop_item_table[0][i + offset];
+        } while ((u32)(roll & 0xFFFF) < 0x100);
+        if (i != 0) {
+            item = find_free_item_obj();
+            if (item != NULL) {
+                item->active = 0x21;
+                item->id = 2;
+                item->unk2 = i - 1;
+                item->x_pos.i.hi = arg2;
+                item->y_pos.i.hi = arg3;
+                item->bg_offset = owner->bg_offset;
+                item->backref = NULL;
+                item->unk7C.value = 0;
+            }
+        }
+    }
+}
 
 void pickup_update(struct ItemObj* arg0)
 {
@@ -328,12 +374,18 @@ void func_800BFBD0(struct ItemObj* arg0);
 s32 func_8002C160(struct CollisionObj*, struct CollisionObj*);
 #endif
 
+#ifdef VERSION_DEMO
+#define PICKUP_STATE(arg0) SP_CUR_ITEM_OBJ
+#else
+#define PICKUP_STATE(arg0) (arg0)
+#endif
+
 #ifdef MMX4_SATURN
 void func_800BF76C(struct ItemObj* arg0)
 {
     u16 flags;
     u8 kind;
-    s32 blocked;
+    u32 blocked;
 
     arg0->active = 0x21;
     arg0->state = 1;
@@ -422,7 +474,7 @@ void func_800BF76C(struct ItemObj* arg0)
 #else
 void func_800BF76C(struct ItemObj* arg0)
 {
-    s32 blocked;
+    u32 blocked;
 
     arg0->active = 0x21;
     arg0->state = 1;
@@ -430,10 +482,12 @@ void func_800BF76C(struct ItemObj* arg0)
     arg0->unk15 = 0;
     arg0->sprite_frames = (const u8*)SP_ARCHIVE_ENTRY(SP_SPRITE_FRAMES, 3);
     arg0->animation_table = (const u8* const*)pickup_animations;
+    arg0->unk40 = WEAPON_TEXTURE_BASE;
     arg0->unk42 = OBJECT_CLUT(0x7807);
     arg0->unk16 = VISUAL_SATURN_LAYER(6);
-    arg0->unk40 = WEAPON_TEXTURE_BASE;
+#ifndef VERSION_DEMO
     arg0->bg_offset = 0;
+#endif
     arg0->active |= 0x20;
     arg0->unk2 &= 0x7F;
     if ((u8)arg0->unk2 == 4) {
@@ -441,27 +495,29 @@ void func_800BF76C(struct ItemObj* arg0)
     }
 
     if (arg0->unk2 >= 7 && arg0->unk2 <= 14) {
-        arg0->unk7C.value = 7;
+        PICKUP_STATE(arg0)->unk7C.value = 7;
     } else if (arg0->unk2 >= 15 && arg0->unk2 <= 16) {
-        arg0->unk7C.value = 8;
+        PICKUP_STATE(arg0)->unk7C.value = 8;
     } else if (arg0->unk2 == 0x11) {
-        arg0->unk7C.value = 9;
+        PICKUP_STATE(arg0)->unk7C.value = 9;
     } else if (arg0->unk2 == 0x12) {
-        arg0->unk7C.value = 0xA;
+        PICKUP_STATE(arg0)->unk7C.value = 0xA;
+#ifndef VERSION_DEMO
         arg0->unk42 = OBJECT_CLUT(0x780B);
+#endif
     } else {
-        arg0->unk7C.value = arg0->unk2;
+        PICKUP_STATE(arg0)->unk7C.value = arg0->unk2;
     }
 
-    arg0->unk68 = (struct Unk_unk68*)pickup_hit_boxes[arg0->unk7C.value];
-    arg0->ext.item_2.unk82 = 0xF0;
+    arg0->unk68 = (struct Unk_unk68*)pickup_hit_boxes[PICKUP_STATE(arg0)->unk7C.value];
+    PICKUP_STATE(arg0)->ext.item_2.unk82 = 0xF0;
     arg0->x_vel.val = 0;
     arg0->unk28 = 0;
     if (arg0->backref == NULL) {
-        arg0->y_vel.val = FIXED(8);
-        arg0->unk2C = 0x8000;
         arg0->x_vel.val = 0;
         arg0->unk28 = 0;
+        arg0->y_vel.val = FIXED(8);
+        arg0->unk2C = 0x8000;
         arg0->unk67 = 1;
     } else {
         arg0->y_vel.val = 0;
@@ -470,7 +526,7 @@ void func_800BF76C(struct ItemObj* arg0)
     }
 
     blocked = 0;
-    switch (arg0->unk7C.value) {
+    switch (PICKUP_STATE(arg0)->unk7C.value) {
     case 7:
         if ((engine_obj.collected_upgrades & 0xFF) == 0xFF) {
             blocked = 1;
@@ -505,10 +561,16 @@ void func_800BF76C(struct ItemObj* arg0)
         arg0->state = 3;
         return;
     }
-    ((u8*)&arg0->unk7C)[1] = 0;
-    set_animation(arg0, arg0->unk7C.value);
+    ((u8*)&PICKUP_STATE(arg0)->unk7C)[1] = 0;
+    set_animation(arg0, PICKUP_STATE(arg0)->unk7C.value);
     is_on_screen(BASE_OBJECT(arg0));
 }
+#endif
+
+#ifdef VERSION_DEMO
+#define PICKUP_TIMER(arg0) SP_CUR_ITEM_OBJ->ext.item_2.unk82
+#else
+#define PICKUP_TIMER(arg0) (arg0)->ext.item_2.unk82
 #endif
 
 void pickup_main(struct ItemObj* arg0)
@@ -543,7 +605,9 @@ void pickup_main(struct ItemObj* arg0)
         animate_object(arg0);
     }
     if (arg0->backref == NULL) {
-        if (--arg0->ext.item_2.unk82 == 0) {
+        PICKUP_TIMER(arg0)
+        --;
+        if (PICKUP_TIMER(arg0) == 0) {
             arg0->state = 3;
             return;
         }
@@ -558,7 +622,7 @@ void pickup_main(struct ItemObj* arg0)
         }
     } else {
         arg0->on_screen = 0;
-        if ((arg0->ext.item_2.unk82 >= 0x3C) || !(BLINK_CLOCK(WEAPON_FRAME_COUNTER) & 1)) {
+        if ((PICKUP_TIMER(arg0) >= 0x3C) || !(BLINK_CLOCK(WEAPON_FRAME_COUNTER) & 1)) {
             is_on_screen((struct BaseObj*)arg0);
         }
     }
@@ -578,6 +642,34 @@ void pickup_despawn(struct ItemObj* arg0)
 }
 
 // pickup_refill
+#ifdef VERSION_DEMO
+void func_800BFBD0(struct ItemObj* arg0)
+{
+    if (arg0->unk6 == 0) {
+        if (--*(u8*)&PICKUP_STATE(arg0)->ext.item_2.unk81 != 0) {
+            return;
+        }
+
+        PICKUP_STATE(arg0)->ext.item_2.unk81 = 3;
+        if (g_Player.hp + 1 >= engine_obj.max_hp) {
+            arg0->unk6 = 1;
+            g_Player.hp = engine_obj.max_hp;
+        } else {
+            g_Player.hp = g_Player.hp + 1;
+        }
+        func_8001540C(0, 0xE, NULL);
+
+        if (--*(u8*)&PICKUP_STATE(arg0)->ext.item_2.unk80 == 0) {
+            arg0->unk6 = 1;
+        }
+    } else {
+        set_objects_frozen(0);
+        arg0->state = 3;
+        arg0->unk5 = 0;
+        arg0->active &= 0xF7;
+    }
+}
+#else
 void func_800BFBD0(struct ItemObj* arg0)
 {
     u8 health;
@@ -609,18 +701,68 @@ void func_800BFBD0(struct ItemObj* arg0)
         arg0->active &= 0xF7;
     }
 }
+#endif
+
+#ifdef VERSION_DEMO
+void func_800A341C_demo(struct ItemObj* arg0, u8 arg1)
+{
+    u8 value;
+    u8 buttons;
+    u32 selected;
+    u32 index;
+    s32 charge_step;
+    struct PlayerObj* player;
+
+    if (arg1 == 2) {
+        charge_step = 4;
+    } else if (arg1 == 3) {
+        charge_step = 0x10;
+    } else if (arg1 == 6) {
+        charge_step = 0x30;
+    } else {
+        charge_step = 0;
+    }
+
+    player = &g_Player;
+    if (g_Player.weapon == 0) {
+        index = 1;
+        selected = 0;
+        buttons = (u8)g_Player.boss_flags;
+        do {
+            if (((buttons >> (index - 1)) & 1) != 0) {
+                if (player->weapon_energy[index] < player->weapon_energy[selected]) {
+                    selected = index;
+                }
+            }
+            index++;
+        } while (index < 8);
+        value = (u8)player->weapon_energy[selected] + charge_step;
+        player->weapon_energy[selected] = value;
+        if ((s8)value > 0x30) {
+            player->weapon_energy[selected] = 0x30;
+        }
+    } else if (((u8)g_Player.boss_flags >> (g_Player.weapon - 1)) & 1) {
+        value = (u8)player->weapon_energy[g_Player.weapon] + charge_step;
+        player->weapon_energy[g_Player.weapon] = value;
+        if ((s8)value > 0x30) {
+            player->weapon_energy[g_Player.weapon] = 0x30;
+        }
+    }
+}
+#endif
 
 // pickup_collect_weapon_energy
+#ifndef VERSION_DEMO
 void func_800BFCC0(struct ItemObj* arg0, u8 arg1)
 {
-    struct PlayerObj* player;
-    s32 charge_step;
-    s32 engine_step;
-    u32 index;
-    u32 selected;
-    u8 buttons;
-    u8 value;
     s8 current;
+    u8 value;
+    u8 buttons;
+    u32 selected;
+    u32 index;
+    s32 engine_step;
+    s32 charge_step;
+    struct PlayerObj* player;
 
     if (arg1 == 2) {
         charge_step = 4;
@@ -654,23 +796,23 @@ void func_800BFCC0(struct ItemObj* arg0, u8 arg1)
             if (selected != 0) {
                 value = (u8)g_Player.weapon_energy[0] + charge_step;
                 g_Player.weapon_energy[0] = value;
-                if ((s8)value >= 0x31) {
+                if ((s8)value > 0x30) {
                     g_Player.weapon_energy[0] = 0x30;
                 }
             }
             value = (u8)player->weapon_energy[selected] + charge_step;
             player->weapon_energy[selected] = value;
-            if ((s8)value >= 0x31) {
+            if ((s8)value > 0x30) {
                 player->weapon_energy[selected] = 0x30;
             }
             goto engine;
         }
         if (((u8)g_Player.boss_flags >> (g_Player.weapon - 1)) & 1) {
             current = player->weapon_energy[g_Player.weapon];
-            if (current < 0x30) {
+            if (current <= 0x2F) {
                 current += charge_step;
                 player->weapon_energy[g_Player.weapon] = current;
-                if (current >= 0x31) {
+                if (current > 0x30) {
                     player->weapon_energy[g_Player.weapon] = 0x30;
                 }
                 func_8001540C(0, 0x16, 0);
@@ -679,10 +821,10 @@ void func_800BFCC0(struct ItemObj* arg0, u8 arg1)
             }
         }
     } else if (g_Player.boss_flags & 1) {
-        if (player->weapon_energy[g_Player.weapon] < 0x30) {
+        if (player->weapon_energy[g_Player.weapon] <= 0x2F) {
             s8 current = player->weapon_energy[g_Player.weapon] + charge_step;
             player->weapon_energy[g_Player.weapon] = current;
-            if (current >= 0x31) {
+            if (current > 0x30) {
                 player->weapon_energy[g_Player.weapon] = 0x30;
             }
             func_8001540C(0, 0x16, 0);
@@ -695,12 +837,14 @@ engine:
     if ((engine_obj.collected_upgrades & 0x4000) != 0) {
         value = (u8)engine_obj.sub_tanks[2] + engine_step;
         engine_obj.sub_tanks[2] = value;
-        if ((s8)value >= 0x21) {
+        if ((s8)value > 0x20) {
             engine_obj.sub_tanks[2] = 0x20;
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void pickup_collect_health(struct ItemObj* arg0, s8 arg1, s8 arg2)
 {
     u8 player_status;
@@ -747,7 +891,142 @@ void pickup_collect_health(struct ItemObj* arg0, s8 arg1, s8 arg2)
         }
     }
 }
+#endif
 // pickup_check_collect
+#ifdef VERSION_DEMO
+void func_800A341C_demo(struct ItemObj* arg0, u8 kind);
+
+#define PICKUP_FILL_TANKS_DEMO(tank_amount)                  \
+    do {                                                     \
+        s8 i;                                                \
+        s8 value;                                            \
+                                                             \
+        g_Player.hp = engine_obj.max_hp;                     \
+        arg0->state = 3;                                     \
+        for (i = 0; i < 2; i++) {                            \
+            if (engine_obj.sub_tanks[i] < 0) {               \
+                value = TANK_VALUE(engine_obj.sub_tanks[i]); \
+                if (value < 0x20) {                          \
+                    value += (tank_amount);                  \
+                    if (value > 0x20) {                      \
+                        value = 0x20;                        \
+                    }                                        \
+                    value |= 0x80;                           \
+                    engine_obj.sub_tanks[i] = value;         \
+                    return;                                  \
+                }                                            \
+            }                                                \
+        }                                                    \
+    } while (0)
+
+#define PICKUP_FILL_HEALTH_DEMO(amount)               \
+    do {                                              \
+        set_objects_frozen(1);                        \
+        arg0->active |= 8;                            \
+        SP_CUR_ITEM_OBJ->ext.item_2.unk80 = (amount); \
+        SP_CUR_ITEM_OBJ->ext.item_2.unk81 = 3;        \
+        arg0->state = 2;                              \
+        arg0->unk5 = 0;                               \
+        arg0->unk6 = 0;                               \
+    } while (0)
+
+void func_800C00BC(struct ItemObj* arg0)
+{
+    struct CollisionObj* player;
+    s32 shift;
+
+    if (g_Player.ride_state == 0)
+        player = (struct CollisionObj*)&g_Player;
+    else
+        player = (struct CollisionObj*)&qux_object;
+    if (!HP_VALUE(((struct PlayerObj*)player)->hp))
+        return;
+    if (!func_8002C160((struct CollisionObj*)arg0, player)) {
+        return;
+    }
+
+    arg0->unk5 = 0;
+    switch (SP_CUR_ITEM_OBJ->unk7C.value) {
+    case 0:
+        if (g_Player.hp + 1 > engine_obj.max_hp) {
+            PICKUP_FILL_TANKS_DEMO(2);
+        } else {
+            PICKUP_FILL_HEALTH_DEMO(4);
+        }
+        break;
+    case 1:
+        if (g_Player.hp + 1 > engine_obj.max_hp) {
+            PICKUP_FILL_TANKS_DEMO(4);
+        } else {
+            PICKUP_FILL_HEALTH_DEMO(0x10);
+        }
+        break;
+    case 4:
+        if (++engine_obj.player_lives >= 10) {
+            engine_obj.player_lives = 9;
+        }
+        arg0->state = 3;
+        break;
+    case 5:
+        if (g_Player.hp < engine_obj.max_hp) {
+            PICKUP_FILL_HEALTH_DEMO(engine_obj.max_hp);
+        } else {
+            PICKUP_FILL_TANKS_DEMO(8);
+        }
+        break;
+    case 2:
+    case 3:
+    case 6:
+        func_800A341C_demo(arg0, SP_CUR_ITEM_OBJ->unk7C.value);
+        arg0->state = 3;
+        break;
+    case 7:
+        if ((engine_obj.collected_upgrades & 0xFF) == 0xFF) {
+            arg0->state = 3;
+            break;
+        }
+        shift = arg0->unk2 - 7;
+        if (!((engine_obj.collected_upgrades >> shift) & 1)) {
+            engine_obj.collected_upgrades |= (1 << shift);
+            engine_obj.max_hp += 2;
+        }
+        arg0->state = 3;
+        break;
+    case 8:
+        if ((engine_obj.collected_upgrades & 0x3000) == 0x3000) {
+            break;
+        }
+        shift = 0x1000 << (arg0->unk2 - 15);
+        if (engine_obj.collected_upgrades & shift) {
+            break;
+        }
+        engine_obj.collected_upgrades |= shift;
+        arg0->state = 3;
+        if (engine_obj.sub_tanks[0] >= 0)
+            engine_obj.sub_tanks[0] = -0x80;
+        else
+            engine_obj.sub_tanks[1] = -0x80;
+        break;
+    case 9:
+        if ((engine_obj.collected_upgrades & 0x4000) || (engine_obj.collected_upgrades & (0x4000 << (arg0->unk2 - 17)))) {
+            break;
+        }
+        engine_obj.collected_upgrades |= (0x4000 << (arg0->unk2 - 17));
+        arg0->state = 3;
+        break;
+    case 10:
+        if ((engine_obj.collected_upgrades & 0x8000) || (engine_obj.collected_upgrades & (0x8000 << (arg0->unk2 - 18)))) {
+            break;
+        }
+        engine_obj.collected_upgrades |= (0x8000 << (arg0->unk2 - 18));
+        arg0->state = 3;
+        break;
+    default:
+        arg0->state = 3;
+        break;
+    }
+}
+#else
 void func_800C00BC(struct ItemObj* arg0)
 {
     struct CollisionObj* player;
@@ -772,8 +1051,7 @@ void func_800C00BC(struct ItemObj* arg0)
         pickup_collect_health(arg0, 0x10, 2);
         break;
     case 4:
-        engine_obj.player_lives++;
-        if (engine_obj.player_lives >= 10) {
+        if (++engine_obj.player_lives >= 10) {
             engine_obj.player_lives = 9;
         } else {
             func_8001540C(0, SATURN_SOUND(0x15, 0x1E), 0);
@@ -842,6 +1120,7 @@ void func_800C00BC(struct ItemObj* arg0)
         break;
     }
 }
+#endif
 
 void set_objects_frozen(s8 arg0)
 {

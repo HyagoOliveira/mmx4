@@ -334,8 +334,8 @@ void func_80028E24(void)
     }
 }
 
-static P_TAG* background_heads[2][6][8];
-static P_TAG* background_tails[2][6][8];
+P_TAG* background_heads[2][6][8];
+P_TAG* background_tails[2][6][8];
 
 #ifndef MMX4_SATURN
 struct PcSpriteFrame {
@@ -776,48 +776,6 @@ void func_800253F0(struct MainObj* player, s32 gauge)
         player->unk5D--;
 }
 
-void func_800262B8(u8 layer)
-{
-    struct BackgroundObj* background = &background_objects[layer];
-    s32 source_tile_x = background->x_pos.i.hi / 16;
-    s32 source_tile_y = background->y_pos.i.hi / 16;
-    s32 block_x = source_tile_x / 16;
-    s32 block_y = source_tile_y / 16;
-    s32 tile_y = source_tile_y & 31;
-    s32 inner_y = source_tile_y & 15;
-    s32 layer_offset = layer * layout_size;
-    s32 row_offset = block_y * layout_width;
-    s32 row;
-
-    for (row = 0; row < 17; row++) {
-        s32 current_block_x = block_x;
-        s32 tile_x = source_tile_x & 31;
-        s32 inner_x = source_tile_x & 15;
-        u8 block = SP_BG_TILEMAP[layer_offset + row_offset + current_block_x];
-        s32 column;
-
-        for (column = 0; column < 22; column++) {
-            D_801441C8[layer][tile_y][tile_x] = SP_BG_TILE_PIXELS[block * 256 + inner_y * 16 + inner_x];
-            tile_x = (tile_x + 1) & 31;
-            inner_x++;
-            if (inner_x == 16) {
-                inner_x = 0;
-                current_block_x++;
-                block = SP_BG_TILEMAP[layer_offset + row_offset + current_block_x];
-            }
-        }
-
-        tile_y = (tile_y + 1) & 31;
-        inner_y++;
-        if (inner_y == 16) {
-            inner_y = 0;
-            row_offset += layout_width;
-        }
-    }
-
-    background->unk4C = 0;
-}
-
 static void heat_only_link(s32 layer)
 {
     static TILE black[2];
@@ -932,7 +890,7 @@ static u16 heat_tile(s32 layer, s32 world_tile_x, s32 world_tile_y)
     return SP_BG_TILE_PIXELS[block * 256 + (world_tile_y & 15) * 16 + (world_tile_x & 15)];
 }
 
-static int heat_draw_layer(s32 layer)
+int heat_draw_layer(s32 layer)
 {
     struct BackgroundObj* bg = &background_objects[layer];
     s32 world_x[HEAT_LINES];
@@ -988,178 +946,11 @@ static int heat_draw_layer(s32 layer)
     }
     return 1;
 }
-
-void func_80026AA0(s32 layer)
-{
-    struct BackgroundObj* bg = &background_objects[layer];
-    SPRT_16* sprite = SP_BG_PRIM_CURSOR;
-    s32 tile_x = (bg->x_pos.i.hi / 16) & 31;
-    s32 tile_y = (bg->y_pos.i.hi / 16) & 31;
-    s32 screen_y = -(bg->y_pos.i.hi & 15);
-    s32 row;
-    int heat;
-
-    if (mmx4_pc_hide_background)
-        return;
-    heat = mmx4_pc_saturn_heat && heat_draw_layer(layer);
-
-    for (row = 0; row < 16; row++) {
-        s32 current_tile_x = tile_x;
-        s32 screen_x = -(bg->x_pos.i.hi & 15);
-        s32 column;
-
-        for (column = 0; column < 21; column++) {
-            u16 tile = D_801441C8[layer][tile_y][current_tile_x];
-
-            if (tile != 0) {
-                u32 attributes;
-                s32 ordering_layer;
-                s32 priority;
-                P_TAG* tail;
-
-                if (SP_BG_SPRITE_COUNT >= 1000)
-                    return;
-                SP_BG_SPRITE_COUNT++;
-
-                attributes = SP_BG_TILE_ATTRS[tile & 0x3FFF];
-                sprite->clut = 0x7900 | ((attributes & 0xF000) >> 6) | ((attributes & 0xF00) >> 8);
-                setSemiTrans(sprite, (tile & 0x4000) != 0);
-                setUV0(sprite, (attributes >> 12) & 0xF0,
-                    (attributes >> 16) & 0xF0);
-                setXY0(sprite, screen_x, screen_y);
-
-                ordering_layer = layer + ((tile & 0x8000) != 0 ? 3 : 0);
-                priority = attributes >> 24;
-                if (!heat) {
-                    tail = background_tails[SP_DRAW_BUFFER][ordering_layer][priority];
-                    if (tail == NULL) {
-                        background_heads[SP_DRAW_BUFFER][ordering_layer][priority] = (P_TAG*)sprite;
-                    } else {
-                        setaddr(tail, sprite);
-                    }
-                    background_tails[SP_DRAW_BUFFER][ordering_layer][priority] = (P_TAG*)sprite;
-                }
-                sprite++;
-            }
-
-            screen_x += 16;
-            current_tile_x = (current_tile_x + 1) & 31;
-        }
-
-        screen_y += 16;
-        tile_y = (tile_y + 1) & 31;
-    }
-
-    SP_BG_PRIM_CURSOR = sprite;
-}
-
-void func_800270F8(s32 x, s32 y, s32 tile_x, s32 tile_y)
-{
-    SPRT_16* sprite = SP_BG_PRIM_CURSOR;
-    u32 row, column;
-
-    for (row = 0; row < SP_BG_BLOCK_HEIGHT; row++) {
-        for (column = 0; column < SP_BG_BLOCK_WIDTH; column++) {
-            u32 attributes = SP_BG_TILE_ATTRS[SP_BG_BLOCK * 256
-                + (tile_y + row) * 16 + tile_x + column];
-            u8 page = attributes >> 8;
-
-            if (page != 0) {
-                u16 bucket = page - 0x15;
-                P_TAG* tail = background_tails[SP_DRAW_BUFFER][SP_CUR_BG_INDEX][bucket];
-
-                setXY0(sprite, x + column * 16, y + row * 16);
-                setUV0(sprite, (attributes & 15) * 16, attributes & 0xF0);
-                sprite->clut = attributes >> 16;
-                if (tail == NULL) {
-                    background_heads[SP_DRAW_BUFFER][SP_CUR_BG_INDEX][bucket] = (P_TAG*)sprite;
-                } else {
-                    setaddr(tail, sprite);
-                }
-                background_tails[SP_DRAW_BUFFER][SP_CUR_BG_INDEX][bucket] = (P_TAG*)sprite;
-                sprite++;
-            }
-        }
-    }
-
-    SP_BG_PRIM_CURSOR = sprite;
-}
 #endif
 
-void func_80027344(s32 layer, s32 x, s32 y)
-{
-    struct BackgroundObj* bg = &background_objects[layer];
-    s32 tile_count = 18;
-    s32 block_x, block_y;
-    s32 tile_x, tile_y;
-    s32 inner_x, inner_y;
-    s32 min_block_x, max_block_x;
-    s32 layer_offset, row_offset;
-    s32 width;
-    s32 i;
-    u8 block;
-
-    if (x < 0)
-        return;
-    if (y < 0) {
-        y = 0;
-        tile_count = 17;
-    }
-
-    block_x = x / 256;
-    block_y = y / 256;
-    tile_x = (x % 512) / 16;
-    tile_y = (y % 512) / 16;
-    inner_x = tile_x & 15;
-    inner_y = tile_y & 15;
-    min_block_x = bg->unk4D;
-    max_block_x = bg->unk4E;
-
-    if ((u32)block_x < min_block_x) {
-        block_x += max_block_x - min_block_x + 1;
-        if (bg->x_pos.i.hi <= (min_block_x - 1) * 256) {
-            bg->x_pos.i.hi = max_block_x * 256;
-            return;
-        }
-    }
-    if ((u32)block_x > max_block_x) {
-        block_x -= max_block_x - min_block_x + 1;
-        if (bg->x_pos.i.hi >= (max_block_x + 1) * 256) {
-            bg->x_pos.i.hi = min_block_x * 256;
-            return;
-        }
-    }
-
-    layer_offset = layer * layout_size;
-    width = layout_width;
-    row_offset = width * block_y;
-    block = SP_BG_TILEMAP[layer_offset + row_offset + block_x];
-    for (i = 0; i < tile_count; i++) {
-        D_801441C8[layer][tile_y][tile_x] = SP_BG_TILE_PIXELS[block * 256 + inner_y * 16 + inner_x];
-        tile_y = (tile_y + 1) & 31;
-        inner_y++;
-        if (inner_y == 16) {
-            inner_y = 0;
-            row_offset += width;
-            block = SP_BG_TILEMAP[layer_offset + row_offset + block_x];
-        }
-    }
-}
-
-void func_800E0D0C(void)
+void SsUtReverbOn(void)
 {
     SpuSetReverb(1);
-}
-
-void func_800E9040(void)
-{
-    Psyz_GteCtrlWrite(29, 0x155);
-    Psyz_GteCtrlWrite(30, 0x100);
-    Psyz_GteCtrlWrite(26, 0x3E8);
-    Psyz_GteCtrlWrite(27, (u32)-0x1062);
-    Psyz_GteCtrlWrite(28, 0x01400000);
-    Psyz_GteCtrlWrite(24, 0);
-    Psyz_GteCtrlWrite(25, 0);
 }
 
 #define MAIN_37_U8(object, offset) (((u8*)&(object)->ext.main_37)[(offset)-0x80])
@@ -1288,37 +1079,6 @@ static s32 main_48_direction_pair(s8 direction, u8 facing)
 static int misc_32_cancelled(s8 mode)
 {
     return (controller_input.pressed & PAD_SELECTION_ALT) || ((controller_input.pressed & 0x800) && game_info.unk0 == mode);
-}
-
-extern u16* D_80139578;
-extern SPRT_16* D_8013957C;
-
-void func_80017268(s16 x_start)
-{
-    SPRT_16* sprite = D_8013957C;
-    u32 row;
-    u32 column;
-    s16 x;
-    s16 y = 0;
-    u16 tile;
-
-    for (row = 0; row < 16; row++, y += 16) {
-        x = x_start;
-        for (column = 0; column < 16; column++, x += 16) {
-            tile = *D_80139578++;
-            if (x >= 0x140)
-                continue;
-            sprite->clut = (tile >> 12) | 0x7900;
-            sprite->u0 = (tile & 0xF) << 4;
-            sprite->v0 = tile & 0xF0;
-            sprite->x0 = x;
-            sprite->y0 = y;
-            sprite->code &= 0xFD;
-            setaddr(sprite, sprite + 1);
-            sprite++;
-        }
-    }
-    D_8013957C = sprite;
 }
 
 extern struct HudLayoutData {

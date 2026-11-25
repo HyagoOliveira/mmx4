@@ -40,8 +40,8 @@ void func_8005B438(struct MainObj* arg0);
 
 void func_8005B438(struct MainObj* arg0)
 {
-    arg0->unk5 = 2;
     arg0->state++;
+    arg0->unk5 = 2;
     arg0->bg_offset = g_Player.bg_offset;
     if (arg0->unk2 == 0)
         arg0->unk15 = 0;
@@ -112,7 +112,9 @@ void regen_turret_main(struct MainObj* self)
 
     hit = func_8002DD04(self);
     if (hit < 0) {
+#ifndef VERSION_DEMO
         self->active |= 4;
+#endif
         self->state++;
         self->unk5 = 0;
         self->unk42 &= 0x7FFF;
@@ -151,9 +153,13 @@ void regen_turret_rebuild_finish(struct MainObj* self)
     if (self->animation_step.fields.relative_step < 0) {
         self->state = 1;
         self->unk5 = 2;
+#ifndef VERSION_DEMO
         self->hp = 6;
+#endif
         set_animation(self, 0);
+#ifndef VERSION_DEMO
         self->active &= ~4;
+#endif
     } else {
         animate_object(ANIMATED_OBJECT(self));
     }

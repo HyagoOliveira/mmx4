@@ -1,12 +1,24 @@
 #ifndef MMX4_COMMON_H
 #define MMX4_COMMON_H
 
-#ifdef VERSION_JP
+#if defined(MMX4_SATURN) && !defined(MMX4_BIG_ENDIAN)
+#define MMX4_BIG_ENDIAN
+#endif
+
+#ifdef VERSION_DEMO
+#define ASM_ROOT "asm/demo/"
+#elif defined(VERSION_JP)
 #define ASM_ROOT "asm/jp/"
 #elif defined(VERSION_EU)
 #define ASM_ROOT "asm/eu/"
 #else
 #define ASM_ROOT "asm/us/"
+#endif
+
+#ifdef VERSION_DEMO
+#define DEMO_ALT(retail, demo) (demo)
+#else
+#define DEMO_ALT(retail, demo) (retail)
 #endif
 
 #if defined(MMX4_SHC)
@@ -65,7 +77,7 @@ __asm__(".include \"macro.inc\"\n");
 #define POS_WITHIN_3(a, b) \
     (((a) - (b) >= 0) ? ((a) - (b) <= 0x2FFFF) : ((b) - (a) <= 0x2FFFF))
 
-#define ABS(A, B) (((A) - (B) < 0) ? (B) - (A) : (A) - (B))
+#define ABS(A, B) (((A) - (B) < 0) ? -((A) - (B)) : (A) - (B))
 
 #define ON_SCREEN_X(X, W) ((u16)((X) + (W)) < (u16)((W) + ((W) + SCREEN_WIDTH)))
 #define ON_SCREEN_Y(Y, H) ((u16)((Y) + (H)) < (u16)((H) + ((H) + SCREEN_HEIGHT)))
@@ -166,9 +178,7 @@ typedef s32 arg_s16;
 #include <psyz.h>
 #include <libgte.h>
 #include <libgpu.h>
-#define SsVabTransCompleted PsyzSsVabTransCompleted
 #include <libsnd.h>
-#undef SsVabTransCompleted
 #include <libetc.h>
 #include <kernel.h>
 #include <libapi.h>
@@ -199,6 +209,37 @@ typedef struct {
 
 #include "scratchpad.h"
 #include "archive_memory.h"
+
+#if defined(MMX4_BIG_ENDIAN) && !defined(MMX4_SATURN)
+#undef PADLup
+#undef PADLdown
+#undef PADLleft
+#undef PADLright
+#undef PADRup
+#undef PADRdown
+#undef PADRleft
+#undef PADRright
+#undef PADL1
+#undef PADL2
+#undef PADR1
+#undef PADR2
+#undef PADstart
+#undef PADselect
+#define PADLup 0x1
+#define PADLdown 0x2
+#define PADLleft 0x4
+#define PADLright 0x8
+#define PADRup 0x10
+#define PADRdown 0x20
+#define PADRright 0x100
+#define PADRleft 0x200
+#define PADL2 0x40
+#define PADR2 0x80
+#define PADL1 0x400
+#define PADR1 0x800
+#define PADselect 0x4000
+#define PADstart 0x8000
+#endif
 
 #ifdef VERSION_JP
 #define PAD_CONFIRM PADRright
@@ -272,9 +313,15 @@ struct MainBssState {
 extern struct MainBssState main_bss_state;
 
 struct ControllerInput {
+#if defined(MMX4_BIG_ENDIAN) && !defined(MMX4_SATURN)
+    u32 held;
+    u32 previous;
+    u32 pressed;
+#else
     u16 held;
     u16 previous;
     u16 pressed;
+#endif
 };
 extern struct ControllerInput controller_input;
 
@@ -315,7 +362,7 @@ typedef char CdCompletionSlot_must_be_12_bytes[sizeof(struct CdCompletionSlot) =
 typedef union {
     s32 val;
     struct {
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
         s16 hi;
         s16 lo;
 #else
@@ -324,7 +371,7 @@ typedef union {
 #endif
     } i;
     struct {
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
         u16 hi;
         u16 lo;
 #else
@@ -335,7 +382,7 @@ typedef union {
     u8 bytes[4];
 } f32;
 
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
 typedef union {
     s32 val;
     struct {
@@ -375,7 +422,7 @@ struct BootTransitionDataRegion {
 #ifdef MMX4_WIN32
 extern u8 mission_stage_order[16];
 #else
-extern u8 mission_stage_order[12];
+extern u8 mission_stage_order[DEMO_ALT(12, 8)];
 #endif
 
 union AnimationStep {
@@ -391,7 +438,7 @@ union AnimationStep {
 union PlayerUnk8A {
     u16 packed;
     struct {
-        u8 low;
+        s8 low;
         s8 high;
     } bytes;
 };
@@ -480,7 +527,11 @@ extern struct SoundTransfer D_80137E00;
 extern u8 D_80137DDC;
 extern s32 D_8013BD44;
 extern u8 D_8013BD40;
+#ifdef VERSION_DEMO
+extern u16 D_80141BD2;
+#else
 extern s16 D_80141BD2;
+#endif
 extern u8 layout_height;
 #ifdef MMX4_PC
 #define D_8010B465 (((u8*)search_light_spawners)[1])
@@ -510,42 +561,6 @@ extern char D_80137E0C[0x1428];
 #endif
 extern s8 D_80139234[24];
 extern u8 D_8013924C[4];
-extern void* D_8013DC10;
-extern void* D_8013DC14;
-extern void* D_8013DC18;
-extern void* D_8013DC1C;
-extern void* D_8013DC20;
-extern void* D_8013DC24;
-extern void* D_8013DC28;
-extern void* D_8013DC2C;
-extern void* D_8013DC30;
-extern void* D_8013DC34;
-extern void* D_8013DC38;
-extern void* D_8013DC3C;
-extern void* D_8013DC40;
-extern void* D_8013DC44;
-extern void* D_8013DC48;
-extern void* D_8013DC4C;
-extern void* D_8013DC54;
-extern void* D_8013DC58;
-extern void* D_8013DC5C;
-extern void* D_8013DC60;
-extern void* D_8013DC64;
-extern void* D_8013DC68;
-extern void* D_8013DC6C;
-extern void* D_8013DC70;
-extern void* D_8013DC74;
-extern void* D_8013DC78;
-extern void* D_8013DC7C;
-extern void* D_8013DC80;
-extern void* D_8013DC84;
-extern void* D_8013DC88;
-extern void* D_8013DC8C;
-extern void* D_8013DC90;
-extern void* D_8013DC94;
-extern void* D_8013DC98;
-extern void* D_8013DC9C;
-extern void* D_8013DCA0;
 extern s8 D_8013E198[6];
 extern s8 D_8013E1C4;
 extern s8 D_8013E1C8[4];
@@ -564,7 +579,7 @@ extern u16 D_80173C84;
 extern u8 D_80173C84;
 #endif
 extern s32 D_80175EE8[];
-#ifdef MMX4_PC
+#if defined(MMX4_PC) || defined(MMX4_PSX_MOD)
 #define D_8016DEA2 (D_8016DEA0.unk2)
 #define D_8016DEA4 (D_8016DEA0.unk4)
 #else
@@ -575,6 +590,12 @@ extern s16 D_8016DEA4;
 #define D_801F8300 (*(struct GameThread**)(win32_main_ram + 0x1F8300))
 #define GAME_THREADS ((struct GameThread*)(win32_main_ram + 0x1F8100))
 #define CUR_GAME_THREAD (*(struct GameThread**)(win32_main_ram + 0x1F8300))
+#elif defined(MMX4_BIG_ENDIAN) && !defined(MMX4_SATURN)
+extern struct GameThread* D_801F8300;
+extern struct GameThread gc_game_threads[];
+extern struct GameThread* gc_cur_game_thread;
+#define GAME_THREADS gc_game_threads
+#define CUR_GAME_THREAD gc_cur_game_thread
 #else
 extern struct GameThread* D_801F8300;
 #define GAME_THREADS ((struct GameThread*)0x801F8100)
@@ -637,7 +658,7 @@ extern s8 D_80137CE4;
 extern u8 D_80137CF0;
 extern u8 D_80137CF4;
 extern u8 D_8013BD40;
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
+#if defined(MMX4_PC) || defined(MMX4_SATURN) || defined(MMX4_PSX_MOD)
 extern struct BootTransitionDataRegion g_BootTransitionDataRegion;
 #define D_800F1C0F (g_BootTransitionDataRegion.stage_map)
 #define D_800F1C10 (g_BootTransitionDataRegion.stage_map + 1)
@@ -653,7 +674,6 @@ extern u8 D_80166D68;
 extern u8 D_8012F46C[0x22];
 extern u16 cur_random;
 extern s32 D_8013BD44;
-extern s16 D_80141BD2;
 extern u8 D_80139528;
 #ifndef MMX4_SATURN
 extern CdlATV D_80139520;
@@ -695,6 +715,11 @@ extern s32 D_80139684;
 extern s32 D_80139688;
 extern u8* D_80173C80;
 extern u8 need_palette_load;
+#ifdef VERSION_DEMO
+#define REQUEST_PALETTE_LOAD() (need_palette_load = 1)
+#else
+#define REQUEST_PALETTE_LOAD() (need_palette_load |= 1)
+#endif
 extern s8 D_801721F7;
 extern s32 D_8013E188[4];
 // extern s32 D_8013E18C;
@@ -749,7 +774,7 @@ void func_800298B4(struct EngineObj* arg0);
 void func_80029928(struct EngineObj* arg0);
 void func_80029978(struct EngineObj* arg0);
 
-s32 update_boss_music_delay(void);
+u32 update_boss_music_delay(void);
 
 // D_8010B34C
 extern void (*D_8010B34C[])(struct EffectObj*);
@@ -765,7 +790,7 @@ s32 func_800E5FF4(s32, s32, u8*);
 void quad_is_on_screen(struct QuadObj*);
 void drop_item(struct BaseObj*, s8);
 void spawn_debris(arg_u8, void*, void*);
-s32 update_boss_music_delay(void);
+u32 update_boss_music_delay(void);
 void func_800E5D78(s32);
 s32 func_800E5D90(s32, s32, s32);
 #ifdef MMX4_PC
@@ -849,7 +874,7 @@ void snowman_bomb_face_player(struct AnimatedObj*);
 void jump_shooter_face_player(struct AnimatedObj*);
 void func_8006B2A4(struct MainObj*);
 void func_8006B398(struct MainObj*);
-void func_8006E920(struct MainObj*, s32);
+void func_8006E920(struct MainObj*, u32);
 void colonel_face_center(struct BaseObj*);
 void func_800889DC(struct MainObj*);
 void buster_shot_place_at_muzzle(struct VisualObj*, struct PlayerObj*, arg_u8);
@@ -864,7 +889,6 @@ void palette_pulse_init(struct EffectObj*);
 void func_800BD080(struct EffectObj*);
 void cyberspace_trial_spawn_rank_warp(struct EffectObj*);
 void func_800D9B48(struct LayerObj*);
-void func_800E0D0C(void);
 void post_boss_cutscene_spawn_afterimages(struct UnkObj*);
 
 #endif

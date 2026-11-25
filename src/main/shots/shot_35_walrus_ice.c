@@ -103,10 +103,10 @@ void walrus_ice_init(struct ShotObj* self)
 {
     struct WeaponObj* temp_v1;
 
-    self->state = (u8)self->state + 1 + ((s8)self->unk2 >> 4);
+    self->state += (self->unk2 >> 4) + 1;
+    self->unk2 = (u8)self->unk2 & 0xF;
     self->unk67 = 0;
     self->unk58.data = (u8*)D_80105FF0;
-    self->unk2 = (u8)self->unk2 & 0xF;
     if (self->state < 4) {
         temp_v1 = self->unk7C;
         self->unk3C = temp_v1->unk3C;
@@ -159,8 +159,8 @@ void func_800A241C(struct ShotObj* arg0)
     arg0->unk54 = NULL;
     arg0->unk50.data = NULL;
     arg0->unk5C = 5;
-    arg0->unk60 = 6;
-    arg0->unk16 = VISUAL_SATURN_LAYER(4);
+    arg0->unk60 = DEMO_ALT(6, 5);
+    arg0->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(4), 5);
     arg0->unk42 = owner->unk42;
     if ((s8)arg0->unk2 > 1)
         set_animation(arg0, 9);
@@ -190,7 +190,9 @@ void walrus_ice_icicle_main(struct ShotObj* self)
             self->state = 6;
             self->unk5 = 0;
             self->unk6 = 0;
+#ifndef VERSION_DEMO
             ZeroObjectState(OBJECT_HEADER(self));
+#endif
         }
         if (collision > 0) {
             self->unk42 = self->unk42 | 0x8000;
@@ -211,12 +213,14 @@ void func_800A25EC(struct ShotObj* arg0)
     arg0->x_pos.val = owner->x_pos.val;
     arg0->y_pos.val = owner->y_pos.val;
     animate_object(ANIMATED_OBJECT(arg0));
+#ifndef VERSION_DEMO
     if ((s8)owner->unk5 == 0xA) {
         arg0->state = 6;
         arg0->unk5 = 0;
         arg0->unk6 = 0;
         return;
     }
+#endif
     if ((u8)arg0->unk2 & 1) {
         is_on_screen(BASE_OBJECT(arg0));
     }
@@ -281,13 +285,10 @@ void walrus_ice_icicle_wait_drop(struct ShotObj* self)
 
 void walrus_ice_icicle_fall(struct ShotObj* self)
 {
-    s16 temp_v0;
-
     move_with_gravity(ANIMATED_OBJECT(self));
     is_on_screen(BASE_OBJECT(self));
-    temp_v0 = self->timer;
-    if (temp_v0 != 0) {
-        self->timer = temp_v0 - 1;
+    if (self->timer != 0) {
+        self->timer--;
         return;
     }
     CollisionRelated(PLAYER_OBJECT(self));
@@ -347,6 +348,13 @@ void walrus_ice_ball(struct ShotObj* self)
     walrus_ice_ball_funcs[self->unk5](self);
 }
 
+#ifdef VERSION_DEMO
+extern u8 walrus_ice_collision_demo[];
+#define WALRUS_ICE_COLLISION walrus_ice_collision_demo
+#else
+#define WALRUS_ICE_COLLISION D_801060F0
+#endif
+
 // walrus_ice_ball_init
 void func_800A2AA0(struct ShotObj* shot)
 {
@@ -359,10 +367,10 @@ void func_800A2AA0(struct ShotObj* shot)
     shot->x_pos.val = weapon->x_pos.val;
     shot->y_pos.val = weapon->y_pos.val;
     shot->unk5C = 0x20;
-    shot->unk60 = 9;
+    shot->unk60 = DEMO_ALT(9, 6);
     shot->unk68 = &walrus_ice_chunk_terrain_box;
     shot->unk54 = (u8*)&walrus_ice_ball_hurt_box;
-    shot->unk58.data = (u8*)D_801060F0;
+    shot->unk58.data = (u8*)WALRUS_ICE_COLLISION;
     shot->unk50.data = (u8*)&walrus_ice_ball_attack_box;
     shot->timer = 0x60;
     shot->unk16 = 2;
@@ -431,12 +439,11 @@ void walrus_ice_ball_grow(struct ShotObj* self)
 
 void walrus_ice_ball_burst(struct ShotObj* self)
 {
-    s8 i;
+    u8 i;
     struct ShotObj* shot;
 
     if (self->unk8C.word != 0) {
-        i = 0;
-        do {
+        for (i = 0; i < 9; i++) {
             shot = find_free_shot_obj();
             if (shot != NULL) {
                 shot->active = 0x41;
@@ -452,8 +459,7 @@ void walrus_ice_ball_burst(struct ShotObj* self)
                 shot->unk15 = self->unk15;
                 shot->unk7C = self->unk7C;
             }
-            i++;
-        } while ((u8)i < 9);
+        }
         func_8001540C(2, SATURN_SOUND(0x97, 0x67), self);
         self->unk8C.word = 0;
         self->state = 6;
@@ -476,8 +482,8 @@ void walrus_ice_shard_init(struct ShotObj* self)
     self->unk54 = (const u8*)&walrus_ice_shard_hurt_box;
     self->unk50.data = (const u8*)&walrus_ice_shard_attack_box;
     self->unk5C = 3;
-    self->unk60 = 6;
-    self->unk16 = VISUAL_SATURN_LAYER(4);
+    self->unk60 = DEMO_ALT(6, 4);
+    self->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(4), 5);
     set_animation(self, 0x20);
     self->unk5++;
 }
@@ -534,19 +540,20 @@ void walrus_ice_shard_fly(struct ShotObj* self)
         if (flags & 2) {
             func_8001540C(2, SATURN_SOUND(0x9A, 0x6A), self);
             set_animation(self, 0x22);
+            self->timer = 0x100;
+            self->unk6++;
         } else if (flags & 1) {
             func_8001540C(2, SATURN_SOUND(0x9A, 0x6A), self);
             set_animation(self, 0x22);
             self->unk15 = PLAYER_FACING_RIGHT;
+            self->timer = 0x100;
+            self->unk6++;
         } else if (flags & 8) {
             func_8001540C(2, SATURN_SOUND(0x9A, 0x6A), self);
             set_animation(self, 0x21);
-        } else {
-            is_on_screen(BASE_OBJECT(self));
-            return;
+            self->timer = 0x100;
+            self->unk6++;
         }
-        self->timer = 0x100;
-        self->unk6++;
     }
     is_on_screen(BASE_OBJECT(self));
 }
@@ -603,12 +610,12 @@ void func_800A32B8(struct ShotObj* shot)
     shot->y_pos.val = owner->y_pos.val;
     shot->unk68 = (const u8*)&walrus_ice_chunk_terrain_box;
     shot->unk54 = (u8*)&walrus_ice_ball_hurt_box;
-    shot->unk58.data = (u8*)D_801060F0;
+    shot->unk58.data = (u8*)WALRUS_ICE_COLLISION;
     shot->unk50.data = (const u8*)&walrus_ice_ball_attack_box;
     shot->timer = 0x60;
-    shot->unk16 = VISUAL_SATURN_LAYER(4);
+    shot->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(4), 5);
     shot->unk5C = 0x20;
-    shot->unk60 = 9;
+    shot->unk60 = DEMO_ALT(9, 6);
     set_animation(shot, 0x1E);
     if (shot->unk15 != 0) {
         shot->x_pos.i.hi += 0x90;
@@ -674,8 +681,7 @@ void walrus_ice_chunk_fall(struct ShotObj* obj)
     if (obj->unk70 & 8) {
         func_8001540C(2, SATURN_SOUND(0x97, 0x67), obj);
         spawn_debris(0xA, walrus_ice_chunk_debris, obj);
-        i = 0;
-        do {
+        for (i = 0; i < 6; i++) {
             shot = find_free_shot_obj();
             if (shot != 0) {
                 shot->active = 0x41;
@@ -691,8 +697,7 @@ void walrus_ice_chunk_fall(struct ShotObj* obj)
                 shot->unk15 = obj->unk15;
                 shot->unk7C = obj->unk7C;
             }
-            i++;
-        } while (i < 6);
+        }
         obj->unk6++;
     }
 }
@@ -746,7 +751,7 @@ void walrus_ice_lob_init(struct ShotObj* object)
     arg0->unk28 = 0;
     arg0->unk2C = FIXED(0.2578125);
     arg0->unk5C = 5;
-    arg0->unk60 = 6;
+    arg0->unk60 = DEMO_ALT(6, 5);
     arg0->unk68 = &walrus_ice_lob_terrain_box;
     arg0->unk54 = (const u8*)&walrus_ice_icicle_hurt_box;
     arg0->unk50.data = (const u8*)&walrus_ice_icicle_attack_box;

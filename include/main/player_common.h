@@ -42,11 +42,22 @@ void player_damage(s8);
 
 s32 player_set_animation(struct PlayerObj*, s32);
 
+#ifdef VERSION_DEMO
+#define PLAYER_ANIM(n)                                                                                \
+    ((n) < 0x1B ? (n) : (n) < 0x24 ? (n) - 5 : (n) < 0x41 ? (n) - 6 : (n) < 0x58 ? (n) - 7 : (n) - 8)
+#define PLAYER_ZERO_ANIM(n) ((n) < 0x5D ? PLAYER_ANIM(n) : (n) - 7)
+#define PLAYER_ATTACK_ANIM_OFFSET 0x68
+#else
+#define PLAYER_ANIM(n) (n)
+#define PLAYER_ZERO_ANIM(n) (n)
+#define PLAYER_ATTACK_ANIM_OFFSET 0x70
+#endif
+
 void player_set_collision_bounds(struct PlayerObj*);
 
-extern u16 player_stage_3_entry_y[2][4];
-extern u16 player_stage_6_entry_y[6];
-extern u16 player_stage_12_entry_y[20];
+extern s16 player_stage_3_entry_y[2][4];
+extern s16 player_stage_6_entry_y[6];
+extern s16 player_stage_12_entry_y[20];
 
 void player_set_idle_animation(struct PlayerObj*);
 

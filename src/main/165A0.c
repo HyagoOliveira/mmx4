@@ -10,13 +10,18 @@
 
 #ifdef MMX4_PC
 extern void func_80026CEC(s32 arg0);
+extern P_TAG* background_heads[2][6][8];
+extern P_TAG* background_tails[2][6][8];
+int heat_draw_layer(s32 layer);
 #endif
 
 void func_800264D0(s32 layer, s32 x, s32 y);
 void func_80026720(void);
 void func_800267D4(s32 input);
 void func_8002728C(void);
+void func_80026AA0(s32 layer);
 void func_800270F8(s32 x, s32 y, s32 tile_x, s32 tile_y);
+void func_80027344(s32 layer, s32 x, s32 y);
 
 #ifdef MMX4_PC
 #include <psyz/audio.h>
@@ -26,7 +31,7 @@ void func_800270F8(s32 x, s32 y, s32 tile_x, s32 tile_y);
 #include <string.h>
 #endif
 void func_80016F0C();
-extern u8 D_800F2B5C[21][12];
+extern u8 D_800F2B5C[DEMO_ALT(21, 16)][12];
 extern u8 D_800F2C58[];
 extern u8 D_800F2D18[];
 extern u32 D_800F2F08[12];
@@ -204,6 +209,21 @@ void func_80025CDC(void);
             : getTPage(tp, abr, x, y))
 #endif
 
+void func_80026894(s32 layer);
+void func_80026CEC(s32 arg0);
+void func_800275DC(s32 layer, s32 x, s32 y);
+
+#ifdef VERSION_DEMO
+extern s16 D_800F2FDC[2];
+extern void (*D_800F2FE0[8])(struct EngineObj*);
+extern union AnimationStep D_800F3000[10];
+extern union AnimationStep D_800F3028[11];
+extern union AnimationStep D_800F3054[10];
+extern union AnimationStep* D_800F307C[3];
+extern s16 D_800F3088[16];
+extern s16 D_800F30A8[16];
+extern void (*D_800F30C8[])(struct MiscObj*);
+#else
 s16 D_800F2FDC[2] = { 0x0300, 0x0600 };
 
 void (*D_800F2FE0[8])(struct EngineObj*) = {
@@ -268,6 +288,7 @@ void (*D_800F30C8[])(struct MiscObj*) = {
     func_80023B98,
     func_80023C0C,
 };
+#endif
 
 #ifndef MMX4_SATURN
 void func_80025DA0(s32 texture_depth, s32 blend_mode)
@@ -357,7 +378,57 @@ void func_800261B4(s32 arg0)
     }
 }
 
-INCLUDE_ASM("main/nonmatchings/165A0", func_800262B8);
+// fills the layer's 32x32 tile cache with the 22x17 tiles around its position
+void func_800262B8(u8 layer)
+{
+    s32 x;
+    s32 y;
+    s32 tile_x;
+    s32 tile_y;
+    s32 block_x;
+    s32 block_y;
+    s32 start_block_x;
+    s32 start_tile_x;
+    s32 start_inner_x;
+    s32 inner_x;
+    s32 inner_y;
+    s8 i;
+    s8 j;
+    u8 block;
+
+    x = background_objects[layer].x_pos.i.hi / 16;
+    y = background_objects[layer].y_pos.i.hi / 16;
+    block_x = x / 16;
+    start_block_x = block_x;
+    block_y = y / 16;
+    start_tile_x = x & 31;
+    tile_y = y & 31;
+    start_inner_x = x & 15;
+    inner_y = y & 15;
+    for (i = 0; i < 17; i++) {
+        inner_x = start_inner_x;
+        tile_x = start_tile_x;
+        block = (SP_BG_TILEMAP + layer * layout_size + layout_width * block_y)[block_x];
+        for (j = 0; j < 22; j++) {
+            D_801441C8[layer][tile_y][tile_x++] = (SP_BG_TILE_PIXELS + block * 256 + inner_y * 16)[inner_x];
+            tile_x &= 31;
+            if (++inner_x == 16) {
+                inner_x = 0;
+                block_x++;
+                block = (SP_BG_TILEMAP + layer * layout_size + layout_width * block_y)[block_x];
+            }
+        }
+        block_x = start_block_x;
+        tile_y++;
+        tile_y &= 31;
+        if (++inner_y == 16) {
+            inner_y = 0;
+            block_y++;
+        }
+    }
+    background_objects[layer].unk4C = 0;
+}
+
 void func_800264D0(s32 layer, s32 x, s32 y)
 {
     s32 block_x = x / 16;
@@ -393,7 +464,9 @@ void func_80026648(void)
     u32 var_s0;
     u32 bg_num;
 
+#ifndef VERSION_DEMO
     SP_BG_SPRITE_COUNT = 0;
+#endif
     var_s0 = 0;
     do {
         if (background_objects[var_s0].unk4C != 0) {
@@ -478,7 +551,103 @@ void func_80026894(s32 layer)
 }
 #endif
 
-INCLUDE_ASM("main/nonmatchings/165A0", func_80026AA0);
+void func_80026AA0(s32 layer)
+{
+    SPRT_16* sprite;
+    s16 start_x;
+    s16 sprite_x;
+    s16 sprite_y;
+    u32 row;
+    u32 column;
+    s32 start_tile_x;
+    s32 tile_x;
+    s32 tile_y;
+    s32 x;
+    s32 y;
+    s32 buffer;
+    u16 entry;
+    u32 attributes;
+    s32 list_layer;
+    u32 bucket;
+#ifdef MMX4_PC
+    int heat;
+#endif
+    u8 tile_v;
+    u8 tile_u;
+
+    sprite = SP_BG_PRIM_CURSOR;
+    buffer = SP_DRAW_BUFFER;
+    x = background_objects[layer].x_pos.i.hi;
+    y = background_objects[layer].y_pos.i.hi;
+    start_tile_x = (x / 16) & 31;
+    start_x = -(x & 15);
+    tile_y = (y / 16) & 31;
+    sprite_y = -(y & 15);
+
+#ifdef MMX4_PC
+    if (mmx4_pc_hide_background) {
+        return;
+    }
+    heat = mmx4_pc_saturn_heat && heat_draw_layer(layer);
+#endif
+
+    for (row = 0; row < 16; row++) {
+        sprite_x = start_x;
+        tile_x = start_tile_x;
+        for (column = 0; column < 21; column++) {
+            entry = D_801441C8[layer][tile_y][tile_x];
+            if (entry != 0) {
+#ifndef VERSION_DEMO
+                if (SP_BG_SPRITE_COUNT >= 1000) {
+                    return;
+                }
+                SP_BG_SPRITE_COUNT++;
+#endif
+                attributes = SP_BG_TILE_ATTRS[entry & 0x3FFF];
+                sprite->clut = ((attributes & 0xF000) >> 6) + 0x7900;
+                sprite->clut |= (attributes & 0xF00) >> 8;
+                if (entry & 0x4000) {
+                    sprite->code |= 2;
+                } else {
+                    sprite->code &= 0xFD;
+                }
+                sprite->x0 = sprite_x;
+                sprite->y0 = sprite_y;
+                tile_v = (attributes & 0xF00000) >> 16;
+                tile_u = (attributes & 0xF0000) >> 12;
+                sprite->u0 = tile_u;
+                sprite->v0 = tile_v;
+#ifdef MMX4_WIN32
+                bucket = (attributes >> 24) & 7;
+#else
+                bucket = (attributes & 0xFF000000) >> 24;
+#endif
+                list_layer = (entry & 0x8000) ? layer + 3 : layer;
+#ifdef MMX4_PC
+                if (!heat) {
+                    if (background_tails[buffer][list_layer][bucket] == NULL) {
+                        background_heads[buffer][list_layer][bucket] = (P_TAG*)sprite;
+                    } else {
+                        setaddr(background_tails[buffer][list_layer][bucket], sprite);
+                    }
+                    background_tails[buffer][list_layer][bucket] = (P_TAG*)sprite;
+                }
+#else
+                setaddr(D_8013BD50[buffer][list_layer][bucket], sprite);
+                D_8013BD50[buffer][list_layer][bucket] = (s32*)sprite;
+#endif
+                sprite++;
+            }
+            sprite_x += 16;
+            tile_x++;
+            tile_x &= 31;
+        }
+        sprite_y += 16;
+        tile_y++;
+        tile_y &= 31;
+    }
+    SP_BG_PRIM_CURSOR = sprite;
+}
 
 void func_80026CEC(s32 arg0)
 {
@@ -566,7 +735,59 @@ void func_80026CEC(s32 arg0)
     }
 }
 
-INCLUDE_ASM("main/nonmatchings/165A0", func_800270F8);
+void func_800270F8(s32 x, s32 y, s32 inner_x, s32 inner_y)
+{
+    SPRT_16* sprite = SP_BG_PRIM_CURSOR;
+    s32 layer = SP_CUR_BG_INDEX;
+    u32 width = SP_BG_BLOCK_WIDTH;
+    u32 height = SP_BG_BLOCK_HEIGHT;
+    u8 block = SP_BG_BLOCK;
+    s32 buffer = SP_DRAW_BUFFER;
+    u32 i;
+    u32 j;
+    s32 sprite_x;
+    s32 tile_x;
+    u16 page;
+    u16 idx;
+    u32 attributes;
+
+    for (i = 0; i < height; i++) {
+        sprite_x = x;
+        tile_x = inner_x;
+        for (j = 0; j < width; j++) {
+            attributes = (SP_BG_TILE_ATTRS + block * 256 + inner_y * 16)[tile_x];
+            page = (attributes >> 8) & 0xFF;
+            if (page != 0) {
+                u8 tile_v = attributes & 0xF0;
+                u8 tile_u = (attributes & 0xF) << 4;
+                sprite->x0 = sprite_x;
+                sprite->y0 = y;
+                sprite->clut = attributes >> 16;
+                sprite->u0 = tile_u;
+                sprite->v0 = tile_v;
+                idx = page - 0x15;
+#ifdef MMX4_PC
+                if (background_tails[buffer][layer][idx] == NULL) {
+                    background_heads[buffer][layer][idx] = (P_TAG*)sprite;
+                } else {
+                    setaddr(background_tails[buffer][layer][idx], sprite);
+                }
+                background_tails[buffer][layer][idx] = (P_TAG*)sprite;
+#else
+                setaddr(D_8013BD50[buffer][layer][idx], sprite);
+                D_8013BD50[buffer][layer][idx] = (s32*)sprite;
+#endif
+                sprite++;
+            }
+            sprite_x += 16;
+            tile_x++;
+        }
+        y += 16;
+        inner_y++;
+    }
+    SP_BG_PRIM_CURSOR = sprite;
+}
+
 void func_8002728C(void)
 {
     s32 temp_s1;
@@ -582,7 +803,59 @@ void func_8002728C(void)
     }
 }
 
-INCLUDE_ASM("main/nonmatchings/165A0", func_80027344);
+// fills one column of the layer's tile cache, wrapping between its block bounds
+void func_80027344(s32 layer, s32 x, s32 y)
+{
+    u32 block_x;
+    u32 block_y;
+    s32 tile_x;
+    s32 tile_y;
+    s32 inner_x;
+    s32 inner_y;
+    u32 count;
+    u32 i;
+    s32 block;
+
+    if (x >= 0) {
+        if (y < 0) {
+            y = 0;
+            count = 17;
+        } else {
+            count = 18;
+        }
+        block_x = x / 256;
+        block_y = y / 256;
+        tile_x = (x % 512) / 16;
+        tile_y = (y % 512) / 16;
+        inner_x = tile_x & 15;
+        inner_y = tile_y & 15;
+        if (block_x < background_objects[layer].unk4D) {
+            block_x += background_objects[layer].unk4E - background_objects[layer].unk4D + 1;
+            if (background_objects[layer].x_pos.i.hi <= (background_objects[layer].unk4D - 1) * 256) {
+                background_objects[layer].x_pos.i.hi = background_objects[layer].unk4E * 256;
+                return;
+            }
+        }
+        if (block_x > background_objects[layer].unk4E) {
+            block_x -= background_objects[layer].unk4E + 1;
+            block_x += background_objects[layer].unk4D;
+            if (background_objects[layer].x_pos.i.hi >= (background_objects[layer].unk4E + 1) * 256) {
+                background_objects[layer].x_pos.i.hi = background_objects[layer].unk4D * 256;
+                return;
+            }
+        }
+        block = (SP_BG_TILEMAP + layer * layout_size + layout_width * block_y)[block_x];
+        for (i = 0; i < count; i++) {
+            D_801441C8[layer][tile_y++][tile_x] = (SP_BG_TILE_PIXELS + block * 256 + inner_y * 16)[inner_x];
+            tile_y &= 31;
+            if (++inner_y == 16) {
+                inner_y = 0;
+                block_y++;
+                block = (SP_BG_TILEMAP + layer * layout_size + layout_width * block_y)[block_x];
+            }
+        }
+    }
+}
 
 void func_800275DC(s32 layer, s32 x, s32 y)
 {

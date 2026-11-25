@@ -98,9 +98,9 @@ void func_800D3084(struct MiscObj* self)
         self->y_pos.i.hi = background_objects[0].y_pos.i.hi + (get_random() & 0xFF);
         self->x_vel.val = 0x30000;
         self->unk28 = -0x1000;
-        self->state = 3;
         self->y_vel.val = 0;
         self->unk2C = 0;
+        self->state = 3;
         self->unk42 += 3;
         set_animation(self, 0x16);
         self->unk16 = 0x13;
@@ -136,8 +136,8 @@ void sigma_final_fx_gust(struct MiscObj* self)
 
 void sigma_final_fx_follow(struct MiscObj* self)
 {
-    self->x_pos.u.hi = self->ext.misc_55.owner->x_pos.u.hi;
-    self->y_pos.u.hi = self->ext.misc_55.owner->y_pos.u.hi;
+    self->x_pos.i.hi = self->ext.misc_55.owner->x_pos.i.hi;
+    self->y_pos.i.hi = self->ext.misc_55.owner->y_pos.i.hi;
     animate_object(ANIMATED_OBJECT(self));
     is_on_screen(BASE_OBJECT(self));
     if (self->ext.misc_55.owner->state == 2) {

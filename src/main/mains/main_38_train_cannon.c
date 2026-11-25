@@ -62,22 +62,21 @@ void train_cannon_init(struct MainObj* obj)
     obj->contact_damage = 6;
     obj->invincibility_timer = 0;
     obj->bg_offset = g_Player.bg_offset;
+    obj->unk18.val = obj->x_pos.val;
+    obj->unk1C.val = obj->y_pos.val;
     obj->collision_data = &D_801074F4;
-    obj->animation_table = (const u8* const*)train_cannon_animations;
-    obj->unk16 = VISUAL_SATURN_LAYER(5);
-    obj->terrain_box = &train_cannon_terrain_box;
-    obj->hurt_box = &train_cannon_hurt_box;
     obj->unk15 = 0;
     obj->x_speed = 0;
     obj->y_speed = 0;
     obj->x_accel = 0;
     obj->gravity = 0;
     obj->air_state = 0;
+    obj->animation_table = (const u8* const*)train_cannon_animations;
+    obj->unk16 = VISUAL_SATURN_LAYER(5);
+    obj->terrain_box = &train_cannon_terrain_box;
+    obj->hurt_box = &train_cannon_hurt_box;
     obj->attack_box = &train_cannon_attack_box;
-    obj->unk18.val = obj->x_pos.val;
-    obj->unk1C.val = obj->y_pos.val;
     set_animation(obj, 0);
-    obj->unk7E = 0xA;
     obj->ext.main_38.saved_unk5 = 0;
     obj->ext.main_38.unk84 = 0;
     obj->ext.main_38.unk88 = 0;
@@ -85,9 +84,10 @@ void train_cannon_init(struct MainObj* obj)
     obj->ext.main_38.unk90 = 0;
     obj->ext.main_38.unk94 = 0;
     obj->unk7C = 0;
+    obj->unk7E = 0xA;
+    obj->state++;
     obj->unk5 = 2;
     obj->unk6 = 0;
-    obj->state++;
 }
 
 void train_cannon_main(struct MainObj* self)
@@ -331,7 +331,7 @@ void train_cannon_fire_blast(struct PlayerObj* self)
 
 void train_cannon_fire_volley(struct MainObj* self)
 {
-    s32 is_zero;
+    s32 nonzero;
     struct ShotObj* shot;
     u8 i;
     for (i = 0; i < 2; i++) {
@@ -347,8 +347,8 @@ void train_cannon_fire_volley(struct MainObj* self)
             shot->unk40 = self->unk40;
             shot->unk15 = self->unk15;
             shot->bg_offset = self->bg_offset;
-            is_zero = (i == 0);
-            shot->unk16 = is_zero ? VISUAL_SATURN_LAYER(4) : VISUAL_SATURN_LAYER(6);
+            nonzero = (i != 0);
+            shot->unk16 = nonzero ? VISUAL_SATURN_LAYER(6) : VISUAL_SATURN_LAYER(4);
         }
     }
 }

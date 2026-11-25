@@ -24,7 +24,11 @@ extern void (*latcher_grab_funcs[])(struct MainObj*);
 
 void latcher_grab_release(struct MainObj*);
 
+#ifdef VERSION_DEMO
+extern struct Unk_unk68 D_800FE2E4;
+#else
 struct Unk_unk68 D_800FE2E4 = { -20, -20, 38, 38 };
+#endif
 
 void latcher_update(struct MainObj* self)
 {
@@ -45,30 +49,27 @@ extern ret_u8 func_8002938C(s32);
 void func_8005F558(struct MainObj* arg0)
 {
     struct MainObj* current;
-    s32 resource;
 
-    resource = func_8002938C(0x24);
-    arg0->unk40 = OBJECT_STAGE_TEXTURE(resource);
+    arg0->unk40 = OBJECT_STAGE_TEXTURE(func_8002938C(0x24));
     arg0->unk42 = OBJECT_STAGE_CLUT(0x24);
-    resource = func_8002938C(0x24);
-    arg0->sprite_frames = (u8*)SP_MENU_FRAMES + SP_MENU_FRAMES[resource];
+    arg0->sprite_frames = (u8*)SP_MENU_FRAMES + SP_MENU_FRAMES[func_8002938C(0x24)];
     arg0->bg_offset = g_Player.bg_offset;
     arg0->x_speed = 0;
-    arg0->animation_table = (const u8* const*)latcher_animations;
-    arg0->unk16 = VISUAL_SATURN_LAYER(6);
-    arg0->attack_box = &latcher_hurt_box;
-    arg0->unk62 = 3;
-    arg0->hurt_box = &latcher_hurt_box;
-    arg0->collision_data = D_801073F4;
-    arg0->hp = 0x10;
     arg0->y_speed = 0;
     arg0->x_accel = 0;
     arg0->gravity = 0;
+    arg0->animation_table = (const u8* const*)latcher_animations;
+    arg0->unk16 = VISUAL_SATURN_LAYER(6);
     arg0->air_state = 0;
     arg0->unk15 = 0;
     arg0->contact_damage = 0;
     arg0->terrain_box = NULL;
+    arg0->attack_box = &latcher_hurt_box;
+    arg0->unk62 = 3;
+    arg0->hurt_box = &latcher_hurt_box;
+    arg0->collision_data = D_801073F4;
     arg0->invincibility_timer = 0;
+    arg0->hp = 0x10;
     switch (arg0->unk2) {
     case 0:
         set_animation(arg0, 0);
@@ -191,8 +192,7 @@ void latcher_grab_drain(struct MainObj* self)
     struct MainObj* current;
 
     current = SP_CUR_MAIN_OBJ;
-    current->ext.main_36.unk8A -= 1;
-    if (current->ext.main_36.unk8A == 0) {
+    if (--current->ext.main_36.unk8A == 0) {
         self->unk62 = 0;
         self->attack_box = NULL;
         self->hurt_box = NULL;
@@ -207,22 +207,26 @@ void latcher_grab_drain(struct MainObj* self)
     }
     if (current->ext.main_36.unk8C != 0) {
         if (current->ext.main_36.unk8A - 0x40 == 0) {
-            player_damage(4);
+            player_damage(DEMO_ALT(4, 8));
         }
     }
+#ifndef VERSION_DEMO
     if ((SP_CUR_MAIN_OBJ->ext.main_36.unk8A & 7) == 0) {
         func_8001540C(2, SATURN_SOUND(0xED, 0xAE), self);
     }
+#endif
 }
 
 void latcher_grab_release(struct MainObj* self)
 {
     if (self->animation_step.fields.event != 0) {
-        self->unk5 = 0;
         self->state++;
+        self->unk5 = 0;
         self->unk6 = 0;
     }
 }
+
+#define LATCHER_PUSH DEMO_ALT(FIXED(0.28125), FIXED(0.1875))
 
 void latcher_check_hit(struct MainObj* self)
 {
@@ -243,24 +247,29 @@ void latcher_check_hit(struct MainObj* self)
     }
 
     self->hp = 0x10;
+#ifndef VERSION_DEMO
     if (self->unk5 == 3) {
         return;
     }
+#endif
 
     if (g_Player.x_pos.i.hi <= self->x_pos.i.hi) {
-        self->x_speed += FIXED(0.28125);
-        if (self->x_speed == FIXED(0.28125)) {
+        self->x_speed += LATCHER_PUSH;
+        if (self->x_speed == LATCHER_PUSH) {
             set_animation(self, 1);
         }
     } else {
-        self->x_speed -= FIXED(0.28125);
-        if (self->x_speed == FIXED(-0.28125)) {
+        self->x_speed -= LATCHER_PUSH;
+        if (self->x_speed == -LATCHER_PUSH) {
             set_animation(self, 2);
         }
     }
 }
 
-struct Unk_unk68 latcher_hurt_box = { -14, -14, 28, 28 };
+#ifdef VERSION_DEMO
+struct Unk_unk68 D_800D1D68_demo = { -20, -20, 38, 38 };
+#endif
+struct Unk_unk68 latcher_hurt_box = { DEMO_ALT(-14, -20), DEMO_ALT(-14, -20), DEMO_ALT(28, 38), DEMO_ALT(28, 38) };
 
 union AnimationStep latcher_anim_0[] = {
     { 2, 0, 1, 0x00 },

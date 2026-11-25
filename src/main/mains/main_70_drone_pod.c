@@ -10,7 +10,7 @@
 #include "main/CB184.h"
 #include "main/collision_bounds.h"
 #include "main/objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/1E1BC.h"
@@ -100,21 +100,21 @@ void func_80088C40(struct MainObj* self)
     x_pos = self->x_pos.val;
     y_pos = self->y_pos.val;
     bg_offset = g_Player.bg_offset;
+    self->bg_offset = bg_offset;
+    self->unk18.val = x_pos;
+    self->unk1C.val = y_pos;
     self->collision_data = D_80108104;
-    self->animation_table = (const u8* const*)D_80104974;
-    self->unk16 = VISUAL_SATURN_LAYER(5);
     self->x_speed = 0;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
     self->air_state = 0;
+    self->animation_table = (const u8* const*)D_80104974;
+    self->unk16 = VISUAL_SATURN_LAYER(5);
     self->hurt_box = &D_80104914;
     self->attack_box = NULL;
     self->terrain_box = NULL;
     self->unk15 = 0;
-    self->bg_offset = bg_offset;
-    self->unk18.val = x_pos;
-    self->unk1C.val = y_pos;
     set_animation(self, 0);
     self->ext.raw[0] = 0;
     self->ext.raw[1] = 0;
@@ -160,9 +160,9 @@ void drone_pod_intro_fill_health(struct MainObj* self)
     count = ++self->hp;
     if ((s8)count == 0x30) {
         player_end_script_action();
+        self->state++;
         self->unk5 = 3;
         self->unk6 = 0;
-        self->state++;
         self->unk7C = 0xA;
     }
 }
@@ -194,8 +194,8 @@ void func_80088EA4(struct MainObj* self)
         self->ext.main_70.saved_unk5 = self->unk5;
     if (collision < 0) {
         set_animation(self, 3);
-        self->unk5 = 0;
         self->state++;
+        self->unk5 = 0;
         self->unk6 = 0;
     } else {
         update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
@@ -254,23 +254,19 @@ void drone_pod_death_explode(struct MainObj* self)
 
 void drone_pod_death_alarm(struct MainObj* self)
 {
-    s16 countdown;
-    u16 timer;
 
     if ((WEAPON_FRAME_COUNTER & 3) == 0) {
         drone_pod_random_explosion(self);
     }
 
-    countdown = self->unk7E;
-    if (countdown == 0) {
+    if (self->unk7E == 0) {
         drone_pod_alarm_flash(self);
     } else {
-        self->unk7E = countdown - 1;
+        self->unk7E--;
     }
 
-    timer = --self->unk7C;
-    if ((timer << 0x10) == 0) {
-        self->unk5 = (u8)self->unk5 + 1;
+    if (--self->unk7C == 0) {
+        self->unk5++;
     }
 }
 
@@ -416,8 +412,8 @@ void func_80089588(struct MainObj* self)
         child->unk15 = part < 3 ? PLAYER_FACING_RIGHT : 0;
         child->unk16 = VISUAL_SATURN_LAYER(5);
         child->bg_offset = self->bg_offset;
-        child->x_pos.u.hi = (u16)D_801049CC[part * 2];
-        child->y_pos.u.hi = (u16)D_801049CC[part * 2 + 1];
+        child->x_pos.i.hi = (u16)D_801049CC[part * 2];
+        child->y_pos.i.hi = (u16)D_801049CC[part * 2 + 1];
     }
     self->ext.main_70.unk84 = start + 2;
     if (D_801049B8[self->ext.main_70.unk84] == 0xFF)
@@ -456,8 +452,8 @@ void func_80089588(struct MainObj* self)
         child->unk15 = part < 3 ? 0x40 : 0;
         child->bg_offset = self->bg_offset;
         child->unk16 = 5;
-        child->x_pos.u.hi = D_801049CC[part * 2];
-        child->y_pos.u.hi = D_801049CC[part * 2 + 1];
+        child->x_pos.i.hi = D_801049CC[part * 2];
+        child->y_pos.i.hi = D_801049CC[part * 2 + 1];
     }
     self->ext.main_70.unk84 += 2;
     if (D_801049B8[self->ext.main_70.unk84] == 0xFF)

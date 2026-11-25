@@ -81,8 +81,8 @@ void func_800CF950(struct MiscObj* self);
 
 void func_800CF950(struct MiscObj* self)
 {
-    struct MiscObj* piece;
     s32 i;
+    struct MiscObj* piece;
 
     animate_object(ANIMATED_OBJECT(self));
     if (self->animation_step.fields.event == 0) {
@@ -148,8 +148,7 @@ void iris_intro_crystal_leave(struct MiscObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
     move_object(MOVING_OBJECT(self));
-    self->ext.misc_39.timer -= 1;
-    if (self->ext.misc_39.timer == 0) {
+    if (--self->ext.misc_39.timer == 0) {
         self->state = 1;
     }
 }

@@ -89,7 +89,20 @@ void func_800204A4(void)
 {
 }
 
-#ifndef MMX4_SATURN
+#ifdef VERSION_DEMO
+void func_80031130_demo(struct EngineObj* arg0)
+{
+}
+#endif
+
+#ifdef VERSION_DEMO
+void func_800204AC(struct EngineObj* arg0)
+{
+    arg0->unk1 = 3;
+    arg0->state = arg0->unk4;
+    func_800129A4(8);
+}
+#elif !defined(MMX4_SATURN)
 void func_800204AC(struct EngineObj* arg0)
 {
     func_800193D8(arg0);
@@ -104,7 +117,7 @@ void func_800204AC(struct EngineObj* arg0)
 #endif
 
 #ifdef MMX4_SATURN
-void func_800204CC(s8* arg0, s32 arg1)
+void func_800204CC(s8* arg0, u32 arg1)
 {
     if (saturn_pad_pressed & SATURN_PAD_UP) {
         func_8001540C(0, SATURN_SE_CURSOR, 0);
@@ -124,24 +137,34 @@ void func_800204CC(s8* arg0, s32 arg1)
     }
 }
 #else
-void func_800204CC(s8* arg0, s32 arg1)
+void func_800204CC(s8* arg0, u32 arg1)
 {
-    if (controller_input.pressed & 0x1000) {
+    if (controller_input.pressed & PADLup) {
+#ifndef VERSION_DEMO
         func_8001540C(0, 0xC, 0);
+#endif
         if (*arg0 == 0) {
             *arg0 = arg1;
         } else {
             *arg0 = *arg0 - 1;
         }
     }
-    if (controller_input.pressed & 0x4000) {
+    if (controller_input.pressed & PADLdown) {
+#ifndef VERSION_DEMO
         func_8001540C(0, 0xC, 0);
+#endif
         if (*arg0 == arg1) {
             *arg0 = 0;
             return;
         }
         *arg0 = *arg0 + 1;
     }
+}
+#endif
+
+#ifdef VERSION_DEMO
+void func_800311E4_demo(s8 selection, s8 menu)
+{
 }
 #endif
 
@@ -170,6 +193,31 @@ void func_80020580(struct EngineObj* arg0)
         arg0->unk1++;
     }
 }
+#elif defined(VERSION_DEMO)
+void func_80020580(struct EngineObj* arg0)
+{
+    struct BaseObj* obj;
+    u8 i;
+
+    func_8001D134();
+    arg0->unk1F = 0;
+    arg0->enable_boss = 0;
+    for (i = 0; i < 4; i++) {
+        obj = (struct BaseObj*)find_free_misc_obj();
+        if (obj != NULL) {
+            obj->active = 1;
+            obj->id = 0x13;
+            obj->unk2 = i;
+        }
+    }
+    arg0->unk4 = 0x78;
+    func_800129A4(8);
+    if (arg0->stage == 0) {
+        arg0->unk1 += 5;
+    } else {
+        arg0->unk1++;
+    }
+}
 #else
 void func_80020580(struct EngineObj* arg0)
 {
@@ -188,14 +236,21 @@ void func_80020580(struct EngineObj* arg0)
     if (arg0->stage == 0) {
         arg0->unk8 = func_8001E850(D_800F231C, 1);
         next_state = arg0->unk1 + 5;
-    } else {
-        arg0->unk8 = func_8001E850(D_800F2328, 1);
-        next_state = arg0->unk1 + 1;
+        arg0->unk1 = next_state;
+        return;
     }
+    arg0->unk8 = func_8001E850(D_800F2328, 1);
+    next_state = arg0->unk1 + 1;
     arg0->unk1 = next_state;
 }
 #endif
 
+#ifdef VERSION_DEMO
+void func_80020638(struct EngineObj* arg0)
+{
+    DEMO_MENU_SELECT(arg0, 3, 0);
+}
+#else
 #ifdef MMX4_SATURN
 void func_80020638(struct EngineObj* arg0)
 {
@@ -224,6 +279,7 @@ void func_80020638(struct EngineObj* arg0)
         }
     }
 }
+#endif
 #endif
 
 #ifdef MMX4_SATURN
@@ -285,18 +341,24 @@ void func_800206D0(struct EngineObj* arg0)
 void func_800206D0(struct EngineObj* arg0)
 {
     if (main_bss_state.transition.active == 0) {
-        switch (main_bss_state.transition.selection) {
+        switch (DEMO_ALT(main_bss_state.transition.selection, arg0->unk2)) {
         case 0:
             if (D_80171EA8 != 0) {
+#ifndef VERSION_DEMO
                 func_800127C8(1);
+#endif
                 func_80013014();
                 D_80171EA8 = 0;
             }
+#ifdef VERSION_DEMO
+            arg0->player_lives = 2;
+#else
             if (engine_obj.collected_upgrades & 0x8000) {
                 arg0->player_lives = 4;
             } else {
                 arg0->player_lives = 2;
             }
+#endif
             arg0->checkpoint = 0;
             arg0->unk1E = 0;
             arg0->state = 5;
@@ -305,11 +367,15 @@ void func_800206D0(struct EngineObj* arg0)
             arg0->unk3 = 0;
             break;
         case 1:
+#ifdef VERSION_DEMO
+            arg0->player_lives = 2;
+#else
             if (engine_obj.collected_upgrades & 0x8000) {
                 arg0->player_lives = 4;
             } else {
                 arg0->player_lives = 2;
             }
+#endif
             arg0->state = 3;
             arg0->unk1 = 0;
             arg0->unk2 = 0;
@@ -323,7 +389,11 @@ void func_800206D0(struct EngineObj* arg0)
             arg0->unk3 = 0;
             break;
         default:
+#ifdef VERSION_DEMO
+            func_80012740(0, &func_8001DAF8);
+#else
             func_8001DC30();
+#endif
             func_800127FC();
             break;
         }
@@ -331,6 +401,12 @@ void func_800206D0(struct EngineObj* arg0)
 }
 #endif
 
+#ifdef VERSION_DEMO
+void func_80020808(struct EngineObj* arg0)
+{
+    DEMO_MENU_SELECT(arg0, 2, 1);
+}
+#else
 #ifdef MMX4_SATURN
 void func_80020808(struct EngineObj* arg0)
 {
@@ -355,6 +431,7 @@ void func_80020808(struct EngineObj* arg0)
         }
     }
 }
+#endif
 #endif
 
 #ifdef MMX4_SATURN
@@ -406,19 +483,25 @@ void func_8002088C(struct EngineObj* arg0)
 void func_8002088C(struct EngineObj* arg0)
 {
     if (main_bss_state.transition.active == 0) {
-        switch (main_bss_state.transition.selection) {
+        switch (DEMO_ALT(main_bss_state.transition.selection, arg0->unk2)) {
         case 0:
             if (D_80171EA8 != 0) {
+#ifndef VERSION_DEMO
                 func_800127C8(1);
+#endif
                 func_80013014();
                 D_80171EA8 = 0;
             }
 
+#ifdef VERSION_DEMO
+            arg0->player_lives = 2;
+#else
             if (engine_obj.collected_upgrades & 0x8000) {
                 arg0->player_lives = 4;
             } else {
                 arg0->player_lives = 2;
             }
+#endif
             arg0->checkpoint = 0;
             arg0->unk1E = 0;
             arg0->state = 5;
@@ -427,11 +510,13 @@ void func_8002088C(struct EngineObj* arg0)
             arg0->unk3 = 0;
             break;
         case 1:
+#ifndef VERSION_DEMO
             if (engine_obj.collected_upgrades & 0x8000) {
                 arg0->player_lives = 4;
             } else {
                 arg0->player_lives = 2;
             }
+#endif
             arg0->state = 3;
             arg0->unk1 = 0;
             arg0->unk2 = 0;
@@ -439,7 +524,11 @@ void func_8002088C(struct EngineObj* arg0)
             break;
         case 2:
         default:
+#ifdef VERSION_DEMO
+            func_80012740(0, &func_8001DAF8);
+#else
             func_8001DC30();
+#endif
             func_800127FC();
             break;
         }

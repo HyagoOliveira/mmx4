@@ -22,7 +22,11 @@ void double_cyclone_form(struct WeaponObj*);
 void double_cyclone_fly(struct WeaponObj*);
 void double_cyclone_spin(struct WeaponObj*);
 void double_cyclone_dissipate(struct WeaponObj*);
+#ifdef VERSION_DEMO
+#define double_cyclone_hide(obj) ((obj)->on_screen = 0, (obj)->state = 3, (obj)->unk50 = NULL)
+#else
 void double_cyclone_hide(struct WeaponObj* arg0);
+#endif
 
 // double_cyclone_charged_state_funcs
 extern void (*double_cyclone_charged_state_funcs[])(struct WeaponObj*);
@@ -45,19 +49,22 @@ s32 double_cyclone_check_expired(struct WeaponObj* arg0);
 
 void double_cyclone_update(struct WeaponObj* arg0)
 {
-    s32 disabled;
+    struct PlayerObj* player = &g_Player;
+    u32 disabled;
 
     disabled = 0;
-    if (g_Player.input_locked != 0) {
+    if (player->input_locked != 0) {
         disabled = 1;
     }
-    if (g_Player.capsule_state != 0) {
+#ifndef VERSION_DEMO
+    if (player->capsule_state != 0) {
         disabled = 1;
     }
-    if (g_Player.weapon != 7) {
+#endif
+    if (player->weapon != 7) {
         disabled = 1;
     }
-    if (g_Player.shot_type == 0x10) {
+    if (player->shot_type == 0x10) {
         disabled = 1;
     }
     if (disabled != 0) {
@@ -81,8 +88,8 @@ void func_80096EA4(struct WeaponObj* arg0)
     arg0->unk38 = (u8*)SP_PLAYER_GFX + SP_PLAYER_GFX[8];
     arg0->unk3C = (u8*)SP_SPRITE_FRAMES + SP_SPRITE_FRAMES[0x10];
     arg0->animation_table = D_8011C0F0;
-    arg0->unk16 = 1;
     arg0->unk42 = WEAPON_PALETTE_1;
+    arg0->unk16 = 1;
     dx = double_cyclone_spawn_offsets[arg0->unk2].x;
     dy = double_cyclone_spawn_offsets[arg0->unk2].y;
     if (arg0->unk2 == 0) {
@@ -103,9 +110,9 @@ void func_80096EA4(struct WeaponObj* arg0)
     }
     {
         s16 y = player->y_pos.i.hi + dy;
+        arg0->y_pos.i.hi = y;
         arg0->unk28.val = 0;
         arg0->y_vel.val = 0;
-        arg0->y_pos.i.hi = y;
         arg0->unk2C = 0;
     }
     arg0->unk49 = arg0->unk2;
@@ -113,7 +120,9 @@ void func_80096EA4(struct WeaponObj* arg0)
     ext->unk90 = 8;
     ext->unk91 = 4;
     set_animation(arg0, 0);
+#ifndef VERSION_DEMO
     func_8001540C(0, WEAPON_SOUND_CYCLONE, arg0);
+#endif
     arg0->state++;
     double_cyclone_draw(arg0);
 }
@@ -159,8 +168,7 @@ void double_cyclone_fly(struct WeaponObj* arg0)
         } else {
             struct Weapon7Ext* weapon_7 = &arg0->ext.weapon_7;
             if (weapon_7->unk90 != 0) {
-                weapon_7->unk90--;
-                if (weapon_7->unk90 == 0) {
+                if (--weapon_7->unk90 == 0) {
                     arg0->unk2C = FIXED(-0.21484375);
                 }
             }
@@ -197,18 +205,25 @@ void double_cyclone_dissipate(struct WeaponObj* arg0)
 {
     animate_object(arg0);
     if (arg0->animation_step.fields.relative_step == 0) {
+#ifdef VERSION_DEMO
+        arg0->on_screen = 0;
+        arg0->state = 3;
+#else
         double_cyclone_hide(arg0);
+#endif
     } else {
         double_cyclone_draw(arg0);
     }
 }
 
+#ifndef VERSION_DEMO
 void double_cyclone_hide(struct WeaponObj* arg0)
 {
     arg0->on_screen = 0;
     arg0->state = 3;
     arg0->unk50 = 0;
 }
+#endif
 
 void double_cyclone_despawn(struct WeaponObj* arg0)
 {
@@ -232,22 +247,25 @@ void double_cyclone_draw(struct WeaponObj* arg0)
 
 void double_cyclone_charged_update(struct WeaponObj* arg0)
 {
-    s32 var_a1;
+    struct PlayerObj* player = &g_Player;
+    u32 var_a1;
 
     var_a1 = 0;
-    if (g_Player.input_locked != 0) {
+    if (player->input_locked != 0) {
         var_a1 = 1;
     }
-    if (g_Player.capsule_state != 0) {
+#ifndef VERSION_DEMO
+    if (player->capsule_state != 0) {
         var_a1 = 1;
     }
-    if (g_Player.weapon != 7) {
+#endif
+    if (player->weapon != 7) {
         var_a1 = 1;
     }
-    if (g_Player.actions_reset != 0) {
+    if (player->actions_reset != 0) {
         var_a1 = 1;
     }
-    if (g_Player.hp == 0) {
+    if (player->hp == 0) {
         var_a1 = 1;
     }
     if (var_a1 != 0) {
@@ -270,7 +288,7 @@ void func_80097430(struct WeaponObj* arg0)
     arg0->animation_table = D_8011C0F0;
     arg0->unk40 = WEAPON_TEXTURE_SPECIAL_1;
     arg0->unk42 = WEAPON_PALETTE_1;
-    arg0->unk16 = 0;
+    arg0->unk16 = DEMO_ALT(0, 1);
     if (arg0->unk2 < 0) {
         side = 1;
         arg0->x_vel.val = 0x60000;
@@ -291,20 +309,24 @@ void func_80097430(struct WeaponObj* arg0)
     }
     {
         s16 y = player->y_pos.i.hi + dy;
+        arg0->y_pos.i.hi = y;
         arg0->unk28.val = 0;
         arg0->y_vel.val = 0;
         arg0->unk2C = 0;
-        arg0->y_pos.i.hi = y;
     }
     ext->timer = 0x32;
     ext->delay = (arg0->unk2 & 0x7F) << 2;
     ext->unk91 = 4;
     arg0->unk49 = 1;
     set_animation(arg0, 4);
+#ifndef VERSION_DEMO
     func_8001540C(0, WEAPON_SOUND_CYCLONE, arg0);
+#endif
+#ifndef VERSION_DEMO
     func_8001540C(1, 0xA, arg0);
-    arg0->unk5 = 0;
+#endif
     arg0->state++;
+    arg0->unk5 = 0;
     double_cyclone_charged_draw(arg0);
     update_on_screen(BASE_OBJECT(arg0), 0x18, 0x30);
 }
@@ -393,6 +415,15 @@ void double_cyclone_charged_despawn(struct WeaponObj* arg0)
     ZeroObjectState(OBJECT_HEADER(arg0));
 }
 
+#ifdef VERSION_DEMO
+extern struct Unk_unk68 double_cyclone_hit_box[];
+extern struct Unk_unk68 double_cyclone_charged_hit_box[];
+extern void (*double_cyclone_state_funcs[])(struct WeaponObj*);
+extern struct VisualSpawnOffset double_cyclone_spawn_offsets[2];
+extern void (*double_cyclone_step_funcs[])(struct WeaponObj*);
+extern void (*double_cyclone_charged_state_funcs[])(struct WeaponObj*);
+extern struct VisualSpawnOffset double_cyclone_charged_spawn_offsets[2];
+#else
 struct Unk_unk68 double_cyclone_hit_box[] = {
     { -16, -16, 0x20, 0x20 },
 };
@@ -431,3 +462,41 @@ struct VisualSpawnOffset double_cyclone_charged_spawn_offsets[2] = {
     { -0x10, -7 },
     { 0x1F, -7 },
 };
+#endif
+
+#ifdef VERSION_DEMO
+void (*double_cyclone_state_funcs[4])(struct WeaponObj*) = {
+    func_80096EA4,
+    double_cyclone_main,
+    double_cyclone_despawn,
+    double_cyclone_despawn,
+};
+
+struct VisualSpawnOffset double_cyclone_spawn_offsets[2] = {
+    { -0x11, -0x7 },
+    { 0x1A, -0x7 },
+};
+
+struct Unk_unk68 double_cyclone_hit_box[1] = { { -16, -16, 32, 32 } };
+
+void (*double_cyclone_step_funcs[4])(struct WeaponObj*) = {
+    double_cyclone_form,
+    double_cyclone_fly,
+    double_cyclone_spin,
+    double_cyclone_dissipate,
+};
+
+void (*double_cyclone_charged_state_funcs[4])(struct WeaponObj*) = {
+    func_80097430,
+    double_cyclone_charged_main,
+    double_cyclone_charged_offscreen,
+    double_cyclone_charged_despawn,
+};
+
+struct VisualSpawnOffset double_cyclone_charged_spawn_offsets[2] = {
+    { -0x10, -7 },
+    { 0x1F, -7 },
+};
+
+struct Unk_unk68 double_cyclone_charged_hit_box[1] = { { -12, -28, 24, 54 } };
+#endif

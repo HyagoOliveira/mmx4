@@ -7,9 +7,11 @@ struct Item01StageEntry {
     u16 left;
     u16 right;
     u16 trigger_x;
-    u16 flags_and_palette;
+    u8 flags;
+    u8 unkB;
     u16 velocity;
-    u16 sound_id;
+    u8 sound_id;
+    u8 unkF;
 };
 
 struct Item01SpriteBounds {
@@ -29,7 +31,5 @@ void func_800BF1FC(struct ItemObj* arg0);
 extern struct Item01StageEntry stage_block_entries[15];
 
 extern struct Item01SpriteBounds stage_block_bounds[15];
-
-void func_800BF638(struct BaseObj* arg0, s8 arg1, s16 arg2, s16 arg3);
 
 #endif

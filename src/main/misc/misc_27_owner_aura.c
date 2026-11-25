@@ -32,17 +32,23 @@ void owner_aura_follow(struct MiscObj* self)
     }
     if (self->unk6 == 0) {
         timer = ++self->unk7;
-        if (timer & 1) {
+        if (!(timer & 1)) {
+            update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
+        } else {
             self->on_screen = 0;
-            return;
         }
+    } else {
+        update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
     }
-    update_on_screen(BASE_OBJECT(self), 0x40, 0x40);
 }
 
 void owner_aura_despawn(struct MiscObj* self)
 {
+#ifdef VERSION_DEMO
+    despawn_object(OBJECT_HEADER(self));
+#else
     ZeroObjectState(OBJECT_HEADER(self));
+#endif
 }
 
 void (*owner_aura_state_funcs[])(struct MiscObj*) = {

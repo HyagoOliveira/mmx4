@@ -4,7 +4,7 @@
 #include "main/shots/shot_19_trooper_bomb.h"
 #include "main/collision.h"
 #include "main/mains/main_50_train_crate.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #include "main/object_motion.h"
 #include "main/objects.h"
 #include "main/stage_objects.h"
@@ -40,22 +40,22 @@ void func_8009CCB4(struct ShotObj* arg0);
 
 void func_8009CCB4(struct ShotObj* arg0)
 {
-    arg0->unk2C = 0;
-    arg0->unk68 = (struct Unk_unk68*)trooper_bomb_terrain_box;
-    arg0->unk60 = 2;
+    arg0->state++;
     arg0->on_screen = 1;
-    arg0->unk2C = 0x2000;
-    arg0->unk5C = 1;
     arg0->unk28 = 0;
+    arg0->unk2C = 0;
+    arg0->unk42 &= 0x7FFF;
     arg0->unk67 = 0;
     arg0->unk16 = 0;
+    arg0->unk68 = (struct Unk_unk68*)trooper_bomb_terrain_box;
     arg0->unk54 = NULL;
     arg0->unk50.data = NULL;
     arg0->unk58.data = NULL;
+    arg0->unk5C = 1;
+    arg0->unk60 = 2;
     arg0->x_vel.val = -0x1C000;
     arg0->y_vel.val = 0x1F000;
-    arg0->state++;
-    arg0->unk42 &= 0x7FFF;
+    arg0->unk2C = 0x2000;
     arg0->x_pos.i.hi += trooper_bomb_offsets[0];
     arg0->y_pos.i.hi += trooper_bomb_offsets[1];
     set_animation(arg0, 6);

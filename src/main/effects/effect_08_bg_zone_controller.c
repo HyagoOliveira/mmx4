@@ -37,9 +37,9 @@ void bg_zone_controller_update(struct EffectObj* self)
 
 void bg_zone_controller_init(struct EffectObj* self)
 {
+    self->state++;
     self->unk5 = 4;
     self->ext.unk_effect.unk14 = 5;
-    self->state++;
     bg_zone_controller_main(self);
 }
 
@@ -231,7 +231,7 @@ void bg_zone_controller_update_zone(struct EffectObj* self)
     }
 }
 
-s16 bg_zone_controller_zone_bounds[4] = { 0x0760, 0x0808, 0x1700, 0 };
+s16 bg_zone_controller_zone_bounds[4] = { 0x0760, DEMO_ALT(0x0808, 0x0800), 0x1700, 0 };
 
 void (*bg_zone_controller_state_funcs[])(struct EffectObj*) = {
     bg_zone_controller_init,

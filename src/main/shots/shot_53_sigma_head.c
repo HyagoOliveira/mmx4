@@ -6,7 +6,7 @@
 #include "main/1E1BC.h"
 #include "main/55C4.h"
 #include "main/object_motion.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #include "main/collision_bounds.h"
 
 // sigma_head_move_funcs
@@ -295,8 +295,8 @@ void func_800AB170(struct ShotObj* self)
     s32 y;
 
     if (--self->timer == 0) {
-        self->timer = 1;
         self->unk6++;
+        self->timer = 1;
     }
     if (ABS(self->y_pos.i.hi, g_Player.y_pos.i.hi) > 3) {
         y = self->y_pos.i.hi;
@@ -317,8 +317,7 @@ void sigma_head_fire_wall_shoot(struct ShotObj* self)
     u32 i;
 
     owner = self->unk7C;
-    self->timer--;
-    if (self->timer == 0) {
+    if (--self->timer == 0) {
         i = 0;
         do {
             func_8001540C(2, SATURN_SOUND(3, 0xE7), self);
@@ -335,8 +334,7 @@ void sigma_head_fire_wall_shoot(struct ShotObj* self)
             i++;
         } while (i < 4);
         self->timer = 0x28;
-        self->unk8A--;
-        if (self->unk8A == 0) {
+        if (--self->unk8A == 0) {
             self->unk5 = 3;
             self->unk6 = 0;
             MAIN_OBJECT(owner)->ext.main_74.unk8E = 1;
@@ -539,8 +537,8 @@ void sigma_head_vanish_blink(struct ShotObj* self)
 
     if (FLICKER_ENABLED) {
         if (--self->unk8A == 0) {
-            self->unk8A = 2;
             self->unk8C.byte ^= 1;
+            self->unk8A = 2;
         }
     }
     if ((u8)self->unk8C.byte != 0) {

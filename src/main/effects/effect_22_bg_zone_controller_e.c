@@ -39,8 +39,8 @@ void bg_zone_controller_e_update(struct EffectObj* self)
 void bg_zone_controller_e_init(struct EffectObj* self)
 {
     self->unk5 = 2;
-    self->ext.effect_22.unk14 = 5;
     self->state++;
+    self->ext.effect_22.unk14 = 5;
     bg_zone_controller_e_main(self);
 }
 
@@ -214,8 +214,7 @@ void bg_zone_controller_e_update_zone(struct EffectObj* self)
         if (player_x - bg_zone_controller_e_zone_bounds[offset] < 0) {
             break;
         }
-        offset++;
-        if (offset >= 3) {
+        if (++offset >= 3) {
             break;
         }
     }
@@ -226,7 +225,7 @@ void bg_zone_controller_e_update_zone(struct EffectObj* self)
     }
 }
 
-s16 bg_zone_controller_e_zone_bounds[4] = { 0x0960, 0x0A08, 0x1700, 0 };
+s16 bg_zone_controller_e_zone_bounds[4] = { 0x0960, DEMO_ALT(0x0A08, 0x0A00), 0x1700, 0 };
 
 void (*bg_zone_controller_e_state_funcs[])(struct EffectObj*) = {
     bg_zone_controller_e_init,

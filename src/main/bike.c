@@ -9,6 +9,7 @@
 #include "main/55C4.h"
 #include "main/collision.h"
 #include "main/object_motion.h"
+#include "main/player_check.h"
 #include "main/player_weapon.h"
 #include "weapon_resources.h"
 
@@ -29,6 +30,15 @@ extern u16 ride_chaser_shot_offsets[][2];
 extern u8 ride_chaser_shot_angles[];
 extern u8 ride_chaser_shot_animations[];
 #endif
+
+void func_8003B98C(struct PlayerObj* arg0);
+void func_8003C6EC(struct RideArmorObj* arg0, u8 kind);
+void func_8003C9A4(struct RideArmorObj* arg0);
+void func_8003CA44(struct RideArmorObj* arg0);
+void func_8003CF6C(struct RideArmorObj* ride_armor);
+void func_8003D01C(struct RideArmorObj* arg0);
+void func_8003D164(struct VisualObj* arg0, s32 arg1);
+void func_8003D3B4(struct PlayerObj* arg0);
 
 extern s32 D_800F9070[2];
 extern s32 D_800F9078[2];
@@ -61,7 +71,7 @@ void func_8003B3DC(struct RideArmorObj* arg0)
     arg0->unk1C.val = arg0->y_pos.val;
 
     D_800F90D8[arg0->state](arg0);
-    arg0->hp &= ~0x80;
+    arg0->hp &= 0x7F;
 }
 
 void func_8003B458(void* arg0, s8 arg1)
@@ -81,6 +91,12 @@ extern u8 D_800F910C[4];
 extern u8 D_800F9110[4];
 extern u8 D_800F9114[4];
 #define RIDE_S8(object, offset) (*(s8*)&RIDE_U8(object, offset))
+
+#ifdef VERSION_DEMO
+#define BIKE_RIDER_ANIM(n) ((n) == 0x4B ? 0x40 : (n)-7)
+#else
+#define BIKE_RIDER_ANIM(n) (n)
+#endif
 extern u8 D_800F905C[12];
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 void func_8003B470(struct RideArmorObj* arg0);
@@ -112,8 +128,8 @@ void func_8003B470(struct RideArmorObj* arg0)
     arg0->state = 1;
     arg0->unk5 = 0;
     arg0->unk6 = 0;
-    arg0->on_screen = 1;
     arg0->active |= 0x40;
+    arg0->on_screen = 1;
     arg0->x_pos.val = g_Player.x_pos.val;
     arg0->y_pos.val = g_Player.y_pos.val;
     arg0->unk15 = PLAYER_FACING_RIGHT;
@@ -125,8 +141,6 @@ void func_8003B470(struct RideArmorObj* arg0)
     if (g_Player.unk2 != 0)
         arg0->unk42 += 2;
     arg0->hp = g_Player.hp;
-    arg0->unk16 = VISUAL_SATURN_LAYER(4);
-    arg0->unk54 = D_800F906C;
     arg0->unk60 = 0;
     arg0->unk61 = 0;
     arg0->unk67 = 0;
@@ -134,6 +148,8 @@ void func_8003B470(struct RideArmorObj* arg0)
     arg0->y_vel.val = 0;
     arg0->unk28 = 0;
     arg0->unk2C = 0;
+    arg0->unk16 = VISUAL_SATURN_LAYER(4);
+    arg0->unk54 = D_800F906C;
     arg0->unk50 = NULL;
     arg0->unk68 = (struct Unk_unk68*)D_800F9068;
     arg0->unk58 = NULL;
@@ -150,7 +166,7 @@ void func_8003B470(struct RideArmorObj* arg0)
     RIDE_U8(arg0, 0x9B) = 1;
     arg0->unk8E.value = 0;
     set_animation(arg0, 0);
-    func_8003B458(arg0, 0x41);
+    func_8003B458(arg0, BIKE_RIDER_ANIM(0x41));
     RIDE_U8(arg0, 0x89) = 0;
     RIDE_U8(arg0, 0x98) = 0;
     RIDE_U8(arg0, 0x9A) = 0;
@@ -174,11 +190,11 @@ void func_8003B694(struct RideArmorObj* self)
     s16 y;
 
     if (self->unk15 == 0) {
-        x = self->x_pos.u.hi + self->unk68->unk0;
+        x = self->x_pos.i.hi + self->unk68->unk0;
     } else {
-        x = self->x_pos.u.hi - self->unk68->unk0;
+        x = self->x_pos.i.hi - self->unk68->unk0;
     }
-    y = self->unk68->unk3 + (self->y_pos.u.hi + self->unk68->unk1) - 15;
+    y = self->unk68->unk3 + (self->y_pos.i.hi + self->unk68->unk1) - 15;
     if (func_8002D724(PLAYER_OBJECT(self), x, y) == 0x24) {
         if ((u16)self->saved_x_vel == 0) {
             self->x_pos.i.hi -= 8;
@@ -241,6 +257,61 @@ void func_8003B7B4(struct RideArmorObj* arg0)
     is_on_screen(BASE_OBJECT(arg0));
 }
 
+#ifdef VERSION_DEMO
+void func_8003B98C(struct PlayerObj* arg0)
+{
+    struct RideArmorObj* bike = (struct RideArmorObj*)arg0;
+    s8 timer;
+
+    if (arg0->charge_state[0] == 0) {
+        return;
+    }
+    if ((u8)arg0->shot_cycle == 0) {
+        return;
+    }
+
+    timer = arg0->invincibility_timer;
+    if (timer == 0) {
+        arg0->shot_cycle = 0;
+        arg0->dash_timer = 0;
+        switch (bike->unk80.bytes.unk82) {
+        case 0:
+            func_8003B458(arg0, 0x3E);
+            break;
+        case 1:
+            func_8003B458(arg0, 0x3C);
+            break;
+        case 2:
+            func_8003B458(arg0, 0x3A);
+            break;
+        }
+        arg0->unk42 &= 0x7FFF;
+        func_8003D254(VISUAL_OBJECT(arg0));
+        return;
+    }
+
+    timer -= 1;
+    arg0->invincibility_timer = timer;
+    if (bike->unk80.bytes.unk82 != bike->unk80.bytes.unk83 || timer == 0x78) {
+        switch (bike->unk80.bytes.unk82) {
+        case 0:
+            func_8003B458(arg0, 0x48);
+            break;
+        case 1:
+            func_8003B458(arg0, 0x47);
+            break;
+        case 2:
+            func_8003B458(arg0, 0x46);
+            break;
+        }
+    }
+    if (arg0->invincibility_timer & 2) {
+        arg0->unk42 |= 0x8000;
+    } else {
+        arg0->unk42 &= 0x7FFF;
+    }
+}
+#else
 void func_8003B98C(struct PlayerObj* arg0)
 {
     s8 timer;
@@ -269,6 +340,7 @@ void func_8003B98C(struct PlayerObj* arg0)
         arg0->unk42 &= 0x7FFF;
     }
 }
+#endif
 
 void func_8003BA24(struct RideArmorObj* arg0)
 {
@@ -299,7 +371,9 @@ void func_8003BA24(struct RideArmorObj* arg0)
 
 void func_8003BAE8(struct RideArmorObj* arg0)
 {
+#ifndef VERSION_DEMO
     STOP_SOUND(5, 0, 2);
+#endif
     ZeroObjectState(OBJECT_HEADER(arg0));
 }
 
@@ -320,7 +394,7 @@ void func_8003BB20(struct RideArmorObj* arg0)
         arg0->unk15 = PLAYER_FACING_RIGHT;
         func_8001540C(5, SATURN_SOUND(0, 50), NULL);
         set_animation(arg0, 6);
-        func_8003B458(arg0, 0x47);
+        func_8003B458(arg0, BIKE_RIDER_ANIM(0x47));
         {
             struct WeaponObj* weapon = find_free_weapon_obj();
             u8 unk16;
@@ -362,7 +436,7 @@ void func_8003BB20(struct RideArmorObj* arg0)
             arg0->x_vel.val = 0;
             arg0->unk28 = 0;
             set_animation(arg0, 7);
-            func_8003B458(arg0, 0x4B);
+            func_8003B458(arg0, BIKE_RIDER_ANIM(0x4B));
         }
         break;
     case 3:
@@ -409,7 +483,7 @@ void func_8003BE28(struct RideArmorObj* self)
     }
     self->unk67 = 1;
     func_8003C6EC(self, 4);
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
     if ((self->unk70 & 5) != 5) {
 #else
     if ((*(u32*)&self->unk70 & 5) != 5) {
@@ -418,7 +492,7 @@ void func_8003BE28(struct RideArmorObj* self)
         if (self->y_vel.val < 0) {
             self->unk5 = 4;
             self->unk6 = 0;
-        } else if (!((u16)self->unk8A & 0x80)) {
+        } else if (!((u16)self->unk8A & PLAYER_INPUT_JUMP)) {
             self->unk5 = 4;
             self->unk6 = 0;
             self->y_vel.val = 0;
@@ -461,15 +535,15 @@ void func_8003BF1C(struct RideArmorObj* arg0)
             switch (arg0->unk80.bytes.unk82) {
             case 0:
                 set_animation(arg0, 5);
-                func_8003B458(arg0, 0x46);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x46));
                 break;
             case 1:
                 set_animation(arg0, 4);
-                func_8003B458(arg0, 0x44);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x44));
                 break;
             case 2:
                 set_animation(arg0, 3);
-                func_8003B458(arg0, 0x42);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x42));
                 break;
             }
         }
@@ -541,7 +615,7 @@ void func_8003C08C(struct RideArmorObj* arg0)
             func_8001540C(5, SATURN_SOUND(0, 50), NULL);
         } else if (arg0->unk70 & 8) {
             func_8003C9A4(arg0);
-            if (arg0->unk8C.value & 0x80) {
+            if (arg0->unk8C.value & PLAYER_INPUT_JUMP) {
                 arg0->y_vel.val = 0x68000;
                 arg0->unk6 = 2;
                 arg0->unk2C = 0x5000;
@@ -567,15 +641,15 @@ void func_8003C08C(struct RideArmorObj* arg0)
             switch (arg0->unk80.bytes.unk82) {
             case 0:
                 set_animation(arg0, 5);
-                func_8003B458(arg0, 0x46);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x46));
                 break;
             case 1:
                 set_animation(arg0, 4);
-                func_8003B458(arg0, 0x44);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x44));
                 break;
             case 2:
                 set_animation(arg0, 3);
-                func_8003B458(arg0, 0x42);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x42));
                 break;
             }
         }
@@ -681,7 +755,7 @@ void func_8003C08C(struct RideArmorObj* arg0)
             func_8001540C(5, SATURN_SOUND(0, 50), NULL);
         } else if (arg0->unk70 & 8) {
             func_8003C9A4(arg0);
-            if (arg0->unk8C.value & 0x80) {
+            if (arg0->unk8C.value & PLAYER_INPUT_JUMP) {
                 arg0->unk6 = 2;
                 arg0->y_vel.val = 0x68000;
                 arg0->unk2C = 0x5000;
@@ -707,15 +781,15 @@ void func_8003C08C(struct RideArmorObj* arg0)
             switch (arg0->unk80.bytes.unk82) {
             case 0:
                 set_animation(arg0, 5);
-                func_8003B458(arg0, 0x46);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x46));
                 break;
             case 1:
                 set_animation(arg0, 4);
-                func_8003B458(arg0, 0x44);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x44));
                 break;
             case 2:
                 set_animation(arg0, 3);
-                func_8003B458(arg0, 0x42);
+                func_8003B458(arg0, BIKE_RIDER_ANIM(0x42));
                 break;
             }
         }
@@ -788,7 +862,9 @@ void func_8003C584(struct RideArmorObj* arg0)
             arg0->unk28 = 0;
         }
     }
+#ifndef VERSION_DEMO
     animate_object(ANIMATED_OBJECT(arg0));
+#endif
 }
 
 void func_8003C624(struct RideArmorObj* arg0)
@@ -809,55 +885,55 @@ void func_8003C6EC(struct RideArmorObj* arg0, u8 kind)
     struct VisualObj* visual;
     u8 resource;
 
-    if (!(arg0->unk8C.value & 0x30) || RIDE_U8(arg0, 0x89) != 0 || RIDE_U8(arg0, 0x98) >= 3)
-        return;
-    weapon = find_free_weapon_obj();
-    if (weapon != NULL) {
-        weapon->active = 0x41;
-        weapon->id = 0x38;
-        weapon->unk2 = kind;
-        weapon->x_pos.i.hi = arg0->x_pos.i.hi;
-        weapon->y_pos.i.hi = arg0->y_pos.i.hi;
-        weapon->animation_table = (u32**)arg0->animation_table;
-        weapon->unk40 = arg0->unk40;
-        weapon->unk3C = arg0->unk3C;
-        resource = func_8002938C(0x82);
-        weapon->unk42 = VISUAL_STAGE_PALETTE(resource);
-        weapon->unk16 = arg0->unk16;
-        weapon->owner = (struct PlayerObj*)arg0;
-        weapon->unk15 = arg0->unk15;
+    if ((arg0->unk8C.value & 0x30) && RIDE_U8(arg0, 0x89) == 0 && RIDE_U8(arg0, 0x98) < 3) {
+        weapon = find_free_weapon_obj();
+        if (weapon != NULL) {
+            weapon->active = 0x41;
+            weapon->id = 0x38;
+            weapon->unk2 = kind;
+            weapon->x_pos.i.hi = arg0->x_pos.i.hi;
+            weapon->y_pos.i.hi = arg0->y_pos.i.hi;
+            weapon->animation_table = (u32**)arg0->animation_table;
+            weapon->unk40 = arg0->unk40;
+            weapon->unk3C = arg0->unk3C;
+            resource = func_8002938C(0x82);
+            weapon->unk42 = VISUAL_STAGE_PALETTE(resource);
+            weapon->unk16 = arg0->unk16;
+            weapon->owner = (struct PlayerObj*)arg0;
+            weapon->unk15 = arg0->unk15;
+        }
+        visual = find_free_visual_obj();
+        if (visual != NULL) {
+            visual->active = 0x41;
+            visual->id = 0xC;
+            visual->unk2 = kind;
+            visual->x_pos.i.hi = arg0->x_pos.i.hi;
+            visual->y_pos.i.hi = arg0->y_pos.i.hi;
+            visual->animation_table = (u32**)arg0->animation_table;
+            visual->unk40 = arg0->unk40;
+            visual->unk3C = arg0->unk3C;
+            resource = func_8002938C(0x82);
+            visual->unk42 = VISUAL_STAGE_PALETTE(resource);
+            visual->unk16 = arg0->unk16;
+            visual->unk50 = (struct PlayerObj*)arg0;
+            visual->unk15 = arg0->unk15;
+        }
+        RIDE_U8(arg0, 0x89) = 4;
+        RIDE_U8(arg0, 0x98) += 1;
+        func_8001540C(5, SATURN_SOUND(2, 52), arg0);
     }
-    visual = find_free_visual_obj();
-    if (visual != NULL) {
-        visual->active = 0x41;
-        visual->id = 0xC;
-        visual->unk2 = kind;
-        visual->x_pos.i.hi = arg0->x_pos.i.hi;
-        visual->y_pos.i.hi = arg0->y_pos.i.hi;
-        visual->animation_table = (u32**)arg0->animation_table;
-        visual->unk40 = arg0->unk40;
-        visual->unk3C = arg0->unk3C;
-        resource = func_8002938C(0x82);
-        visual->unk42 = VISUAL_STAGE_PALETTE(resource);
-        visual->unk16 = arg0->unk16;
-        visual->unk50 = (struct PlayerObj*)arg0;
-        visual->unk15 = arg0->unk15;
-    }
-    RIDE_U8(arg0, 0x89) = 4;
-    RIDE_U8(arg0, 0x98) += 1;
-    func_8001540C(5, SATURN_SOUND(2, 52), arg0);
 }
 
 void func_8003C8F4(struct RideArmorObj* arg0)
 {
-    if (arg0->unk8C.value & 0x80) {
+    if (arg0->unk8C.value & PLAYER_INPUT_JUMP) {
         if (arg0->unk7D == 0) {
             arg0->unk5 = 2;
             arg0->unk6 = 0;
             arg0->y_vel.val = FIXED(6.5);
             arg0->unk80.bytes.unk80 |= 2;
             set_animation(arg0, 2);
-            func_8003B458(arg0, 0x45);
+            func_8003B458(arg0, BIKE_RIDER_ANIM(0x45));
         } else {
             arg0->unk6 = 0;
             arg0->unk80.bytes.unk80 |= 2;
@@ -878,6 +954,17 @@ void func_8003C9A4(struct RideArmorObj* arg0)
     }
 }
 
+#ifdef VERSION_DEMO
+#define BIKE_SET_LEAN(arg0, n, damaged)          \
+    if (RIDE_U8(arg0, 0x9A) == 0) {              \
+        func_8003B458(arg0, BIKE_RIDER_ANIM(n)); \
+    } else {                                     \
+        func_8003B458(arg0, damaged);            \
+    }
+#else
+#define BIKE_SET_LEAN(arg0, n, damaged) func_8003B458(arg0, n)
+#endif
+
 void func_8003CA44(struct RideArmorObj* arg0)
 {
     if (arg0->unk80.bytes.unk82 == arg0->unk80.bytes.unk83 || (arg0->unk80.bytes.unk80 & 2))
@@ -885,15 +972,15 @@ void func_8003CA44(struct RideArmorObj* arg0)
     switch (arg0->unk80.bytes.unk82) {
     case 0:
         set_animation(arg0, 2);
-        func_8003B458(arg0, 0x45);
+        BIKE_SET_LEAN(arg0, 0x45, 0x48);
         break;
     case 1:
         set_animation(arg0, 1);
-        func_8003B458(arg0, 0x43);
+        BIKE_SET_LEAN(arg0, 0x43, 0x47);
         break;
     case 2:
         set_animation(arg0, 0);
-        func_8003B458(arg0, 0x41);
+        BIKE_SET_LEAN(arg0, 0x41, 0x46);
         break;
     }
 }
@@ -970,12 +1057,16 @@ void func_8003CBCC(struct RideArmorObj* arg0)
 
 void func_8003CCBC(struct RideArmorObj* arg0)
 {
-    if (arg0->unk7D == 0 && (arg0->unk7E != 0 || (arg0->unk8C.value & 0x100) != 0)) {
+    if (arg0->unk7D == 0 && (arg0->unk7E != 0 || (arg0->unk8C.value & PLAYER_INPUT_DASH) != 0)) {
         arg0->unk7D = 1;
         arg0->unk5 = 5;
         arg0->unk6 = 0;
-        arg0->unk80.bytes.unk80 |= 3;
+        arg0->unk80.bytes.unk80 |= 1;
+        arg0->unk80.bytes.unk80 |= 2;
         arg0->unk98.bytes.high = 0;
+#ifdef MMX4_GAMECUBE
+        stop_sound(5, 0);
+#endif
         func_8001540C(5, SATURN_SOUND(1, 51), NULL);
     }
 }
@@ -1207,11 +1298,11 @@ union AnimationStep D_800F8E0C[] = {
 
 union AnimationStep D_800F8E28[] = { { 2, 0, 1, 0x00 }, { 2, 0, 1, 0x02 }, { 8, 0, 1, 0x03 }, { 1, 0, 0, 0x03 } };
 
-union AnimationStep D_800F8E38[] = { { 8, 0, 1, 0x03 }, { 2, 0, 1, 0x02 }, { 2, 0, 1, 0x00 }, { 1, 0, 0, 0x00 } };
+union AnimationStep D_800F8E38[] = { { DEMO_ALT(8, 2), 0, 1, 0x03 }, { 2, 0, 1, 0x02 }, { DEMO_ALT(2, 8), 0, 1, 0x00 }, { 1, 0, 0, 0x00 } };
 
 union AnimationStep D_800F8E48[] = { { 2, 0, 1, 0x01 }, { 2, 0, 1, 0x00 }, { 2, 0, 1, 0x02 }, { 8, 0, 1, 0x03 }, { 1, 0, 0, 0x03 } };
 
-union AnimationStep D_800F8E5C[] = { { 8, 0, 1, 0x03 }, { 2, 0, 1, 0x02 }, { 2, 0, 1, 0x00 }, { 2, 0, 1, 0x01 }, { 1, 0, 0, 0x01 } };
+union AnimationStep D_800F8E5C[] = { { DEMO_ALT(8, 2), 0, 1, 0x03 }, { 2, 0, 1, 0x02 }, { 2, 0, 1, 0x00 }, { DEMO_ALT(2, 8), 0, 1, 0x01 }, { 1, 0, 0, 0x01 } };
 
 union AnimationStep D_800F8E70[] = { { 2, 0, 1, 0x02 }, { 8, 0, 1, 0x03 }, { 1, 0, 0, 0x03 } };
 
@@ -1441,22 +1532,22 @@ u8 D_800F9108[4] = {
 };
 
 u8 D_800F910C[4] = {
-    0x49,
-    0x48,
-    0x47,
+    DEMO_ALT(0x49, 0x42),
+    DEMO_ALT(0x48, 0x41),
+    DEMO_ALT(0x47, 0x40),
     0x00,
 };
 
 u8 D_800F9110[4] = {
-    0x4C,
-    0x4B,
-    0x4A,
+    DEMO_ALT(0x4C, 0x45),
+    DEMO_ALT(0x4B, 0x44),
+    DEMO_ALT(0x4A, 0x43),
     0x00,
 };
 
 u8 D_800F9114[4] = {
-    0x45,
-    0x43,
-    0x41,
+    DEMO_ALT(0x45, 0x3E),
+    DEMO_ALT(0x43, 0x3C),
+    DEMO_ALT(0x41, 0x3A),
     0x00,
 };

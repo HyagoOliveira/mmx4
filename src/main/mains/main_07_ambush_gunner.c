@@ -6,7 +6,7 @@
 #include "main/objects.h"
 #include "main/1E1BC.h"
 #include "main/55C4.h"
-#include "main/items/item_01_stage_block.h"
+#include "main/items/item_02_pickup.h"
 #include "main/misc/misc_02_rubble.h"
 #include "main/object_motion.h"
 #include "main/collision_bounds.h"
@@ -101,6 +101,11 @@ void func_80047404(struct MainObj* arg0)
     arg0->unk6 = 0;
 }
 #else
+#ifdef VERSION_DEMO
+#define AMBUSH_GUNNER_SET_UNK7A(obj)
+#else
+#define AMBUSH_GUNNER_SET_UNK7A(obj) (obj)->unk7A = 1
+#endif
 void func_80047404(struct MainObj* arg0)
 {
     arg0->hp = 6;
@@ -108,18 +113,18 @@ void func_80047404(struct MainObj* arg0)
     arg0->invincibility_timer = 0;
     arg0->collision_data = D_80106670;
     arg0->bg_offset = g_Player.bg_offset;
-    arg0->unk16 = 6;
-    arg0->animation_table = (const u8* const*)ambush_gunner_animations;
+    arg0->unk18.val = arg0->x_pos.val;
+    arg0->unk1C.val = arg0->y_pos.val;
     arg0->x_speed = 0;
     arg0->y_speed = 0;
     arg0->x_accel = 0;
     arg0->gravity = 0;
     arg0->air_state = 0;
+    arg0->animation_table = (const u8* const*)ambush_gunner_animations;
+    arg0->unk16 = 6;
     arg0->terrain_box = NULL;
     arg0->hurt_box = &ambush_gunner_terrain_box;
     arg0->attack_box = &ambush_gunner_terrain_box;
-    arg0->unk18.val = arg0->x_pos.val;
-    arg0->unk1C.val = arg0->y_pos.val;
     switch ((s8)arg0->unk2) {
     case 1:
         set_animation(arg0, 1);
@@ -129,7 +134,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 2:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = 0;
@@ -139,7 +144,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 3:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = PLAYER_FACING_RIGHT;
@@ -149,7 +154,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 4:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = 0;
@@ -159,7 +164,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 5:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = PLAYER_FACING_RIGHT;
@@ -169,7 +174,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 6:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = 0;
@@ -179,7 +184,7 @@ void func_80047404(struct MainObj* arg0)
         break;
     case 7:
         set_animation(arg0, 0);
-        arg0->unk7A = 1;
+        AMBUSH_GUNNER_SET_UNK7A(arg0);
         arg0->unk5 = 2;
         arg0->invincibility_timer = 1;
         arg0->unk15 = PLAYER_FACING_RIGHT;
@@ -214,9 +219,9 @@ void ambush_gunner_main(struct MainObj* self)
             spawn_explosion(BASE_OBJECT(self));
             spawn_debris(5, ambush_gunner_debris, self);
             if (!(self->unk2 & 1)) {
-                func_800BF638(BASE_OBJECT(self), 0xE, self->x_pos.u.hi - 0xA, self->y_pos.i.hi);
+                func_800BF638(BASE_OBJECT(self), 0xE, self->x_pos.i.hi - 0xA, self->y_pos.i.hi);
             } else {
-                func_800BF638(BASE_OBJECT(self), 0xE, self->x_pos.u.hi + 0xA, self->y_pos.i.hi);
+                func_800BF638(BASE_OBJECT(self), 0xE, self->x_pos.i.hi + 0xA, self->y_pos.i.hi);
             }
             self->state = 2;
             return;
@@ -233,7 +238,9 @@ void ambush_gunner_main(struct MainObj* self)
 
 void ambush_gunner_despawn(struct MainObj* self)
 {
+#ifndef VERSION_DEMO
     self->unk7A = 0;
+#endif
     self->ext.main_7.unk80 = 0;
     self->ext.main_7.unk84 = 0;
     self->ext.main_7.saved_x_velocity = 0;
@@ -260,11 +267,15 @@ void func_80047818(struct MainObj* arg0)
     if ((arg0->unk15 == 0 && arg0->x_pos.val > g_Player.x_pos.val) || (arg0->unk15 != 0 && arg0->x_pos.val < g_Player.x_pos.val)) {
         if (arg0->ext.main_7.unk80 == 0) {
             if (ABS(arg0->x_pos.i.hi, g_Player.x_pos.i.hi) < (s16)arg0->ext.main_7.unk84) {
+#ifndef VERSION_DEMO
                 arg0->unk7A = 0;
+#endif
                 arg0->unk6 = 1;
             }
         } else if (ABS(arg0->x_pos.i.hi, g_Player.x_pos.i.hi) > (s16)arg0->ext.main_7.unk84) {
+#ifndef VERSION_DEMO
             arg0->unk7A = 0;
+#endif
             arg0->unk6 = 1;
         }
     }

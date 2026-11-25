@@ -22,7 +22,7 @@
 #include "saturn/menu.h"
 #endif
 
-extern s16 D_800F21DC[];
+extern u16 D_800F21DC[];
 extern u8 D_800F21F8[];
 
 // D_800F2294
@@ -53,10 +53,17 @@ void func_8001E6BC(struct GameInfo* arg0);
 extern union TitleScratch D_80169498;
 void func_80016F0C();
 extern u8 D_80171EA9;
+#ifdef VERSION_DEMO
+extern s32 D_8013A4F4_demo;
+#endif
 void func_800153D4(u8 arg0);
 
 #ifdef VERSION_JP
+#ifdef VERSION_DEMO
+u8 D_800F21F8[8] = { 0x10, 0x11, 0x14, 0x17, 0x18, 0x19, 0x00, 0x00 };
+#else
 u8 D_800F21F8[8] = { 0x00, 0x01, 0x04, 0x07, 0x09, 0x08, 0x00, 0x00 };
+#endif
 
 s16 D_800F2204[36] = {
     -176,
@@ -159,7 +166,7 @@ void (*D_800F2294[15])(struct GameInfo*) = {
 
 #else
 #ifdef MMX4_SATURN
-s16 D_800F21DC[14] = {
+u16 D_800F21DC[14] = {
     0x8442,
     0x8C84,
     0x94C6,
@@ -267,7 +274,7 @@ s16 D_800F224C[36] = {
     81,
 };
 #else
-s16 D_800F21DC[14] = {
+u16 D_800F21DC[14] = {
     0x8442,
     0x8C84,
     0x94C6,
@@ -517,7 +524,11 @@ void func_8001DCCC(struct GameInfo* arg0)
     func_80028BF0();
     func_8002771C();
     func_80023CE0();
-    need_palette_load |= 1;
+    REQUEST_PALETTE_LOAD();
+#ifdef VERSION_DEMO
+    background_objects[1].x_pos.i.hi = 0;
+    background_objects[1].unk4C = 1;
+#endif
 #ifdef MMX4_SATURN
     saturn_display_mode = 2;
 #else
@@ -534,8 +545,10 @@ void func_8001DCCC(struct GameInfo* arg0)
     D_80139690 = OBJECT_HEADER(func_8001DC7C(0xB, 0xA));
 #endif
     func_800129A4(8);
-    arg0->unk4 = 0;
     arg0->mode++;
+#ifndef VERSION_DEMO
+    arg0->unk4 = 0;
+#endif
 }
 
 void func_8001DDB0(struct GameInfo* arg0)
@@ -550,32 +563,34 @@ void func_8001DDB0(struct GameInfo* arg0)
         arg0->unk4 = 0xA;
     }
 #else
+#ifndef VERSION_DEMO
     if (arg0->unk4 == 0) {
         func_8001663C(MUSIC_TITLE, 0x7F);
         arg0->unk4 = 1;
     }
-    if (D_80173C84 == 2) {
+#endif
+    if (DEMO_ALT(D_80173C84 == 2, 1)) {
         arg0->unkD = 1;
 #ifdef VERSION_JP
         D_80139690 = OBJECT_HEADER(func_8001DC7C(0xB, 2));
         func_8001DC7C(0xB, 3);
         func_8001DC7C(0xB, 4);
         arg0->unk4 = 0x3C;
+        arg0->mode++;
 #else
+        arg0->mode++;
         arg0->unk4 = 0xA;
 #endif
-        arg0->mode++;
     }
 #endif
 }
 
 void func_8001DE20(struct GameInfo* arg0)
 {
-    arg0->unk4--;
-    if (arg0->unk4 == 0) {
+    if (--arg0->unk4 == 0) {
 #ifdef VERSION_JP
         arg0->unkA = 1;
-        arg0->unk4 = 0x46;
+        arg0->unk4 = DEMO_ALT(0x46, 0x28);
 #else
         arg0->unkA = 2;
 #endif
@@ -588,14 +603,15 @@ extern s16 D_800F2204[];
 #ifdef VERSION_JP
 void func_8001DF24_jp(struct GameInfo* arg0)
 {
-    arg0->unk4--;
-    if (arg0->unk4 == 0) {
+    if (--arg0->unk4 == 0) {
         arg0->unkA = 2;
         arg0->mode++;
     }
+#ifndef VERSION_DEMO
     if (background_objects[1].x_pos.i.hi >= 10) {
         background_objects[1].x_pos.i.hi -= 9;
     }
+#endif
 }
 #endif
 void func_8001DE54(struct GameInfo* arg0)
@@ -603,45 +619,50 @@ void func_8001DE54(struct GameInfo* arg0)
     s16 var_a2;
     s16* var_a1;
     s32* var_a0;
-    struct MiscObj* temp_v0;
+    struct MiscObj* misc;
 #ifdef VERSION_JP
     struct MiscObj* first;
 #else
     struct MiscUnk50_2* saved_reg_s2;
 #endif
 
+#ifndef VERSION_DEMO
     background_objects[1].x_pos.i.hi = 0x400;
     background_objects[1].unk4C = 1;
+#endif
     if (D_80139690->state == 2) {
 #ifdef VERSION_JP
         first = find_free_misc_obj();
         if (first != NULL) {
+#ifdef VERSION_DEMO
+            first->active = 1;
+            first->id = 0x13;
+#else
             first->id = 0x13;
             first->active = 1;
-            first->unk2 = 0xA;
+#endif
+            first->unk2 = DEMO_ALT(0xA, 0x1A);
         }
 #endif
-        temp_v0 = find_free_misc_obj();
-        if (temp_v0 != 0) {
-            temp_v0->active = 1;
-            temp_v0->id = 0x1D;
-            temp_v0->unk2 = 0x20;
+        misc = find_free_misc_obj();
+        if (misc != 0) {
+            misc->active = 1;
+            misc->id = 0x1D;
+            misc->unk2 = 0x20;
 #ifdef VERSION_JP
-            temp_v0->ext.unk.unk50 = (struct MiscUnk50_2*)first;
+            misc->ext.unk.unk50 = (struct MiscUnk50_2*)first;
 #else
-            temp_v0->ext.unk.unk50 = saved_reg_s2;
+            misc->ext.unk.unk50 = saved_reg_s2;
 #endif
-            D_80139690 = OBJECT_HEADER(temp_v0);
+            D_80139690 = OBJECT_HEADER(misc);
         }
         var_a1 = D_800F2204;
         var_a0 = D_80169498.sector;
-        var_a2 = 0;
-        do {
+        for (var_a2 = 0; var_a2 < 0x24; var_a2++) {
             *var_a0 = *var_a1 * 0x10000;
             var_a0++;
             var_a1 += 1;
-            var_a2 += 1;
-        } while (var_a2 < 0x24);
+        }
         D_80169498.title.settled = 1;
 #ifdef MMX4_SATURN
         saturn_display_mode = 3;
@@ -679,14 +700,14 @@ void func_8001DF7C(struct GameInfo* arg0)
             obj->unk2 = 0xC;
             D_80139690 = OBJECT_HEADER(obj);
         }
+        arg0->mode++;
 #ifdef VERSION_EU
         arg0->unk4 = 0;
 #else
         arg0->unk4 = 0xA;
 #endif
-        arg0->mode++;
     }
-#ifdef VERSION_JP
+#if defined(VERSION_JP) && !defined(VERSION_DEMO)
     background_objects[0].x_pos.i.hi += 6;
 #endif
 }
@@ -724,7 +745,7 @@ void func_8001E000(struct GameInfo* arg0)
         D_8013E188[1] = 0;
         D_8013E188[2] = 0;
         D_8013E188[3] = 0;
-        need_palette_load |= 1;
+        REQUEST_PALETTE_LOAD();
         func_8001DC7C(0xC, 0);
         func_8001DC7C(0xC, 1);
         func_8001DC7C(0xC, 2);
@@ -740,22 +761,22 @@ void func_8001E000(struct GameInfo* arg0)
         arg0->unkA = 0;
         arg0->mode++;
     }
-#ifdef VERSION_JP
+#if defined(VERSION_JP) && !defined(VERSION_DEMO)
     background_objects[0].x_pos.i.hi += 11;
 #endif
 }
 
 void func_8001E130(struct GameInfo* game)
 {
-    s32 i;
-    f32* x;
-    f32* reset;
-    struct TitlePointState* title;
-    s16* target;
-    s32 dx;
-    s32 dy;
-    u8 angle;
     struct MiscObj* effect;
+    u8 angle;
+    s32 dy;
+    s32 dx;
+    s16* target;
+    struct TitlePointState* title;
+    f32* reset;
+    f32* x;
+    s32 i;
 
     title = &D_80169498.title;
     x = title->coordinates;
@@ -793,6 +814,16 @@ void func_8001E130(struct GameInfo* game)
 
         game->mode++;
 
+#ifdef VERSION_DEMO
+        game->unk4 = 0x1E;
+        game->mode++;
+        effect = find_free_misc_obj();
+        if (effect != NULL) {
+            effect->active = 1;
+            effect->id = 0x13;
+            effect->unk2 = 0x10;
+        }
+#else
 #ifdef VERSION_JP
         effect = find_free_misc_obj();
         if (effect != NULL) {
@@ -827,6 +858,7 @@ void func_8001E130(struct GameInfo* game)
             effect->unk2 = 0x21;
         }
         D_80139690 = OBJECT_HEADER(effect);
+#endif
     }
 }
 
@@ -870,8 +902,8 @@ void func_8001E4F0(struct GameInfo* arg0)
 {
     if (--arg0->unk4 == 0) {
         reset_objects();
-        arg0->unk4 = 1;
         arg0->mode++;
+        arg0->unk4 = 1;
     }
 }
 #endif
@@ -881,15 +913,24 @@ void func_8001E54C(struct GameInfo* /* D_80173C70 */ arg0)
     struct BaseObj* obj;
 
     if (--arg0->unk4 == 0) {
+#ifdef VERSION_DEMO
+        reset_objects();
+        obj = (struct BaseObj*)find_free_misc_obj();
+        if (obj != NULL) {
+            obj->active = 1;
+            obj->id = 0x13;
+            obj->unk2 = 0x10;
+        }
+#endif
         obj = (struct BaseObj*)find_free_effect_obj();
         if (obj != NULL) {
             obj->active = 1;
             obj->id = 2;
             obj->unk2 = 0xD;
         }
-        for (var_s0 = 0;
+        for (var_s0 = DEMO_ALT(0, 1);
 #ifdef VERSION_JP
-             var_s0 < 5;
+             var_s0 < DEMO_ALT(5, 6);
 #elif defined(MMX4_WIN32)
              var_s0 < 8;
 #else
@@ -920,8 +961,7 @@ void func_8001E54C(struct GameInfo* /* D_80173C70 */ arg0)
 
 void func_8001E638(struct GameInfo* arg0)
 {
-    arg0->unk4--;
-    if (arg0->unk4 == 0) {
+    if (--arg0->unk4 == 0) {
         func_800129F0(8);
         arg0->mode++;
     }
@@ -942,8 +982,8 @@ void func_8001E6BC(struct GameInfo* arg0)
 #ifdef MMX4_SATURN
         saturn_stage_commit_video();
 #endif
-        arg0->mode = 0;
         arg0->unk0++;
+        arg0->mode = 0;
     }
 }
 
@@ -977,25 +1017,50 @@ void func_8001E708(struct GameInfo* arg0)
 #else
 void func_8001E708(struct GameInfo* arg0)
 {
+#ifdef VERSION_DEMO
+    struct BaseObj* obj;
+#else
     D_800F2294[arg0->mode](arg0);
+#endif
     if (controller_input.pressed & PADstart && arg0->unkD == 1) {
+#ifndef VERSION_DEMO
         func_80016F0C();
         func_8001540C(0, 0x22, 0);
+#endif
         arg0->mode = 0xC;
         g_FilterAmountR = g_FilterAmountG = g_FilterAmountB = 0;
         D_8013E188[0] = 0;
         D_8013E188[1] = 0;
         D_8013E188[2] = 0;
         D_8013E188[3] = 0;
+#ifdef VERSION_DEMO
+        need_palette_load = 1;
+#else
+        need_palette_load |= 1;
+#endif
         background_objects[0].unk3 = 0;
         background_objects[1].unk3 = 1;
         background_objects[2].unk3 = 0;
-        need_palette_load |= 1;
         reset_objects();
+#ifdef VERSION_DEMO
+        obj = (struct BaseObj*)find_free_misc_obj();
+        if (obj != NULL) {
+            obj->active = 1;
+            obj->id = 0x13;
+            obj->unk2 = 0x10;
+        }
+        background_objects[1].x_pos.i.hi = 0;
+        background_objects[1].unk4C = 1;
+        arg0->unk4 = 2;
+#else
         background_objects[1].x_pos.i.hi = 0x400;
         background_objects[1].unk4C = 1;
         arg0->unk4 = 1;
+#endif
     }
+#ifdef VERSION_DEMO
+    D_800F2294[arg0->mode](arg0);
+#endif
     update_effect_objects();
     update_misc_objects();
     update_quad_objects();
@@ -1004,11 +1069,25 @@ void func_8001E708(struct GameInfo* arg0)
 }
 #endif
 
+#ifdef VERSION_DEMO
+u8 func_8001E850(u8* arg0)
+#else
 u8 func_8001E850(u8* arg0, u8 arg1)
+#endif
 {
     s8 counter = 0;
     struct MiscObj* misc;
 
+#ifdef VERSION_DEMO
+    misc = find_free_misc_obj();
+    if (misc != NULL) {
+        misc->active = 1;
+        misc->id = 0x20;
+        misc->ext.pointer.unk50 = arg0;
+        misc->x_pos.i.hi = arg0[0];
+        arg0++;
+    }
+#else
     if (arg0[0] != 0) {
         misc = find_free_misc_obj();
         if (misc != NULL) {
@@ -1022,6 +1101,7 @@ u8 func_8001E850(u8* arg0, u8 arg1)
     } else {
         arg0++;
     }
+#endif
 
     while (arg0[0] != 0xFF) {
         misc = find_free_misc_obj();
@@ -1034,9 +1114,12 @@ u8 func_8001E850(u8* arg0, u8 arg1)
 #ifdef VERSION_JP
             misc->y_pos.i.hi = arg0[0];
 #else
-            misc->y_pos.i.hi = arg0[0] & 0xF0;
+            misc->y_pos.i.hi = arg0[0];
+            misc->y_pos.i.hi &= 0xF0;
 #endif
+#ifndef VERSION_DEMO
             misc->ext.title_logo.palette_shift_value = arg1;
+#endif
             arg0++;
         }
     }
@@ -1051,6 +1134,10 @@ void func_8001E954(struct GameInfo* arg0)
 }
 
 #ifdef MMX4_SATURN
+#ifdef MMX4_GAMECUBE
+void fn_4_DABD0(s32 mode);
+#endif
+
 void func_8001E980(u8 arg0)
 {
     s32 i;
@@ -1208,11 +1295,11 @@ void func_8001ED44(struct GameInfo* arg0)
             if (main_bss_state.transition.selection != 1) {
                 func_800129F0(8);
             }
-            arg0->mode = (u8)arg0->mode + 1;
+            arg0->mode++;
         } else if (saturn_pad_pressed & SATURN_PAD_CANCEL) {
             func_800129F0(8);
             main_bss_state.transition.selection = 2;
-            arg0->mode = (u8)arg0->mode + 1;
+            arg0->mode++;
         } else {
             func_800204CC((s8*)&main_bss_state.transition.selection, arg0->unk8);
         }
@@ -1304,21 +1391,30 @@ void func_8001F0BC(struct GameInfo* arg0)
     func_80023D68();
 }
 #else
+#ifndef VERSION_DEMO
 void func_8001E980(u8 arg0)
 {
     if (arg0 == 0) {
         LoadImage(&D_800F2388,
             (u_long*)(WINDOW_ARCHIVE_DATA + ((s32*)WINDOW_ARCHIVE_DATA)[1]));
+#ifdef MMX4_GAMECUBE
+        fn_4_DABD0(1);
+#endif
     } else {
         need_palette_load |= 1;
     }
 }
+#endif
 
 void func_8001E9E0(struct GameInfo* arg0)
 {
     struct MiscObj* obj;
 
+#ifdef VERSION_DEMO
+    func_8001D134();
+#else
     reset_objects();
+#endif
     obj = find_free_misc_obj();
     if (obj != 0) {
         obj->active = 1;
@@ -1327,11 +1423,17 @@ void func_8001E9E0(struct GameInfo* arg0)
         obj->y_pos.i.hi = 0x80;
     }
     main_bss_state.transition.selection = 0;
+#ifdef VERSION_DEMO
+    arg0->unk8 = func_8001E850(D_800F22F0) & 0xFF;
+#else
     arg0->unk8 = func_8001E850(D_800F22F0, 0) & 0xFF;
+#endif
     background_objects[0].unk3 = 0;
     background_objects[1].unk3 = 0;
     background_objects[2].unk3 = 0;
+#ifndef VERSION_DEMO
     func_8001E980(0);
+#endif
     func_800129A4(8);
     arg0->mode++;
 }
@@ -1339,24 +1441,32 @@ void func_8001E9E0(struct GameInfo* arg0)
 void func_8001EA90(struct GameInfo* arg0)
 {
     if (main_bss_state.transition.active == 0) {
-        if (controller_input.pressed & (PADstart | PAD_SELECTION_ALT)) {
+        if (controller_input.pressed & DEMO_ALT((PADstart | PAD_SELECTION_ALT), PADstart)) {
             func_800129F0(8);
             main_bss_state.transition.selection = 2;
             arg0->mode++;
             return;
         }
         if ((controller_input.pressed & PAD_CONFIRM) && main_bss_state.transition.selection != 1) {
+#ifndef VERSION_DEMO
             func_8001540C(0, 0x22, 0);
+#endif
             func_800129F0(8);
             arg0->mode++;
             return;
         }
         func_800204CC((s8*)&main_bss_state.transition.selection, arg0->unk8);
+#ifdef VERSION_DEMO
+        if ((controller_input.pressed & (PADLleft | PADLright)) && main_bss_state.transition.selection == 1) {
+            D_8013A4F4_demo ^= 1;
+        }
+#else
         if ((controller_input.pressed & (PADLleft | PADLright | PAD_CONFIRM)) && main_bss_state.transition.selection == 1) {
             func_8001540C(0, 0xC, 0);
             D_80171EA9 ^= 1;
             func_800153D4(D_80171EA9);
         }
+#endif
     }
 }
 
@@ -1365,6 +1475,13 @@ void func_8001EBA0(struct GameInfo* info)
     if (main_bss_state.transition.active != 0) {
         return;
     }
+#ifdef VERSION_DEMO
+    background_objects[1].unk3 = 1;
+    background_objects[2].unk3 = 1;
+    background_objects[2].unk4C = 1;
+    background_objects[0].unk3 = 0;
+    background_objects[2].x_pos.i.hi = 0;
+#else
     if (main_bss_state.transition.selection == 0) {
         info->unk0 = 0xA;
         info->mode = 0;
@@ -1380,6 +1497,7 @@ void func_8001EBA0(struct GameInfo* info)
     background_objects[2].unk4C = 1;
     background_objects[1].unk3 = 1;
     background_objects[2].unk3 = 1;
+#endif
     info->unk0 = 6;
     info->mode = 0;
     info->unk2 = 0;
@@ -1390,12 +1508,18 @@ void func_8001EC34(struct GameInfo* arg0)
     D_800F2390[arg0->mode](arg0);
     update_misc_objects();
     func_8002A484();
+#ifndef VERSION_DEMO
     func_80016124();
+#endif
     func_80023D68();
 }
 
 void func_8001EC90(struct GameInfo* arg0)
 {
+#ifdef VERSION_DEMO
+    func_8001D134();
+    arg0->unk8 = func_8001E850(D_800F22D0) & 0xFF;
+#else
     reset_objects();
     main_bss_state.transition.selection = 0;
     if (D_800F1D90.save.character != 0xFF) {
@@ -1405,32 +1529,53 @@ void func_8001EC90(struct GameInfo* arg0)
         arg0->unk8 = func_8001E850(D_800F22E0, 0) & 0xFF;
         arg0->mode = arg0->mode + 3;
     }
+#endif
     background_objects[0].unk3 = 0;
     background_objects[1].unk3 = 0;
     background_objects[2].unk3 = 0;
+#ifndef VERSION_DEMO
     func_8001E980(0);
+#endif
     func_800129A4(8);
+#ifdef VERSION_DEMO
+    arg0->mode++;
+#endif
 }
 
+#ifndef VERSION_DEMO
 void func_8001ED44(struct GameInfo* arg0)
 {
     if (main_bss_state.transition.active == 0) {
+#ifdef MMX4_GAMECUBE
+        if (controller_input.pressed & (PADstart | PADRup)) {
+            func_800129F0(8);
+            main_bss_state.transition.selection = 1;
+            arg0->mode++;
+        } else if (controller_input.pressed & PADRdown) {
+            func_8001540C(0, 0x22, 0);
+            func_800129F0(8);
+            arg0->mode++;
+        } else {
+#else
         if (controller_input.pressed & PAD_CONFIRM) {
             func_8001540C(0, 0x22, 0);
             if (main_bss_state.transition.selection != 1) {
                 func_800129F0(8);
             }
-            arg0->mode = (u8)arg0->mode + 1;
+            arg0->mode++;
         } else if (controller_input.pressed & PAD_SELECTION_ALT) {
             func_800129F0(8);
             main_bss_state.transition.selection = 2;
-            arg0->mode = (u8)arg0->mode + 1;
+            arg0->mode++;
         } else {
+#endif
             func_800204CC((s8*)&main_bss_state.transition.selection, arg0->unk8);
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void func_8001EE08(struct GameInfo* arg0)
 {
     if (main_bss_state.transition.active == 0) {
@@ -1473,7 +1618,9 @@ void func_8001EE08(struct GameInfo* arg0)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void func_8001EF48(struct GameInfo* arg0)
 {
     if (main_bss_state.transition.active != 0) {
@@ -1494,7 +1641,9 @@ void func_8001EF48(struct GameInfo* arg0)
 
     arg0->mode++;
 }
+#endif
 
+#ifndef VERSION_DEMO
 void func_8001EFF0(struct GameInfo* arg0)
 {
     struct MainBssState* state;
@@ -1527,7 +1676,9 @@ void func_8001EFF0(struct GameInfo* arg0)
         }
     }
 }
+#endif
 
+#ifndef VERSION_DEMO
 void func_8001F0BC(struct GameInfo* arg0)
 {
     D_800F239C[arg0->mode](arg0);
@@ -1536,4 +1687,5 @@ void func_8001F0BC(struct GameInfo* arg0)
     func_80016124();
     func_80023D68();
 }
+#endif
 #endif

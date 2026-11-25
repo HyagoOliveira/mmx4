@@ -1,5 +1,5 @@
 // MainObj, main_object_update_funcs[55]
-// 8006EB40..8006FABC
+// 8006EB40..8006FB20
 #include "common.h"
 #include "weapon_resources.h"
 #include "main/mains/main_55_jet_stingray_flyby.h"
@@ -8,10 +8,10 @@
 #include "main/1E1BC.h"
 #include "main/55C4.h"
 #include "main/object_motion.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #endif
 
 // jet_stingray_flyby_enter_funcs
@@ -45,12 +45,14 @@ extern s16 jet_stingray_flyby_explosion_offsets[8][2];
 
 void func_8006EB40(struct MainObj* self)
 {
+#ifndef VERSION_DEMO
     if (engine_obj.palette_flags & 0x10) {
         self->state = 2;
         return;
     }
+#endif
     self->on_screen = 1;
-    self->state = 1;
+    self->state = DEMO_ALT(1, self->state + 1);
     self->unk5 = 2;
     self->bg_offset = g_Player.bg_offset;
     self->unk15 = PLAYER_FACING_RIGHT;
@@ -108,12 +110,12 @@ void func_8006ED44(struct MainObj* self)
     case 1:
         if (self->ext.main_55.unk85 == 0)
             self->ext.main_55.unk84 = 3;
-        if (self->unk7C == 0xF0 || self->ext.main_55.unk85 < 5) {
+        if (self->unk7C == 0xF0 || self->ext.main_55.unk85 <= 4) {
             self->ext.main_55.unk87 = 1;
             self->ext.main_55.unk84 = 2;
             self->unk7C = 20;
         } else {
-            self->unk7C = (s16)((u16)self->unk7C + 1);
+            self->unk7C++;
         }
         break;
     case 2:
@@ -128,7 +130,7 @@ void func_8006ED44(struct MainObj* self)
                 }
             }
         } else {
-            self->unk7C = (s16)((u16)self->unk7C - 1);
+            self->unk7C--;
         }
         break;
     case 3:
@@ -142,7 +144,7 @@ void func_8006ED44(struct MainObj* self)
     self->x_speed = (s32)background_objects[(s8)self->bg_offset].unk47 * FIXED(1);
     self->y_speed = 0;
     move_object(MOVING_OBJECT(self));
-    if (self->x_pos.i.hi >= 0x1E16) {
+    if (self->x_pos.i.hi > 0x1E15) {
         self->unk5 = 6;
         self->unk6 = 0;
         self->x_speed = FIXED(8);
@@ -163,7 +165,7 @@ void func_8006EF28(struct MainObj* self)
     set_velocity_from_angle(MOVING_OBJECT(self), (u8)angle_to_object(OBJECT_HEADER(self), OBJECT_HEADER(&g_Player)));
     self->x_speed = (s32)background_objects[self->bg_offset].unk47 * FIXED(1);
     move_object(MOVING_OBJECT(self));
-    dx = (u16)g_Player.x_pos.i.hi - (u16)self->x_pos.i.hi;
+    dx = g_Player.x_pos.i.hi - (u16)self->x_pos.i.hi;
     dy = g_Player.y_pos.i.hi - self->y_pos.i.hi;
     if (dx < 0x50 && (dy < 0 ? -dy : dy) < 0x20 && (u32)(get_random() & 0xF) < 3) {
         self->unk5 = 3;
@@ -174,9 +176,9 @@ void func_8006EF28(struct MainObj* self)
         self->unk6 = 0;
         self->y_speed = FIXED(2);
     } else {
-        self->unk7C = (u16)self->unk7C - 1;
+        self->unk7C--;
     }
-    if (self->x_pos.i.hi >= 0x390F) {
+    if (self->x_pos.i.hi > 0x390E) {
         self->x_speed = FIXED(4);
         self->unk5 = 6;
         self->unk6 = 0;
@@ -202,11 +204,11 @@ void func_8006F0DC(struct MainObj* self)
     case 1:
         if (self->unk7C != 0) {
             move_object(MOVING_OBJECT(self));
-            self->unk7C = (u16)self->unk7C - 1;
+            self->unk7C--;
         } else {
+            self->unk6++;
             self->x_speed = FIXED(4);
             self->unk7C = 30;
-            self->unk6++;
             self->ext.main_55.distance = self->x_pos.val - background_objects[self->bg_offset].x_pos.val;
             set_animation(self, 0);
         }
@@ -227,14 +229,14 @@ void jet_stingray_flyby_attack_rise(struct MainObj* self)
 {
     if (self->unk2 == 1) {
         if (self->y_pos.val < background_objects[self->bg_offset].y_pos.val + FIXED(64)) {
-            self->unk6 = (u8)self->unk6 + 1;
+            self->unk6++;
             self->y_speed = 0;
             set_animation(self, 2);
             self->unk7C = 0;
             self->unk7E = 4;
         }
     } else {
-        self->unk6 = (u8)self->unk6 + 1;
+        self->unk6++;
         self->unk7C = 0;
         self->unk7E = 4;
         set_animation(self, 2);
@@ -244,11 +246,10 @@ void jet_stingray_flyby_attack_rise(struct MainObj* self)
 
 void jet_stingray_flyby_attack_fire(struct MainObj* self)
 {
-    s16 timer = self->unk7C;
     u32** animation_table;
     struct ShotObj* shot;
 
-    if (timer == 0) {
+    if (self->unk7C == 0) {
         if (self->animation_step.fields.event == 1) {
             self->animation_step.fields.event = 0;
             shot = find_free_shot_obj();
@@ -276,7 +277,7 @@ void jet_stingray_flyby_attack_fire(struct MainObj* self)
         }
         animate_object(ANIMATED_OBJECT(self));
     } else {
-        self->unk7C = timer - 1;
+        self->unk7C--;
     }
 }
 
@@ -452,7 +453,7 @@ void jet_stingray_flyby_main(struct MainObj* self)
     if (func_8002B1E8(BASE_OBJECT(self), 0x80, 0x60) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x40, 0x30);
     } else {
-        self->state = 2;
+        self->state = DEMO_ALT(2, self->state + 1);
     }
 }
 
@@ -560,6 +561,7 @@ union AnimationStep jet_stingray_flyby_anim_9[] = {
     { 2, 0, 0, 0x2E },
 };
 
+#ifndef VERSION_DEMO
 union AnimationStep jet_stingray_flyby_anim_10[] = {
     { 1, 0, 0, 0x2F },
 };
@@ -567,9 +569,10 @@ union AnimationStep jet_stingray_flyby_anim_10[] = {
 union AnimationStep jet_stingray_flyby_anim_11[] = {
     { 1, 0, 0, 0x30 },
 };
+#endif
 
 struct AnimationTable12 {
-    union AnimationStep* entries[12];
+    union AnimationStep* entries[DEMO_ALT(12, 10)];
     s32 count;
 };
 
@@ -585,8 +588,10 @@ struct AnimationTable12 jet_stingray_flyby_animations = {
         jet_stingray_flyby_anim_7,
         jet_stingray_flyby_anim_8,
         jet_stingray_flyby_anim_9,
+#ifndef VERSION_DEMO
         jet_stingray_flyby_anim_10,
         jet_stingray_flyby_anim_11,
+#endif
     },
     0x00000052,
 };
@@ -624,3 +629,18 @@ void (*jet_stingray_flyby_state_funcs[3])() = {
     jet_stingray_flyby_main,
     jet_stingray_flyby_despawn,
 };
+
+void jet_stingray_flyby_despawn(struct MainObj* self)
+{
+    engine_obj.enable_boss = 0;
+#ifdef VERSION_DEMO
+    ZeroObjectState(OBJECT_HEADER(self));
+#else
+    despawn_object_permanently(OBJECT_HEADER(self));
+#endif
+}
+
+void jet_stingray_flyby_update(struct MainObj* self)
+{
+    jet_stingray_flyby_state_funcs[self->state](self);
+}

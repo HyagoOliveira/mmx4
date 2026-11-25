@@ -10,6 +10,7 @@
 #include "main/collision.h"
 #include "main/collision_bounds.h"
 #include "main/stage_objects.h"
+#include "main/128C4.h"
 #include "main/1E1BC.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
@@ -117,11 +118,15 @@ void split_mushroom_update(struct MainObj* self)
 // split_mushroom_init
 void func_8007877C(struct MainObj* self)
 {
-    self->contact_damage = 5;
     self->hp = 0;
+    self->contact_damage = 5;
     self->invincibility_timer = 0;
     self->collision_data = D_80107BF8;
 
+#ifdef VERSION_DEMO
+    self->unk40 = (OBJECT_STAGE_TEXTURE(0)) + OBJECT_TEXTURE_OFFSET(0xB0);
+
+#else
     if (engine_obj.stage != 0xC) {
         self->unk40 = (OBJECT_STAGE_TEXTURE(0)) + OBJECT_TEXTURE_OFFSET(0xB0);
         self->unk15 = PLAYER_FACING_RIGHT;
@@ -131,24 +136,30 @@ void func_8007877C(struct MainObj* self)
         self->unk42 = OBJECT_CLUT(0x7888);
         self->unk15 = 0;
     }
+#endif
 
     self->bg_offset = g_Player.bg_offset;
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
+    self->x_speed = 0;
+    self->y_speed = 0;
+    self->x_accel = 0;
     self->gravity = FIXED(0.21875);
+#ifdef VERSION_DEMO
+    self->unk15 = PLAYER_FACING_RIGHT;
+#endif
+    self->air_state = 0;
     self->animation_table = (const u8* const*)split_mushroom_animations;
     self->unk16 = VISUAL_SATURN_LAYER(6);
     self->hurt_box = &split_mushroom_hurt_box;
     self->attack_box = &split_mushroom_attack_box;
-    self->x_speed = 0;
-    self->y_speed = 0;
-    self->x_accel = 0;
-    self->air_state = 0;
     self->terrain_box = &split_mushroom_terrain_box;
 
     set_animation(self, 5);
 
+#ifndef VERSION_DEMO
     self->ext.main_61.flash_timer = 0;
+#endif
     self->ext.main_61.split = 0;
     self->ext.main_61.stunned = 0;
     self->ext.main_61.split_hits = 3;
@@ -156,7 +167,9 @@ void func_8007877C(struct MainObj* self)
     self->ext.main_61.hit_lock = 0;
     self->ext.main_61.active = 0;
     self->ext.main_61.speed_level = 0;
+#ifndef VERSION_DEMO
     self->ext.main_61.split_done = 0;
+#endif
     split_mushroom_load_palette();
     self->state = 1;
     self->unk5 = 1;
@@ -196,6 +209,141 @@ static void main61_wall_hit(struct MainObj* arg0)
 }
 #endif
 
+#ifdef VERSION_DEMO
+void func_800788E4(struct MainObj* arg0)
+{
+    s32 hit;
+    s8 flash;
+    struct MiscObj* misc;
+    struct MainObj* other;
+    struct ShotObj* shot;
+
+    arg0->unk18.val = arg0->x_pos.val;
+    arg0->unk1C.val = arg0->y_pos.val;
+    ((void (*)(struct MainObj*))split_mushroom_step_funcs[arg0->unk5])(arg0);
+    if (arg0->unk5 != 2)
+        func_8002D9BC(arg0);
+    hit = 0;
+    if (arg0->ext.main_61.split != 0xFF && arg0->ext.main_61.hit_lock == 0 && arg0->unk2 == 0)
+        hit = func_8002DD04(arg0);
+    flash = (s8)arg0->ext.main_61.flash_timer;
+    if (flash == 0) {
+        arg0->ext.main_61.hit_lock = 0;
+        if (hit < 0) {
+            if (arg0->unk2 == 0) {
+                arg0->state = 2;
+                arg0->unk5 = 0;
+                if (arg0->ext.main_61.split != 0) {
+                    arg0->ext.main_61.partner->on_screen = 0;
+                    ZeroObjectState(OBJECT_HEADER(arg0->ext.main_61.partner));
+                }
+            } else {
+                arg0->ext.main_61.partner->state = 2;
+                arg0->ext.main_61.partner->unk5 = 0;
+                arg0->on_screen = 0;
+                ZeroObjectState(OBJECT_HEADER(arg0));
+            }
+            return;
+        }
+        if (hit != 0 && hit != 0x7F) {
+            if (arg0->unk5 != 6 && hit != 2 && hit != 0xB && (u32)(get_random() & 0xF) <= 3) {
+                shot = find_free_shot_obj();
+                if (shot != NULL) {
+                    shot->active = 0x41;
+                    shot->id = 0x27;
+                    shot->unk2 = 0;
+                    shot->unk40 = arg0->unk40;
+                    shot->unk42 = arg0->unk42;
+                    shot->animation_table = (void*)arg0->animation_table;
+                    shot->unk3C = (void*)arg0->sprite_frames;
+                    shot->unk15 = arg0->unk15;
+                    shot->bg_offset = arg0->bg_offset;
+                    shot->x_pos.val = arg0->x_pos.val;
+                    shot->y_pos.val = arg0->y_pos.val;
+                    shot->unk15 = arg0->unk15;
+                    if (arg0->unk2 == 0)
+                        shot->unk7C = (struct WeaponObj*)arg0;
+                    else
+                        shot->unk7C = (struct WeaponObj*)arg0->ext.main_61.partner;
+                    shot->state = 7;
+                }
+            }
+            if (hit > 0x18 && hit <= 0x1A) {
+                arg0->ext.main_61.flash_timer = 2;
+                arg0->ext.main_61.hit_lock = 1;
+            } else {
+                arg0->ext.main_61.flash_timer = 0x40;
+            }
+            if (hit != 2 && hit != 0xB) {
+                misc = find_free_misc_obj();
+                if (misc != NULL) {
+                    misc->active = 0x41;
+                    misc->id = 0x1E;
+                    misc->unk2 = 1;
+                    misc->unk16 = 0;
+                    misc->unk40 = arg0->unk40;
+                    misc->unk42 = arg0->unk42;
+                    misc->animation_table = (void*)arg0->animation_table;
+                    misc->unk3C = (void*)arg0->sprite_frames;
+                    misc->unk15 = arg0->unk15;
+                    misc->bg_offset = arg0->bg_offset;
+                    misc->unk15 = 0;
+                    misc->ext.misc_30.owner = arg0;
+                    misc->ext.misc_30.unk54 = 0x40;
+                    misc->state = 0;
+                    set_animation(misc, 0x14);
+                }
+            }
+            arg0->collision_data = D_801060F0;
+            arg0->unk42 |= 0x8000;
+            if ((hit == 2 || hit == 0xB) && arg0->ext.main_61.stunned == 0) {
+                arg0->ext.main_61.stunned = 1;
+                set_animation(arg0, 0x13);
+                arg0->invincibility_timer = 1;
+                arg0->unk5 = 2;
+                arg0->unk6 = 0;
+                if (arg0->ext.main_61.split != 0) {
+                    if (arg0->unk2 == 0) {
+                        if (--arg0->ext.main_61.split_hits == 0)
+                            arg0->ext.main_61.merge = 1;
+                    } else {
+                        other = arg0->ext.main_61.partner;
+                        if (--other->ext.main_61.split_hits == 0)
+                            arg0->ext.main_61.partner->ext.main_61.merge = 1;
+                    }
+                    set_animation(arg0->ext.main_61.partner, 0x13);
+                    arg0->ext.main_61.partner->invincibility_timer = 1;
+                    arg0->ext.main_61.partner->unk5 = 2;
+                    arg0->ext.main_61.partner->unk6 = 0;
+                }
+            }
+        }
+    } else {
+        arg0->ext.main_61.flash_timer = --flash;
+        if (flash == 0) {
+            arg0->collision_data = D_80107BF8;
+            arg0->unk42 &= 0x7FFF;
+        } else if (!(flash & 1)) {
+            arg0->unk42 |= 0x8000;
+        } else {
+            arg0->unk42 &= 0x7FFF;
+        }
+    }
+    if (arg0->ext.main_61.blink_timer != 0) {
+        if ((--arg0->ext.main_61.blink_timer & 1) == 0) {
+            arg0->on_screen = 0;
+            return;
+        }
+    }
+    arg0->ext.main_61.speed_level = 0;
+    if (arg0->hp <= 0x1F)
+        arg0->ext.main_61.speed_level = 1;
+    else if (arg0->hp < 0x10)
+        arg0->ext.main_61.speed_level = 2;
+    if (arg0->unk2 != 0 || arg0->ext.main_61.active != 0)
+        update_on_screen(BASE_OBJECT(arg0), 0x60, 0x60);
+}
+#else
 void func_800788E4(struct MainObj* arg0)
 {
     s32 hit;
@@ -234,7 +382,7 @@ void func_800788E4(struct MainObj* arg0)
             return;
         }
         if (hit != 0 && hit != 0x7F) {
-            if (arg0->unk5 != 6 && hit != 2 && hit != 0xB && hit != 0x21 && (u32)(get_random() & 0xF) < 4) {
+            if (arg0->unk5 != 6 && hit != 2 && hit != 0xB && hit != 0x21 && (u32)(get_random() & 0xF) <= 3) {
                 shot = find_free_shot_obj();
                 if (shot != NULL) {
                     shot->active = 0x41;
@@ -256,7 +404,7 @@ void func_800788E4(struct MainObj* arg0)
                     shot->state = 7;
                 }
             }
-            if ((u32)(hit - 0x19) < 2) {
+            if (hit > 0x18 && hit <= 0x1A) {
                 arg0->ext.main_61.flash_timer = 6;
                 arg0->ext.main_61.hit_lock = 1;
             } else {
@@ -326,14 +474,15 @@ void func_800788E4(struct MainObj* arg0)
         }
     }
     arg0->ext.main_61.speed_level = 0;
-    if (arg0->hp < 0x20)
+    if (arg0->hp <= 0x1F)
         arg0->ext.main_61.speed_level = 1;
     else if (arg0->hp < 0x10)
         arg0->ext.main_61.speed_level = 2;
-    if ((u32)((u8)arg0->unk5 - 1) >= 2)
+    if ((u32)((u8)arg0->unk5 - 1) > 1)
         func_8002D9BC(arg0);
     update_on_screen(BASE_OBJECT(arg0), 0x60, 0x60);
 }
+#endif
 
 void split_mushroom_death(struct MainObj* self)
 {
@@ -373,23 +522,24 @@ void split_mushroom_death_explode(struct MainObj* self)
 
     if (self->unk7E-- == 0) {
         self->unk42 ^= 0x8000;
-        self->invincibility_timer -= 5;
-        if ((s8)self->invincibility_timer > 0x19) {
+        if ((s8)(self->invincibility_timer -= 5) > 0x19) {
             self->invincibility_timer = 0;
         }
-        self->unk7E = (s8)self->invincibility_timer < 6 ? 5 : (s8)self->invincibility_timer;
+        self->unk7E = (s8)self->invincibility_timer > 5 ? (s8)self->invincibility_timer : 5;
     }
 }
 
 void split_mushroom_death_finish(struct MainObj* self)
 {
-    struct EffectObj* effect = self->ext.main_61.data.effect;
+    struct EffectObj* effect;
+
     self->on_screen = 0;
+    effect = self->ext.main_61.data.effect;
     if (effect->active != 0) {
         if (effect->unk7 == 0) {
             if (self->unk7E-- == 0) {
-                self->unk7E = 5;
                 self->unk42 ^= 0x8000;
+                self->unk7E = 5;
             }
             update_on_screen(BASE_OBJECT(self), 0x60, 0x60);
         }
@@ -402,6 +552,9 @@ void split_mushroom_death_finish(struct MainObj* self)
         self->ext.raw[5] = 0;
         engine_obj.enable_boss = 0;
         engine_obj.boss_ptr = NULL;
+#ifdef VERSION_DEMO
+        engine_obj.unkF = 0x10;
+#else
         if (engine_obj.stage != 0xC) {
             engine_obj.unkF = 0x10;
         } else {
@@ -409,6 +562,7 @@ void split_mushroom_death_finish(struct MainObj* self)
             engine_obj.character_state.bytes[engine_obj.checkpoint + 6] = 1;
             engine_obj.checkpoint += 9;
         }
+#endif
         ZeroObjectState(OBJECT_HEADER(self));
     }
 }
@@ -422,8 +576,20 @@ void split_mushroom_intro_wait_player(struct MainObj* self)
 {
     struct EffectObj* effect;
 
+#ifdef VERSION_DEMO
+    if (engine_obj.stage == 3 && g_Player.y_pos.i.hi <= 0x1CA) {
+        effect = find_free_effect_obj();
+        if (effect != NULL) {
+            effect->active = 1;
+            effect->id = 0x18;
+            self->ext.main_61.data.effect = effect;
+        }
+        player_start_script_action(0x14, 0);
+        self->unk6 = 1;
+    }
+#else
     if (3 == engine_obj.stage) {
-        if (engine_obj.cur_character == 0 ? g_Player.y_pos.i.hi < 0x1CC : g_Player.y_pos.i.hi < 0x1CB) {
+        if (engine_obj.cur_character == 0 ? g_Player.y_pos.i.hi < 0x1CC : g_Player.y_pos.i.hi <= 0x1CA) {
             effect = find_free_effect_obj();
             if (effect != NULL) {
                 effect->active = 1;
@@ -434,16 +600,18 @@ void split_mushroom_intro_wait_player(struct MainObj* self)
         } else {
             return;
         }
-    } else {
-        effect = find_free_effect_obj();
-        if (effect != NULL) {
-            effect->active = 1;
-            effect->id = 0x18;
-            self->ext.main_61.data.effect = effect;
-        }
-        player_start_script_action(0x14, PLAYER_FACING_RIGHT);
+        self->unk6 = 1;
+        return;
     }
+    effect = find_free_effect_obj();
+    if (effect != NULL) {
+        effect->active = 1;
+        effect->id = 0x18;
+        self->ext.main_61.data.effect = effect;
+    }
+    player_start_script_action(0x14, PLAYER_FACING_RIGHT);
     self->unk6 = 1;
+#endif
 }
 
 void split_mushroom_intro_drop(struct MainObj* self)
@@ -454,7 +622,9 @@ void split_mushroom_intro_drop(struct MainObj* self)
         engine_obj.boss_ptr = self;
         self->y_pos.i.hi = background_objects[g_Player.bg_offset].y_pos.i.hi - 0x20;
         self->ext.main_61.active = 1;
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA7, 0x2A), self);
+#endif
         self->unk7C = 2;
         self->unk6 = 2;
     }
@@ -464,20 +634,28 @@ void split_mushroom_intro_bounce(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
     if (self->unk7C == 0 && self->y_speed < 0) {
+#ifndef VERSION_DEMO
         STOP_SOUND(2, 0xA7, 0x6);
+#endif
         set_animation(self, 3);
         self->unk7C = 0xFF;
     }
     if (self->collision_flags & 8) {
         if (self->unk7C == 0xFF) {
             set_animation(self, 0xA);
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA6, 0x29), self);
+#endif
             self->unk6 = 3;
         } else {
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
-            self->y_speed = FIXED(6);
+#endif
             self->unk7C--;
+            self->y_speed = FIXED(6);
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA5, 0x28), self);
+#endif
         }
     }
     move_with_gravity(ANIMATED_OBJECT(self));
@@ -499,7 +677,9 @@ void func_800793AC(struct MainObj* arg0)
 
     animate_object(ANIMATED_OBJECT(arg0));
     if (arg0->animation_step.fields.event == 1) {
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA9, 0x2C), arg0);
+#endif
         for (i = 0; i < 5; i++) {
             struct ShotObj* shot = find_free_shot_obj();
 
@@ -525,10 +705,14 @@ void func_800793AC(struct MainObj* arg0)
         }
     }
     if (arg0->animation_step.fields.event == 2) {
+#ifdef VERSION_DEMO
+        DEMO_START_DIALOGUE(0xA, 0xFF);
+#else
         if (engine_obj.stage == 3) {
             func_8002217C(0xA, 0xFF, (u8)engine_obj.character_state.bytes[8]);
             engine_obj.character_state.bytes[8] = 1;
         }
+#endif
         arg0->unk6 = 5;
     }
 }
@@ -539,18 +723,22 @@ void split_mushroom_intro_start_health_bar(struct MainObj* self)
         set_animation(self, 0);
         self->unk7E = 3;
         self->unk6 = 6;
+#ifndef VERSION_DEMO
         play_boss_voice(2);
+#endif
     }
 }
 
 void split_mushroom_intro_fill_health(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
+#ifndef VERSION_DEMO
     if (update_boss_music_delay() != 0) {
         return;
     }
+#endif
     if (--self->unk7E == 0) {
-        func_8001540C(0, SATURN_SOUND(0xE, 0x14), NULL);
+        func_8001540C(0, SATURN_SOUND(DEMO_ALT(0xE, 0xF), 0x14), NULL);
         self->unk7E = 3;
     }
     if (++self->hp == 0x30) {
@@ -569,15 +757,19 @@ void split_mushroom_stun(struct MainObj* self)
 void split_mushroom_stun_start(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
+#ifndef VERSION_DEMO
     if (self->unk2 == 0) {
         if (--self->unk7E == 0) {
             self->unk7E = 0xC;
             func_8001540C(2, SATURN_SOUND(0xAB, 0x2E), self);
         }
     }
+#endif
     if (self->animation_step.fields.event != 0) {
+#ifndef VERSION_DEMO
         self->contact_damage = 5;
         self->terrain_box = &split_mushroom_terrain_box;
+#endif
         self->unk7C = 0x1E;
         self->unk6 = 1;
     }
@@ -623,6 +815,9 @@ void split_mushroom_stun_fall(struct MainObj* self)
     if (self->collision_flags & 8) {
         self->invincibility_timer = 0;
         set_animation(self, 2);
+#ifdef VERSION_DEMO
+        self->ext.main_61.stunned = 0;
+#endif
         self->unk5 = 7;
         self->unk6 = 0;
     }
@@ -665,6 +860,9 @@ void split_mushroom_stun_land(struct MainObj* self)
     move_with_gravity(ANIMATED_OBJECT(self));
     if (self->collision_flags & 8) {
         self->invincibility_timer = 0;
+#ifdef VERSION_DEMO
+        self->ext.main_61.stunned = 0;
+#endif
         set_animation(self, 0);
         self->unk7C = 0x14;
         self->unk6 = 6;
@@ -676,7 +874,7 @@ void split_mushroom_stun_split(struct MainObj* self)
     struct MainObj* parent;
     int one;
 
-    if ((--self->unk7C << 16) == 0) {
+    if (--self->unk7C == 0) {
         parent = self->ext.main_61.partner;
         if (parent->unk5 != 6) {
             if (self->x_pos.i.hi < background_objects[g_Player.bg_offset].x_pos.i.hi + 0xA0) {
@@ -690,8 +888,10 @@ void split_mushroom_stun_split(struct MainObj* self)
         one = 1;
         self->ext.main_61.split = one;
         set_animation(self, 2);
+#ifndef VERSION_DEMO
         self->ext.main_61.split_done = one;
         self->ext.main_61.combo_count = 0;
+#endif
         self->unk5 = 6;
         self->unk6 = 7;
     }
@@ -714,7 +914,9 @@ void func_80079A8C(struct MainObj* arg0)
     arg0->gravity = 0x3800;
     arg0->unk7C = 0x30;
     arg0->unk6 = 1;
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xA5, 0x28), arg0);
+#endif
 }
 
 // split_mushroom_spore_rain_jump
@@ -736,7 +938,7 @@ void func_80079B50(struct MainObj* arg0)
     base_x = background_objects[g_Player.bg_offset].x_pos.i.hi - 0x10;
     for (row = 0; row < 0xC0; row += 0x20) {
         for (col = 0; col < 10; col++) {
-            if (!(col & 1)) {
+            if (DEMO_ALT(!(col & 1), 0)) {
                 struct VisualObj* visual = find_free_visual_obj();
 
                 if (visual == NULL)
@@ -803,7 +1005,9 @@ void split_mushroom_spore_rain_split(struct MainObj* self)
     if (--self->unk7C != 0) {
         return;
     }
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xAA, 0x2D), self);
+#endif
     self->ext.main_61.split = 1;
     rnd = get_random();
     clone = find_free_main_obj();
@@ -835,16 +1039,20 @@ void split_mushroom_spore_rain_split(struct MainObj* self)
             clone->unk15 = 0;
             clone->x_speed = FIXED(2.75);
         }
-        clone->gravity = FIXED(0.21875);
         clone->x_accel = 0;
         clone->y_speed = 0;
+        clone->gravity = FIXED(0.21875);
         clone->state = 1;
         clone->unk5 = 3;
         clone->unk6 = 3;
         set_animation(clone, 3);
         clone->ext.main_61.partner = self;
         self->ext.main_61.partner = clone;
+#ifdef VERSION_DEMO
         clone->ext.main_61.split = 1;
+#else
+        self->ext.main_61.partner->ext.main_61.split = 1;
+#endif
         clone->ext.main_61.blink_timer = 0x7F;
     }
     set_animation(self, 3);
@@ -855,10 +1063,12 @@ void split_mushroom_spore_rain_split(struct MainObj* self)
         self->unk15 = PLAYER_FACING_RIGHT;
         self->x_speed = FIXED(-2.75);
     }
-    self->gravity = FIXED(0.21875);
     self->x_accel = 0;
     self->y_speed = 0;
+    self->gravity = FIXED(0.21875);
+#ifndef VERSION_DEMO
     self->ext.main_61.stunned = 0;
+#endif
     self->unk6 = 3;
 }
 
@@ -868,7 +1078,9 @@ void split_mushroom_spore_rain_land(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     if (self->collision_flags & 8) {
         set_animation(self, 0xA);
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA6, 0x29), self);
+#endif
         self->unk6 = 4;
     }
 }
@@ -878,6 +1090,9 @@ void split_mushroom_spore_rain_recover(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     if (self->animation_step.fields.event != 0) {
         self->ext.main_61.blink_timer = 0;
+#ifdef VERSION_DEMO
+        self->ext.main_61.stunned = 0;
+#endif
         set_animation(self, 0);
         self->unk7C = 0x1E;
         self->unk6 = 5;
@@ -920,45 +1135,27 @@ void split_mushroom_walk_start(struct MainObj* self)
 
 void split_mushroom_walk_move(struct MainObj* self)
 {
-    u16 timer;
-    u16 timer2;
-
     move_object(MOVING_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
-    if (0 == self->unk15) {
-        if ((self->collision_flags & 2) == 0) {
-            goto done;
+    if (self->unk15 == 0) {
+        if (self->collision_flags & 2) {
+            self->unk15 = PLAYER_FACING_RIGHT;
+            if (--self->unk7C == 0) {
+                func_8007B6BC(ANIMATED_OBJECT(self));
+            } else {
+                set_animation(self, 2);
+                self->unk6 = 2;
+            }
         }
-        timer = self->unk7C;
-        self->unk15 = PLAYER_FACING_RIGHT;
-        timer--;
-        self->unk7C = timer;
-        if ((timer << 16) == 0) {
-            goto destroy;
+    } else if (self->collision_flags & 1) {
+        self->unk15 = 0;
+        if (--self->unk7C == 0) {
+            func_8007B6BC(ANIMATED_OBJECT(self));
+        } else {
+            set_animation(self, 2);
+            self->unk6 = 2;
         }
-        goto update;
     }
-
-    if ((self->collision_flags & 1) == 0) {
-        goto done;
-    }
-    timer2 = self->unk7C;
-    self->unk15 = 0;
-    timer2--;
-    self->unk7C = timer2;
-    if ((timer2 << 16) != 0) {
-        goto update;
-    }
-
-destroy:
-    func_8007B6BC(ANIMATED_OBJECT(self));
-    goto done;
-
-update:
-    set_animation(self, 2);
-    self->unk6 = 2;
-
-done:;
 }
 
 // split_mushroom_walk_jump
@@ -976,7 +1173,9 @@ void func_8007A2B4(struct MainObj* arg0)
     arg0->y_speed = (speed + 1) * 0x3800 / 2;
     arg0->gravity = 0x3800;
     move_with_gravity(ANIMATED_OBJECT(arg0));
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xA5, 0x28), arg0);
+#endif
     arg0->unk6 = 3;
     arg0->unk7 = 0;
 }
@@ -991,7 +1190,9 @@ void split_mushroom_walk_fall(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     if (self->collision_flags & 8) {
         set_animation(self, 0xA);
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA6, 0x29), self);
+#endif
         self->unk6 = 4;
     }
 }
@@ -1016,7 +1217,30 @@ void split_mushroom_dash(struct MainObj* self)
     split_mushroom_dash_funcs[self->unk6](self);
 }
 
+#ifdef VERSION_DEMO
+void func_80081564_demo(struct MainObj* self)
+{
+    animate_object(ANIMATED_OBJECT(self));
+    if (--self->unk7C == 0) {
+        if (self->unk15 == 0) {
+            self->x_speed = 0xFFF9B1C8;
+        } else {
+            self->x_speed = 0x64E38;
+        }
+        if (self->unk7E == 3) {
+            self->y_speed = 0;
+            self->gravity = 0;
+        } else {
+            self->y_speed = 0x5D31C;
+            self->gravity = 0x3800;
+        }
+        self->unk6 = 1;
+    }
+}
+#endif
+
 // split_mushroom_dash_start
+#ifndef VERSION_DEMO
 void func_8007A4EC(struct MainObj* arg0)
 {
     struct MiscObj* misc;
@@ -1058,68 +1282,64 @@ void func_8007A4EC(struct MainObj* arg0)
     }
     arg0->unk6 = 1;
 }
+#endif
 
 void split_mushroom_dash_bounce(struct MainObj* self)
 {
-    u16 resetValue;
-
     move_with_gravity(ANIMATED_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
 
-    if (self->unk15 != 0) {
-        goto state1;
+    if (self->unk15 == 0) {
+        if (self->collision_flags & 2) {
+#ifndef VERSION_DEMO
+            func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
+            split_mushroom_spawn_afterimage(self);
+#endif
+            if ((background_objects[g_Player.bg_offset].unk34 & 0x10) == 0) {
+                start_screen_shake_x(0x10, 8, 2);
+            }
+            if (--self->unk7E == 0) {
+                self->unk15 ^= PLAYER_FACING_RIGHT;
+                set_animation(self, 3);
+                self->x_speed = 0;
+                self->y_speed = 0;
+                self->x_accel = 0;
+                self->gravity = 0x3800;
+#ifndef VERSION_DEMO
+                STOP_SOUND(2, 0xA7, 0x6);
+#endif
+                self->unk6 = 2;
+            } else {
+                self->unk15 = PLAYER_FACING_RIGHT;
+                self->unk7C = 0xA;
+                self->unk6 = 0;
+            }
+        }
+    } else if (self->collision_flags & 1) {
+#ifndef VERSION_DEMO
+        func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
+        split_mushroom_spawn_afterimage(self);
+#endif
+        if ((background_objects[g_Player.bg_offset].unk34 & 0x10) == 0) {
+            start_screen_shake_x(0x10, 8, 2);
+        }
+        if (--self->unk7E == 0) {
+            self->unk15 ^= PLAYER_FACING_RIGHT;
+            set_animation(self, 3);
+            self->x_speed = 0;
+            self->y_speed = 0;
+            self->x_accel = 0;
+            self->gravity = 0x3800;
+#ifndef VERSION_DEMO
+            STOP_SOUND(2, 0xA7, 0x6);
+#endif
+            self->unk6 = 2;
+        } else {
+            self->unk15 = 0;
+            self->unk7C = 0xA;
+            self->unk6 = 0;
+        }
     }
-    if ((self->collision_flags & 2) == 0) {
-        goto done;
-    }
-
-    func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
-    split_mushroom_spawn_afterimage(self);
-    if ((background_objects[g_Player.bg_offset].unk34 & 0x10) == 0) {
-        start_screen_shake_x(0x10, 8, 2);
-    }
-
-    if (--self->unk7E == 0) {
-        goto complete;
-    }
-    self->unk15 = PLAYER_FACING_RIGHT;
-    resetValue = 0xA;
-    goto reset;
-
-state1:
-    if ((self->collision_flags & 1) == 0) {
-        goto done;
-    }
-
-    func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
-    split_mushroom_spawn_afterimage(self);
-    if ((background_objects[g_Player.bg_offset].unk34 & 0x10) == 0) {
-        start_screen_shake_x(0x10, 8, 2);
-    }
-
-    if (--self->unk7E != 0) {
-        goto state_off;
-    }
-
-complete:
-    self->unk15 ^= PLAYER_FACING_RIGHT;
-    set_animation(self, 3);
-    self->x_speed = 0;
-    self->y_speed = 0;
-    self->x_accel = 0;
-    self->gravity = 0x3800;
-    STOP_SOUND(2, 0xA7, 0x6);
-    self->unk6 = 2;
-    goto done;
-
-state_off:
-    resetValue = 0xA;
-    self->unk15 = 0;
-reset:
-    self->unk7C = resetValue;
-    self->unk6 = 0;
-done:
-    return;
 }
 
 void split_mushroom_dash_land(struct MainObj* self)
@@ -1128,7 +1348,9 @@ void split_mushroom_dash_land(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     if (self->collision_flags & 8) {
         set_animation(self, 0xA);
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA6, 0x29), self);
+#endif
         self->unk6 = 3;
     }
 }
@@ -1137,7 +1359,9 @@ void split_mushroom_dash_recover(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
     if (self->animation_step.fields.event != 0) {
+#ifndef VERSION_DEMO
         self->contact_damage = 5;
+#endif
         set_animation(self, 0);
         self->unk7C = 0x28;
         self->unk6 = 4;
@@ -1185,7 +1409,9 @@ void func_8007A96C(struct MainObj* arg0)
                 arg0->x_speed = (bgx - (arg0->x_pos.val + offset)) / 48;
             }
             arg0->y_speed = 0x55C00;
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA5, 0x28), arg0);
+#endif
         } else {
             if (arg0->unk15 == 0) {
                 s32 bgx = background_objects[g_Player.bg_offset].x_pos.val;
@@ -1198,7 +1424,9 @@ void func_8007A96C(struct MainObj* arg0)
 
                 arg0->x_speed = (bgx - (arg0->x_pos.val + offset)) / 36;
             }
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA5, 0x28), arg0);
+#endif
             arg0->y_speed = 0x5D31C;
         }
         arg0->gravity = 0x3800;
@@ -1209,6 +1437,52 @@ void func_8007A96C(struct MainObj* arg0)
 }
 
 // split_mushroom_combo_dash
+#ifdef VERSION_DEMO
+void func_8007AB1C(struct MainObj* arg0)
+{
+    move_with_gravity(ANIMATED_OBJECT(arg0));
+    animate_object(ANIMATED_OBJECT(arg0));
+    if ((s8)arg0->ext.main_61.combo_count == 0) {
+        if (arg0->unk7 == 0) {
+            set_animation(arg0, 3);
+            arg0->unk7 = 1;
+        }
+        if (!(arg0->collision_flags & 8))
+            return;
+        set_animation(arg0, 0);
+        arg0->unk7C = 0x28;
+        arg0->unk6 = 5;
+        arg0->unk15 ^= PLAYER_FACING_RIGHT;
+        return;
+    }
+    if (arg0->unk7E == 0) {
+        if (ABS(arg0->x_pos.i.hi, g_Player.x_pos.i.hi) < 0xC) {
+            arg0->unk7C = 0x14;
+            arg0->unk6 = 2;
+        }
+    }
+    if (arg0->unk15 == 0) {
+        if (!(arg0->collision_flags & 2))
+            return;
+        if (!(background_objects[g_Player.bg_offset].unk34 & 0x10))
+            start_screen_shake_x(0x10, 8, 2);
+        arg0->unk7E--;
+        arg0->unk15 = PLAYER_FACING_RIGHT;
+        arg0->unk7C = 0xA;
+        arg0->unk6 = 0;
+    } else {
+        if (!(arg0->collision_flags & 1))
+            return;
+        if (!(background_objects[g_Player.bg_offset].unk34 & 0x10))
+            start_screen_shake_x(0x10, 8, 2);
+        arg0->unk7E--;
+        arg0->unk15 = 0;
+        arg0->unk7C = 0xA;
+        arg0->unk6 = 0;
+    }
+}
+
+#else
 void func_8007AB1C(struct MainObj* arg0)
 {
     move_with_gravity(ANIMATED_OBJECT(arg0));
@@ -1231,8 +1505,8 @@ void func_8007AB1C(struct MainObj* arg0)
         }
         arg0->contact_damage = 5;
         set_animation(arg0, 0);
-        arg0->unk7C = 0x28;
         arg0->unk15 ^= PLAYER_FACING_RIGHT;
+        arg0->unk7C = 0x28;
         arg0->unk6 = 5;
         return;
     }
@@ -1267,13 +1541,16 @@ void func_8007AB1C(struct MainObj* arg0)
         arg0->unk6 = 0;
     }
 }
+#endif
 
 void split_mushroom_combo_swing(struct MainObj* self)
 {
 
     animate_object(ANIMATED_OBJECT(self));
     if (--self->unk7C == 0) {
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xAC, 0x2F), self);
+#endif
         set_animation(self, 8);
         self->x_speed = 0;
         self->x_accel = 0;
@@ -1293,7 +1570,9 @@ void func_8007AE2C(struct MainObj* self)
     if (!(self->collision_flags & 8)) {
         return;
     }
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xA8, 0x2B), self);
+#endif
     if (!(background_objects[g_Player.bg_offset].unk34 & 1)) {
         start_screen_shake_y(0x10, 8, 2);
     }
@@ -1322,24 +1601,22 @@ void func_8007AE2C(struct MainObj* self)
         shot->state = 0;
     }
     set_animation(self, 9);
-    self->unk7C = 0x30;
+    self->unk7C = DEMO_ALT(0x30, 0x28);
     self->unk6 = 4;
 }
 
 void split_mushroom_combo_repeat(struct MainObj* self)
 {
-    s8 temp_v0_2;
-
     animate_object(ANIMATED_OBJECT(self));
     if (--self->unk7C == 0) {
-        temp_v0_2 = self->ext.main_61.combo_count - 1;
-        self->ext.main_61.combo_count = temp_v0_2;
-        if (temp_v0_2 == 0) {
+        if (--self->ext.main_61.combo_count == 0) {
             set_animation(self, 0xF);
             self->unk6 = 6;
         } else {
             set_animation(self, 5);
+#ifndef VERSION_DEMO
             func_8001540C(2, SATURN_SOUND(0xA7, 0x2A), self);
+#endif
             self->unk6 = 0;
             self->unk7C = 0x28;
             self->unk7E = 1;
@@ -1349,8 +1626,7 @@ void split_mushroom_combo_repeat(struct MainObj* self)
 
 void split_mushroom_combo_sync(struct MainObj* self)
 {
-    self->unk7C--;
-    if (self->unk7C == 0) {
+    if (--self->unk7C == 0) {
         self->unk7C = 1;
         self->unk5 = 5;
         self->unk6 = 4;
@@ -1396,7 +1672,9 @@ void func_8007B1BC(struct MainObj* arg0)
     animate_object(ANIMATED_OBJECT(arg0));
     if (arg0->animation_step.fields.event == 0)
         return;
+#ifndef VERSION_DEMO
     arg0->terrain_box = &split_mushroom_wall_terrain_box;
+#endif
     if (arg0->x_pos.i.hi < background_objects[g_Player.bg_offset].x_pos.i.hi + 0xA0)
         arg0->unk15 = PLAYER_FACING_RIGHT;
     else
@@ -1413,7 +1691,9 @@ void func_8007B1BC(struct MainObj* arg0)
         arg0->x_speed = (bgx - (arg0->x_pos.val + target)) / 48;
     }
     arg0->y_speed = 0x706AA;
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xA5, 0x28), arg0);
+#endif
     arg0->gravity = 0x3800;
     move_with_gravity(ANIMATED_OBJECT(arg0));
     arg0->unk6 = 1;
@@ -1435,7 +1715,9 @@ void split_mushroom_wall_jump_air(struct MainObj* self)
     } else if ((self->collision_flags & 1) == 0) {
         return;
     }
+#ifndef VERSION_DEMO
     self->ext.main_61.stunned = 0;
+#endif
     set_animation(self, 6);
     self->unk7C = 0x28;
     self->unk6 = 2;
@@ -1446,7 +1728,9 @@ void split_mushroom_wall_jump_cling(struct MainObj* self)
 
     animate_object(ANIMATED_OBJECT(self));
     if (--self->unk7C == 0) {
+#ifndef VERSION_DEMO
         self->terrain_box = &split_mushroom_terrain_box;
+#endif
         set_animation(self, 7);
         self->unk7C = 0x28;
         self->unk6 = 3;
@@ -1459,15 +1743,28 @@ void func_8007B418(struct MainObj* arg0)
 {
     struct ShotObj* shot;
 
+#ifndef VERSION_DEMO
     animate_object(ANIMATED_OBJECT(arg0));
+#endif
     if (--arg0->unk7C != 0)
         return;
     if (arg0->unk7E-- == 0) {
+#ifdef VERSION_DEMO
+        arg0->x_speed = 0;
+        arg0->x_accel = 0;
+        arg0->y_speed = 0;
+        arg0->gravity = 0x3800;
+        arg0->unk15 ^= PLAYER_FACING_RIGHT;
+        set_animation(arg0, 3);
+#else
         set_animation(arg0, 0x17);
+#endif
         arg0->unk6 = 4;
         return;
     }
+#ifndef VERSION_DEMO
     func_8001540C(2, SATURN_SOUND(0xAA, 0x2D), arg0);
+#endif
     arg0->unk7C = 0x28;
     shot = find_free_shot_obj();
     if (shot == NULL)
@@ -1476,10 +1773,14 @@ void func_8007B418(struct MainObj* arg0)
     shot->id = 0x27;
     shot->unk2 = 0;
     shot->unk40 = arg0->unk40;
+#ifdef VERSION_DEMO
+    shot->unk42 = 0x78CC;
+#else
     if (engine_obj.stage == 3)
         shot->unk42 = 0x78CC;
     else
         shot->unk42 = 0x788C;
+#endif
     shot->unk68 = arg0->terrain_box;
     shot->unk54 = arg0->hurt_box;
     shot->unk50.data = arg0->attack_box;
@@ -1497,6 +1798,7 @@ void func_8007B418(struct MainObj* arg0)
     shot->unk6 = 0;
 }
 
+#ifndef VERSION_DEMO
 void split_mushroom_wall_jump_turn(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
@@ -1510,13 +1812,18 @@ void split_mushroom_wall_jump_turn(struct MainObj* self)
         self->unk6 = 5;
     }
 }
+#endif
 
 void split_mushroom_wall_jump_land(struct MainObj* self)
 {
     move_with_gravity(ANIMATED_OBJECT(self));
     if (self->collision_flags & 8) {
+#ifdef VERSION_DEMO
+        set_animation(self, 0xA);
+#else
         func_8001540C(2, SATURN_SOUND(0xA6, 0x29), self);
-        self->unk6 = 6;
+#endif
+        self->unk6 = DEMO_ALT(6, 5);
     }
 }
 
@@ -1551,22 +1858,30 @@ void func_8007B6BC(struct AnimatedObj* obj)
         hp = arg0->ext.main_61.partner->hp;
     if (hp > 0x18) {
         set_animation(arg0, 5);
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA7, 0x2A), arg0);
+#endif
         arg0->unk7C = 0x28;
         arg0->unk7E = 3;
+#ifndef VERSION_DEMO
         arg0->contact_damage = 6;
+#endif
         arg0->unk5 = 5;
         arg0->unk6 = 0;
     } else {
         set_animation(arg0, 5);
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xA7, 0x2A), arg0);
+#endif
         if (arg0->unk2 == 0)
             arg0->unk7C = 0x28;
         else
             arg0->unk7C = 0x50;
         arg0->unk7E = 1;
         arg0->ext.main_61.combo_count = 2;
+#ifndef VERSION_DEMO
         arg0->contact_damage = 9;
+#endif
         arg0->unk5 = 6;
         arg0->unk6 = 0;
     }
@@ -1579,48 +1894,373 @@ void split_mushroom_load_palette(void)
     u16* destination;
 
     source = SP_PALETTE_BANK[53];
+#ifdef VERSION_DEMO
+    destination = SP_PALETTES[60];
+#else
     if (engine_obj.stage == 3) {
         destination = SP_PALETTES[60];
     } else {
         destination = SP_PALETTES[44];
     }
-    i = 0;
-    do {
+#endif
+    for (i = 0; i < 0x40; i++) {
         *destination++ = *source++;
-        i++;
-    } while (i < 0x40);
+    }
+#ifdef VERSION_DEMO
+    need_palette_load = 1;
+#else
     need_palette_load |= 1;
+#endif
 }
 
+#ifndef VERSION_DEMO
 void split_mushroom_spawn_afterimage(struct MainObj* self)
 {
     struct MainObj* source;
-    struct MiscObj* temp_v0;
+    struct MiscObj* misc;
 
     source = self;
-    temp_v0 = find_free_misc_obj();
-    if (temp_v0 != 0) {
-        temp_v0->active = 0x41;
-        temp_v0->id = 0x16;
-        temp_v0->unk2 = 8;
-        temp_v0->unk15 = source->unk15;
-        temp_v0->x_pos.i.hi = source->x_pos.i.hi;
-        temp_v0->y_pos.i.hi = source->y_pos.i.hi;
-        temp_v0->bg_offset = (u8)source->bg_offset;
-        temp_v0->animation_table = (u32**)source->animation_table;
-        temp_v0->unk40 = source->unk40;
-        temp_v0->unk3C = (void*)source->sprite_frames;
-        temp_v0->unk42 = source->unk42 & 0x7FFF;
-        temp_v0->unk16 = VISUAL_SATURN_LAYER(5);
-        temp_v0->ext.misc_22.owner = source;
-        temp_v0->ext.misc_22.timer = 0xA;
-        set_animation(temp_v0, 0x19);
-        temp_v0->state = 0;
-        temp_v0->unk5 = 0;
-        temp_v0->unk6 = 1;
+    misc = find_free_misc_obj();
+    if (misc != 0) {
+        misc->active = 0x41;
+        misc->id = 0x16;
+        misc->unk2 = 8;
+        misc->unk15 = source->unk15;
+        misc->x_pos.i.hi = source->x_pos.i.hi;
+        misc->y_pos.i.hi = source->y_pos.i.hi;
+        misc->bg_offset = (u8)source->bg_offset;
+        misc->animation_table = (u32**)source->animation_table;
+        misc->unk40 = source->unk40;
+        misc->unk3C = (void*)source->sprite_frames;
+        misc->unk42 = source->unk42 & 0x7FFF;
+        misc->unk16 = VISUAL_SATURN_LAYER(5);
+        misc->ext.misc_22.owner = source;
+        misc->ext.misc_22.timer = 0xA;
+        set_animation(misc, 0x19);
+        misc->state = 0;
+        misc->unk5 = 0;
+        misc->unk6 = 1;
     }
 }
+#endif
 
+#ifdef VERSION_DEMO
+struct Unk_unk68 split_mushroom_attack_box = { -11, -16, 20, 35 };
+
+struct Unk_unk68 split_mushroom_hurt_box = { -16, -17, 30, 37 };
+
+struct Unk_unk68 split_mushroom_terrain_box = { 0, 0, 8, 23 };
+
+s16 split_mushroom_hop_speeds[4] = { 0x40, 0x3A, 0x34, 0 };
+
+s32 split_mushroom_walk_speeds[3] = { 0x30000, 0x48000, 0x60000 };
+
+struct Unk_unk68 split_mushroom_anim_0[4] = { { 13, 0, 1, 0 }, { 11, 0, 1, 1 }, { 13, 0, 1, 2 }, { 13, 1, 253, 1 } };
+
+struct Unk_unk68 split_mushroom_anim_1[8] = {
+    { 3, 0, 1, 3 },
+    { 5, 0, 1, 4 },
+    { 4, 0, 1, 5 },
+    { 3, 0, 1, 6 },
+    { 3, 0, 1, 7 },
+    { 5, 0, 1, 8 },
+    { 4, 0, 1, 9 },
+    { 3, 1, 249, 10 },
+};
+
+union AnimationStep split_mushroom_anim_2[4] = { { 2, 0, 1, 0x00 }, { 3, 0, 1, 0x0B }, { 2, 0, 1, 0x0C }, { 1, 1, 0, 0x0D } };
+
+union AnimationStep split_mushroom_anim_3[1] = { { 1, 1, 0, 0x0E } };
+
+struct Unk_unk68 split_mushroom_anim_4[9] = {
+    { 3, 0, 1, 15 },
+    { 3, 0, 1, 16 },
+    { 3, 0, 1, 17 },
+    { 3, 0, 1, 18 },
+    { 3, 0, 1, 19 },
+    { 3, 0, 1, 20 },
+    { 3, 0, 1, 21 },
+    { 3, 0, 1, 22 },
+    { 3, 1, 249, 23 },
+};
+
+struct Unk_unk68 split_mushroom_anim_5[8] = {
+    { 2, 0, 1, 24 },
+    { 2, 0, 1, 25 },
+    { 2, 0, 1, 26 },
+    { 2, 0, 1, 27 },
+    { 2, 0, 1, 28 },
+    { 2, 0, 1, 29 },
+    { 2, 0, 1, 30 },
+    { 2, 0, 249, 31 },
+};
+
+union AnimationStep split_mushroom_anim_6[2] = { { 3, 0, 1, 0x20 }, { 1, 1, 0, 0x21 } };
+
+union AnimationStep D_800D535C_demo[6] = {
+    { 6, 0, 1, 0x22 },
+    { 6, 0, 1, 0x6B },
+    { 2, 0, 1, 0x6C },
+    { 2, 0, 1, 0x6D },
+    { 1, 0, 1, 0x6E },
+    { 1, 1, 0, 0x6E },
+};
+
+union AnimationStep D_800D5374_demo[1] = { { 1, 1, 0, 0x23 } };
+
+union AnimationStep D_800D5378_demo[7] = {
+    { 2, 0, 1, 0x24 },
+    { 2, 0, 1, 0x25 },
+    { 2, 0, 1, 0x26 },
+    { 2, 0, 1, 0x27 },
+    { 2, 0, 1, 0x28 },
+    { 9, 0, 1, 0x29 },
+    { 1, 1, 0, 0x29 },
+};
+
+union AnimationStep D_800D5394_demo[3] = { { 3, 0, 1, 0x2A }, { 3, 0, 1, 0x2B }, { 1, 1, 0, 0x2B } };
+
+union AnimationStep D_800D53A0_demo[4] = { { 3, 0, 1, 0x2C }, { 3, 0, 1, 0x2D }, { 3, 0, 1, 0x2E }, { 3, 0, 1, 0x2F } };
+
+union AnimationStep D_800D53B0_demo[4] = { { 8, 1, 1, 0x30 }, { 8, 1, 1, 0x31 }, { 8, 1, 1, 0x32 }, { 8, 1, -3, 0x31 } };
+
+union AnimationStep D_800D53C0_demo[6] = {
+    { 8, 1, 1, 0x33 },
+    { 8, 1, 1, 0x34 },
+    { 8, 1, 1, 0x35 },
+    { 8, 1, 1, 0x36 },
+    { 7, 0, 1, 0x37 },
+    { 1, 2, 0, 0x37 },
+};
+
+union AnimationStep D_800D53D8_demo[4] = { { 4, 0, 1, 0x38 }, { 4, 0, 1, 0x39 }, { 4, 0, 1, 0x3A }, { 4, 1, -3, 0x3B } };
+
+union AnimationStep D_800D53E8_demo[6] = {
+    { 3, 0, 1, 0x10 },
+    { 4, 0, 1, 0x0F },
+    { 6, 0, 1, 0x3C },
+    { 2, 0, 1, 0x2A },
+    { 3, 0, 1, 0x2B },
+    { 1, 1, 0, 0x00 },
+};
+
+union AnimationStep D_800D5400_demo[17] = {
+    { 2, 0, 1, 0x3D },
+    { 2, 0, 1, 0x3E },
+    { 2, 0, 1, 0x3F },
+    { 2, 0, 1, 0x40 },
+    { 2, 0, 1, 0x41 },
+    { 2, 0, 1, 0x42 },
+    { 2, 0, 1, 0x43 },
+    { 2, 0, 1, 0x44 },
+    { 2, 0, 1, 0x45 },
+    { 2, 0, 1, 0x46 },
+    { 2, 0, 1, 0x47 },
+    { 2, 0, 1, 0x48 },
+    { 2, 0, 1, 0x49 },
+    { 2, 0, 1, 0x4A },
+    { 2, 0, 1, 0x4B },
+    { 1, 0, 1, 0x4C },
+    { 1, 1, 0, 0x4C },
+};
+
+union AnimationStep D_800D5444_demo[8] = {
+    { 20, 0, 1, 0x00 },
+    { 24, 0, 1, 0x4D },
+    { 8, 0, 1, 0x4E },
+    { 2, 0, 1, 0x4D },
+    { 1, 1, 1, 0x4F },
+    { 31, 0, 1, 0x4F },
+    { 1, 0, 1, 0x50 },
+    { 1, 2, 0, 0x50 },
+};
+
+union AnimationStep D_800D5464_demo[11] = {
+    { 2, 0, 1, 0x51 },
+    { 2, 1, 1, 0x52 },
+    { 3, 1, 1, 0x53 },
+    { 3, 1, 1, 0x54 },
+    { 3, 1, 1, 0x55 },
+    { 3, 1, 1, 0x56 },
+    { 4, 1, 1, 0x57 },
+    { 4, 1, 1, 0x58 },
+    { 4, 0, 1, 0x59 },
+    { 3, 0, 1, 0x5A },
+    { 1, 2, 0, 0x5A },
+};
+
+union AnimationStep D_800D5490_demo[38] = {
+    { 2, 0, 1, 0x5B },
+    { 2, 0, 1, 0x5C },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x5E },
+    { 2, 0, 1, 0x3C },
+    { 2, 0, 1, 0x5F },
+    { 2, 0, 1, 0x5B },
+    { 2, 0, 1, 0x5C },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x5E },
+    { 2, 0, 1, 0x3C },
+    { 2, 0, 1, 0x5F },
+    { 2, 0, 1, 0x60 },
+    { 2, 0, 1, 0x61 },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x62 },
+    { 2, 0, 1, 0x63 },
+    { 2, 0, 1, 0x64 },
+    { 2, 0, 1, 0x60 },
+    { 2, 0, 1, 0x61 },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x62 },
+    { 2, 0, 1, 0x63 },
+    { 2, 0, 1, 0x64 },
+    { 2, 0, 1, 0x65 },
+    { 2, 0, 1, 0x66 },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x67 },
+    { 2, 0, 1, 0x68 },
+    { 2, 0, 1, 0x69 },
+    { 2, 0, 1, 0x65 },
+    { 2, 0, 1, 0x66 },
+    { 2, 0, 1, 0x5D },
+    { 2, 0, 1, 0x67 },
+    { 2, 0, 1, 0x68 },
+    { 2, 0, 1, 0x69 },
+    { 1, 0, 1, 0x6A },
+    { 1, 1, 0, 0x6A },
+};
+
+union AnimationStep D_800D5528_demo[4] = { { 4, 0, 1, 0x6F }, { 4, 0, 1, 0x70 }, { 4, 0, 1, 0x71 }, { 4, 0, -3, 0x72 } };
+
+union AnimationStep D_800D5538_demo[1] = { { 1, 1, 0, 0x6A } };
+
+union AnimationStep D_800D553C_demo[9] = {
+    { 2, 0, 1, 0x0F },
+    { 2, 0, 1, 0x10 },
+    { 2, 0, 1, 0x11 },
+    { 2, 0, 1, 0x12 },
+    { 2, 0, 1, 0x13 },
+    { 2, 0, 1, 0x14 },
+    { 2, 0, 1, 0x15 },
+    { 2, 0, 1, 0x16 },
+    { 2, 1, -7, 0x17 },
+};
+
+void* split_mushroom_animations[23] = {
+    split_mushroom_anim_0,
+    split_mushroom_anim_1,
+    split_mushroom_anim_2,
+    split_mushroom_anim_3,
+    split_mushroom_anim_4,
+    split_mushroom_anim_5,
+    split_mushroom_anim_6,
+    D_800D535C_demo,
+    D_800D5374_demo,
+    D_800D5378_demo,
+    D_800D5394_demo,
+    D_800D53A0_demo,
+    D_800D53B0_demo,
+    D_800D53C0_demo,
+    D_800D53D8_demo,
+    D_800D53E8_demo,
+    D_800D5400_demo,
+    D_800D5444_demo,
+    D_800D5464_demo,
+    D_800D5490_demo,
+    D_800D5528_demo,
+    D_800D5538_demo,
+    D_800D553C_demo,
+};
+
+void (*split_mushroom_state_funcs[3])(struct MainObj*) = {
+    func_8007877C,
+    func_800788E4,
+    split_mushroom_death,
+};
+
+void (*split_mushroom_step_funcs[8])() = {
+    enemy_hit_reaction,
+    split_mushroom_intro,
+    split_mushroom_stun,
+    split_mushroom_spore_rain,
+    split_mushroom_walk,
+    split_mushroom_dash,
+    split_mushroom_combo,
+    split_mushroom_wall_jump,
+};
+
+void (*split_mushroom_death_funcs[3])(struct MainObj*) = {
+    split_mushroom_death_start,
+    split_mushroom_death_explode,
+    split_mushroom_death_finish,
+};
+
+void (*split_mushroom_intro_funcs[7])(struct MainObj*) = {
+    split_mushroom_intro_wait_player,
+    split_mushroom_intro_drop,
+    split_mushroom_intro_bounce,
+    split_mushroom_intro_land,
+    func_800793AC,
+    split_mushroom_intro_start_health_bar,
+    split_mushroom_intro_fill_health,
+};
+
+void (*split_mushroom_stun_funcs[7])(struct MainObj*) = {
+    split_mushroom_stun_start,
+    split_mushroom_stun_wait,
+    split_mushroom_stun_fall,
+    split_mushroom_stun_merge,
+    func_80079824,
+    split_mushroom_stun_land,
+    split_mushroom_stun_split,
+};
+
+void (*split_mushroom_spore_rain_funcs[6])(struct MainObj*) = {
+    func_80079A8C,
+    func_80079B50,
+    split_mushroom_spore_rain_split,
+    split_mushroom_spore_rain_land,
+    split_mushroom_spore_rain_recover,
+    split_mushroom_spore_rain_finish,
+};
+
+void (*split_mushroom_walk_funcs[5])(struct MainObj*) = {
+    split_mushroom_walk_start,
+    split_mushroom_walk_move,
+    func_8007A2B4,
+    split_mushroom_walk_fall,
+    func_8007A444,
+};
+
+void (*split_mushroom_dash_funcs[5])(struct MainObj*) = {
+    func_80081564_demo,
+    split_mushroom_dash_bounce,
+    split_mushroom_dash_land,
+    split_mushroom_dash_recover,
+    split_mushroom_dash_finish,
+};
+
+void (*split_mushroom_combo_funcs[8])(struct MainObj*) = {
+    func_8007A96C,
+    func_8007AB1C,
+    split_mushroom_combo_swing,
+    func_8007AE2C,
+    split_mushroom_combo_repeat,
+    split_mushroom_combo_sync,
+    split_mushroom_combo_end,
+    split_mushroom_combo_restart,
+};
+
+void (*split_mushroom_wall_jump_funcs[6])(struct MainObj*) = {
+    func_8007B1BC,
+    split_mushroom_wall_jump_air,
+    split_mushroom_wall_jump_cling,
+    func_8007B418,
+    split_mushroom_wall_jump_land,
+    split_mushroom_wall_jump_finish,
+};
+
+#else
 struct Unk_unk68 split_mushroom_attack_box = { -11, -16, 20, 35 };
 
 struct Unk_unk68 split_mushroom_hurt_box = { -16, -17, 30, 37 };
@@ -2013,3 +2653,4 @@ void (*split_mushroom_wall_jump_funcs[7])() = {
     split_mushroom_wall_jump_land,
     split_mushroom_wall_jump_finish,
 };
+#endif

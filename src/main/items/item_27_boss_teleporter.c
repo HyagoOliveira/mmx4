@@ -31,6 +31,21 @@ void boss_teleporter_warp_leave(struct ItemObj*);
 void boss_teleporter_warp_finish(struct ItemObj*);
 #include "weapon_resources.h"
 
+#ifdef VERSION_DEMO
+void boss_teleporter_warp_start(struct ItemObj* arg0)
+{
+    struct EffectObj* effect;
+
+    effect = find_free_effect_obj();
+    if (effect != NULL) {
+        effect->active = 1;
+        effect->id = 0x25;
+        effect->unk2 = arg0->tail_ext.unk1.unk84.bytes[0];
+        effect->x_pos.val = arg0->x_pos.val;
+        effect->y_pos.val = arg0->y_pos.val;
+    }
+}
+#else
 struct Item26AnimationStep {
     u8 duration;
     u8 mode;
@@ -304,10 +319,10 @@ void func_800C71C0(struct ItemObj* arg0)
         row = func_8002938C(0x88);
         arg0->unk42 = OBJECT_CLUT(((resource * 4 + 0x1A) % 16) | ((((row + 6) / 4) + 0x1E0) << 6));
         set_animation(ANIMATED_OBJECT(arg0), 6);
+        arg0->unk2 &= 0xF;
         arg0->state = 1;
         arg0->unk5 = 4;
         arg0->unk6 = 0;
-        arg0->unk2 &= 0xF;
         return;
     }
     switch (engine_obj.character_state.bytes[6 + arg0->unk2]) {
@@ -437,7 +452,7 @@ void boss_teleporter_warp_start(struct ItemObj* arg0)
         misc->y_pos.val = arg0->y_pos.val;
         misc->ext.misc_24.main = MAIN_OBJECT(arg0);
         arg0->tail_ext.unk1.unk84.timer = 0x78;
-        arg0->unk6 = (u8)arg0->unk6 + 1;
+        arg0->unk6++;
     }
 }
 
@@ -447,7 +462,7 @@ void boss_teleporter_warp_charge(struct ItemObj* arg0)
         set_animation(arg0, 4);
         set_animation(arg0->unk7C.object, 8);
         arg0->tail_ext.unk1.unk84.timer = 0x78;
-        arg0->unk6 = (u8)arg0->unk6 + 1;
+        arg0->unk6++;
     }
 }
 
@@ -455,9 +470,12 @@ void boss_teleporter_warp_leave(struct ItemObj* arg0)
 {
     if (--arg0->tail_ext.unk1.unk84.timer == 0) {
         player_start_script_action(0x16, g_Player.unk15);
+#ifdef MMX4_GAMECUBE
+        stop_sound(5, 0);
+#endif
         func_8001540C(5, SATURN_SOUND(1, 0x2A), NULL);
         arg0->tail_ext.unk1.unk84.timer = 0x28;
-        arg0->unk6 = (u8)arg0->unk6 + 1;
+        arg0->unk6++;
     }
 }
 
@@ -533,19 +551,19 @@ s8 func_800C7970(struct ItemObj* item, struct PlayerObj* player)
     character = player;
     teleporter_box = teleporter->unk68;
 
-    teleporter_left = teleporter->x_pos.u.hi - (teleporter_box->unk2 - 0x10);
-    player_left = character->x_pos.u.hi - player_box->unk2;
+    teleporter_left = teleporter->x_pos.i.hi - (teleporter_box->unk2 - 0x10);
+    player_left = character->x_pos.i.hi - player_box->unk2;
     if (teleporter_left > player_left) {
         return 0;
     }
-    teleporter_right = teleporter->x_pos.u.hi + (teleporter_box->unk2 - 0x10);
-    player_right = character->x_pos.u.hi + player_box->unk2;
+    teleporter_right = teleporter->x_pos.i.hi + (teleporter_box->unk2 - 0x10);
+    player_right = character->x_pos.i.hi + player_box->unk2;
     if (teleporter_right < player_right) {
         return 0;
     }
 
-    teleporter_y = teleporter->y_pos.u.hi + teleporter_box->unk1;
-    player_y = character->y_pos.u.hi + player_box->unk1;
+    teleporter_y = teleporter->y_pos.i.hi + teleporter_box->unk1;
+    player_y = character->y_pos.i.hi + player_box->unk1;
     distance = teleporter_y - player_y >= 0
         ? teleporter_y - player_y
         : player_y - teleporter_y;
@@ -587,3 +605,4 @@ void (*boss_teleporter_warp_funcs[])(struct ItemObj*) = {
     boss_teleporter_warp_leave,
     boss_teleporter_warp_finish,
 };
+#endif

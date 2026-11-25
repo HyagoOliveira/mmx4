@@ -42,12 +42,9 @@ void func_800AA68C(struct ShotObj* self);
 void func_800AA5E0(struct ShotObj* self)
 {
     if (self->animation_step.fields.relative_step == 0) {
-        s32 offset;
-
         self->unk5++;
         self->unk8C.halves[1] = (get_random() & 1) ? 0x40 : 0x70;
-        offset = self->unk8C.halves[1] - 0xC0;
-        self->unk8C.halves[1] = background_objects[0].y_pos.u.hi - offset;
+        self->unk8C.halves[1] = background_objects[0].y_pos.i.hi + 0xC0 - self->unk8C.halves[1];
         self->timer = ABS((s16)self->unk8C.halves[1], self->y_pos.i.hi) / 4 + 1;
     }
     animate_object(ANIMATED_OBJECT(self));
@@ -71,8 +68,8 @@ void double_mine_dash_start(struct ShotObj* self)
     s32 angle;
     u32 target_x;
 
-    self->timer = 0x3C;
     self->unk5++;
+    self->timer = 0x3C;
     target_x = g_Player.x_pos.u.hi;
     self->unk8C.half = target_x;
     angle = angle_from_delta(self->x_pos.val - (target_x << 16), 0);
@@ -93,7 +90,7 @@ void double_mine_dash(struct ShotObj* self)
     u8 angle;
 
     angle = angle_from_delta(self->x_pos.val - (self->unk8C.halves[0] << 16), 0);
-    if ((angle ^ self->unk84.value) & 0x10) {
+    if ((self->unk84.value ^ angle) & 0x10) {
         self->unk5++;
         self->x_pos.val = self->unk8C.halves[0] << 16;
         self->y_pos.val = self->unk8C.halves[1] << 16;
@@ -112,7 +109,9 @@ void double_mine_fire(struct ShotObj* self)
     if (self->animation_step.fields.relative_step == 0) {
         self->unk5++;
         self->timer = 0x3C;
+#ifndef MMX4_GAMECUBE
         set_animation_frame(ANIMATED_OBJECT(self), 0x15, 7);
+#endif
         return;
     }
 
@@ -140,8 +139,7 @@ void double_mine_fire(struct ShotObj* self)
 
 void double_mine_cooldown(struct ShotObj* self)
 {
-    self->timer--;
-    if (self->timer == 0) {
+    if (--self->timer == 0) {
         self->unk5 = 3;
     }
     animate_object(self);

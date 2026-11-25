@@ -23,22 +23,23 @@ extern u8 ryuenjin_flame_animations[];
 #include "main/sprite_animations.h"
 #endif
 
+#ifndef VERSION_DEMO
 void zero_saber_update(struct WeaponObj* arg0)
 {
-    s32 var_a0;
+    u32 var_a0;
     struct PlayerObj* ptr = &g_Player;
 
     var_a0 = 0;
-    if (g_Player.hp == 0) {
+    if (ptr->hp == 0) {
         var_a0 = 1;
     }
-    if (g_Player.input_locked != 0) {
+    if (ptr->input_locked != 0) {
         var_a0 = 1;
     }
-    if (g_Player.actions_reset != 0) {
+    if (ptr->actions_reset != 0) {
         var_a0 = 1;
     }
-    if (arg0->unk84.word != g_Player.unk17) {
+    if (arg0->unk84.word != ptr->unk17) {
         var_a0 = 1;
     }
     if (var_a0) {
@@ -46,17 +47,16 @@ void zero_saber_update(struct WeaponObj* arg0)
         return;
     }
 
-    if (arg0->state != 0) {
+    if (arg0->state == 0) {
+        func_80097FC4(arg0, ptr);
+    } else {
         animate_object(ANIMATED_OBJECT(arg0));
         if (arg0->animation_step.fields.relative_step == 0) {
             ZeroObjectState(OBJECT_HEADER(arg0));
-        } else {
-            zero_saber_follow(arg0, ptr);
+            return;
         }
-    } else {
-        func_80097FC4(arg0, ptr);
-        zero_saber_follow(arg0, ptr);
     }
+    zero_saber_follow(arg0, ptr);
 }
 
 // zero_saber_init
@@ -109,6 +109,7 @@ void func_80097FC4(struct WeaponObj* weapon, struct PlayerObj* player)
     weapon->state++;
 }
 
+#endif
 void zero_saber_follow(struct WeaponObj* arg0, struct PlayerObj* arg1)
 {
     u8 id;
@@ -121,15 +122,26 @@ void zero_saber_follow(struct WeaponObj* arg0, struct PlayerObj* arg1)
     } else {
         arg0->unk50 = (u8*)&zero_saber_hit_boxes[arg0->animation_step.fields.event];
     }
+#ifdef VERSION_DEMO
+    if (arg0->id >= 0x18) {
+        if (arg0->id < 0x1A) {
+            arg0->unk64 = arg0->unk2 + 1;
+        } else if (arg0->id <= 0x20) {
+            arg0->unk64 = arg0->animation_step.fields.event;
+        }
+    }
+#else
     id = arg0->id;
     if (id - 0x18 < 2U) {
         arg0->unk64 = arg0->unk2 + 1;
     } else {
         arg0->unk64 = arg0->animation_step.fields.event;
     }
+#endif
     update_on_screen(BASE_OBJECT(arg0), 0x80, 0x80);
 }
 
+#ifndef VERSION_DEMO
 // WeaponObj, weapon_object_update_funcs[36]
 
 // rakuhouha_orb_update
@@ -142,13 +154,13 @@ void func_800981CC(struct WeaponObj* self)
         self->unk50 = rakuhouha_orb_box;
         self->unk3C = (u8*)SP_SPRITE_FRAMES + SP_SPRITE_FRAMES[6];
         self->animation_table = D_8011C018;
-        self->unk42 = WEAPON_PALETTE_3;
         self->unk40 = WEAPON_TEXTURE_BASE;
+        self->unk42 = WEAPON_PALETTE_3;
         self->unk16 = 1;
-        self->x_pos.u.hi = player->x_pos.u.hi;
-        self->y_pos.u.hi = player->y_pos.u.hi + 0x15;
+        self->x_pos.i.hi = player->x_pos.i.hi;
+        self->y_pos.i.hi = player->y_pos.i.hi + 0x15;
         self->unk15 = 0;
-        set_velocity_from_angle(MOVING_OBJECT(self), (0x10 - self->unk2 * 2) & 0xFE);
+        set_velocity_from_angle(MOVING_OBJECT(self), (u8)(0x10 - self->unk2 * 2));
         self->x_vel.val *= 7;
         self->y_vel.val *= 7;
         set_animation(self, self->unk2 + 0xA);
@@ -156,7 +168,11 @@ void func_800981CC(struct WeaponObj* self)
         move_object(MOVING_OBJECT(self));
         move_object(MOVING_OBJECT(self));
         self->state++;
-    } else if (func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0 && self->unk98 == 0) {
+    } else if (func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20) == 0) {
+        if (self->unk98 != 0) {
+            ZeroObjectState(OBJECT_HEADER(self));
+            return;
+        }
         animate_object(ANIMATED_OBJECT(self));
         move_object(MOVING_OBJECT(self));
     } else {
@@ -219,11 +235,11 @@ void func_80098474(struct MiscObj* self)
         self->unk40 = WEAPON_TEXTURE_BASE;
         self->unk42 = WEAPON_PALETTE_4;
         self->unk16 = 1;
-        if (g_Player.unk15 == 0)
-            self->x_pos.u.hi = g_Player.x_pos.u.hi + ryuenjin_flame_offsets[get_random() & 3][0];
+        if (player->unk15 == 0)
+            self->x_pos.i.hi = player->x_pos.i.hi + ryuenjin_flame_offsets[get_random() & 3][0];
         else
-            self->x_pos.u.hi = g_Player.x_pos.u.hi - ryuenjin_flame_offsets[get_random() & 3][0];
-        self->y_pos.u.hi = player->y_pos.u.hi + ryuenjin_flame_offsets[get_random() & 3][1];
+            self->x_pos.i.hi = player->x_pos.i.hi - ryuenjin_flame_offsets[get_random() & 3][0];
+        self->y_pos.i.hi = player->y_pos.i.hi + ryuenjin_flame_offsets[get_random() & 3][1];
         self->unk15 = player->unk15;
         set_animation(self, ryuenjin_flame_animations[get_random() & 3]);
         self->state++;
@@ -333,3 +349,54 @@ u16 ryuenjin_flame_offsets[4][2] = {
     { 0xFFEC, 0xFFF2 },
     { 0xFFE8, 0x0002 },
 };
+#endif
+
+#ifdef VERSION_DEMO
+struct Unk_unk68 zero_saber_hit_boxes[45] = {
+    { 0, 0, 0, 0 },
+    { -23, -43, 0x1F, 0x1F },
+    { -57, -43, 0x33, 0x36 },
+    { -60, -39, 0x28, 0x3A },
+    { -59, -16, 0x26, 0x24 },
+    { -57, 5, 0x25, 0x10 },
+    { -48, -9, 0x1E, 0x11 },
+    { -66, -8, 0x49, 0x11 },
+    { -67, -6, 0x69, 0x13 },
+    { 18, -6, 0x20, 0x14 },
+    { 20, -6, 0x1E, 0xF },
+    { -13, -41, 0x2C, 0x1D },
+    { -81, -44, 0x5B, 0x3E },
+    { -83, -44, 0x4B, 0x4E },
+    { -83, -34, 0x4C, 0x44 },
+    { -83, -8, 0x4C, 0x29 },
+    { -50, 6, 0x28, 0x1B },
+    { -59, 4, 0x42, 0x1A },
+    { -75, -15, 0x4C, 0x2C },
+    { -72, -17, 0x44, 0x2C },
+    { -43, -19, 0x3E, 0x16 },
+    { 2, -17, 0x1E, 0x18 },
+    { -72, -36, 0x36, 0x3E },
+    { -72, -6, 0x38, 0x30 },
+    { -72, 11, 0x38, 0x1A },
+    { -44, -32, 0x2B, 0x26 },
+    { -64, -30, 0x4E, 0x34 },
+    { -74, -26, 0x6A, 0x3E },
+    { 8, -14, 0x18, 0x22 },
+    { -44, -36, 0x2B, 0x26 },
+    { -64, -34, 0x4E, 0x34 },
+    { -74, -30, 0x6A, 0x3E },
+    { 8, -18, 0x18, 0x22 },
+    { -80, -36, 0x42, 0x30 },
+    { -80, -28, 0x42, 0x28 },
+    { -80, -6, 0x40, 0x12 },
+    { 6, -26, 0x18, 0x14 },
+    { 14, -18, 0x22, 0x22 },
+    { -14, -10, 0x32, 0x18 },
+    { -62, -10, 0x26, 0x18 },
+    { -80, -16, 0x2A, 0x24 },
+    { -80, -16, 0x2A, 0x24 },
+    { -92, -16, 0x36, 0x24 },
+    { -128, -16, 0x5A, 0x24 },
+    { -128, -16, 0x5A, 0x24 },
+};
+#endif

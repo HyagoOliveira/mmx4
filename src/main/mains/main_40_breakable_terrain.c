@@ -50,9 +50,9 @@ void func_80061DFC(struct MainObj* arg0)
 {
     s8** boxes = D_800FEA24;
 
-    arg0->invincibility_timer = 0;
     arg0->ext.main_40.unk80 = arg0->unk2 >> 4;
     arg0->ext.main_40.unk81 = arg0->unk2 & 0xF;
+    arg0->invincibility_timer = 0;
     arg0->bg_offset = g_Player.bg_offset;
     arg0->unk18.val = arg0->x_pos.val;
     arg0->unk1C.val = arg0->y_pos.val;
@@ -96,11 +96,13 @@ void func_80061F2C(struct MainObj* arg0)
             arg0->ext.main_40.timer = 0x30;
             arg0->ext.main_40.trigger_time = 0x2F;
             arg0->on_screen = 0;
+#ifndef VERSION_DEMO
             spawn_debris(7, D_800FEA1C, arg0);
+#endif
             arg0->state++;
             return;
         }
-        if (collision > 0)
+        if (collision >= 1)
             arg0->unk42 |= 0x8000;
         else
             arg0->unk42 &= 0x7FFF;
@@ -108,7 +110,9 @@ void func_80061F2C(struct MainObj* arg0)
             arg0->ext.main_40.timer = 0x30;
             arg0->ext.main_40.trigger_time = 0x2F;
             arg0->on_screen = 0;
+#ifndef VERSION_DEMO
             spawn_debris(7, D_800FEA1C, arg0);
+#endif
             arg0->state++;
             return;
         }
@@ -120,7 +124,7 @@ void func_80061F2C(struct MainObj* arg0)
     case 6:
         index = arg0->ext.main_40.unk80 - 2;
         collision = ((struct BreakableTerrainOffset*)breakable_terrain_effect_offsets)[index].y << 16;
-        if (arg0->y_pos.val - collision - background_objects[arg0->bg_offset].y_pos.val > 0xA80000) {
+        if (arg0->y_pos.val - collision - background_objects[arg0->bg_offset].y_pos.val >= 0xA80001) {
             arg0->ext.main_40.timer = 0x10;
             arg0->ext.main_40.trigger_time = 8;
             arg0->state++;
@@ -139,8 +143,7 @@ void breakable_terrain_crumble(struct MainObj* self)
 {
     s32 index;
 
-    self->ext.main_40.timer--;
-    if (self->ext.main_40.timer != 0) {
+    if (--self->ext.main_40.timer != 0) {
         if (!(WEAPON_FRAME_COUNTER & 7)) {
             if (self->ext.main_40.unk80 < 2U) {
                 func_800AF878(BASE_OBJECT(self), 1, 0x10, 0x30);
@@ -205,8 +208,8 @@ u8 func_80062338(struct MainObj* self)
 {
     struct MainObj* object = self;
     struct PlayerObj* player = &g_Player;
-    s16 edge = object->x_pos.u.hi + object->terrain_box->unk0;
-    s16 player_edge = player->x_pos.u.hi + player->unk68->unk0;
+    s16 edge = object->x_pos.i.hi + object->terrain_box->unk0;
+    s16 player_edge = player->x_pos.i.hi + player->unk68->unk0;
     s16 distance = ABS(edge, player_edge);
 
     return distance <= object->terrain_box->unk2 + player->unk68->unk2;
@@ -227,8 +230,8 @@ static const struct Unk_unk68* relative_bounds_or_zero(const struct Unk_unk68* b
 u8 func_80062338(struct MainObj* self)
 {
     struct PlayerObj* player = &g_Player;
-    s16 edge = self->x_pos.u.hi + (s8)BOUNDS(self->terrain_box)->unk0;
-    s16 player_edge = player->x_pos.u.hi + (s8)BOUNDS(player->unk68)->unk0;
+    s16 edge = self->x_pos.i.hi + (s8)BOUNDS(self->terrain_box)->unk0;
+    s16 player_edge = player->x_pos.i.hi + (s8)BOUNDS(player->unk68)->unk0;
     s16 distance = ABS(edge, player_edge);
 
     return distance <= BOUNDS(self->terrain_box)->unk2 + BOUNDS(player->unk68)->unk2;
@@ -252,6 +255,7 @@ s8 D_800FE9E0[4] = { -32, -24, 64, 48 };
 
 union AnimationStep breakable_terrain_anim_0[] = { { 1, 0, 0, 0x00 } };
 
+#ifndef VERSION_DEMO
 union AnimationStep breakable_terrain_anim_1[] = { { 1, 0, 0, 0x01 } };
 
 union AnimationStep breakable_terrain_anim_2[] = { { 1, 0, 0, 0x02 } };
@@ -261,19 +265,24 @@ union AnimationStep breakable_terrain_anim_3[] = { { 1, 0, 0, 0x03 } };
 union AnimationStep breakable_terrain_anim_4[] = { { 1, 0, 0, 0x04 } };
 
 union AnimationStep breakable_terrain_anim_5[] = { { 1, 0, 0, 0x05 } };
+#endif
 
-union AnimationStep* breakable_terrain_animations[6] = {
+union AnimationStep* breakable_terrain_animations[DEMO_ALT(6, 1)] = {
     breakable_terrain_anim_0,
+#ifndef VERSION_DEMO
     breakable_terrain_anim_1,
     breakable_terrain_anim_2,
     breakable_terrain_anim_3,
     breakable_terrain_anim_4,
     breakable_terrain_anim_5,
+#endif
 };
 
 u8 D_800FEA14[8] = { 0, 1, 2, 1, 0, 2, 0, 0 };
 
+#ifndef VERSION_DEMO
 u8 D_800FEA1C[8] = { 1, 2, 3, 4, 5, 2, 4, 0 };
+#endif
 
 s8* D_800FEA24[7] = {
     D_800FE9C8,

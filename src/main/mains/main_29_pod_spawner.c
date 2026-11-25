@@ -74,8 +74,8 @@ void func_8005A538(struct MainObj* self)
     self->invincibility_timer = 0;
     self->unk18 = self->x_pos;
     self->unk1C = self->y_pos;
-    SP_CUR_MAIN_OBJ->ext.main_29_controller.x = self->x_pos.u.hi;
-    SP_CUR_MAIN_OBJ->ext.main_29_controller.y = self->y_pos.u.hi;
+    SP_CUR_MAIN_OBJ->ext.main_29_controller.x = self->x_pos.i.hi;
+    SP_CUR_MAIN_OBJ->ext.main_29_controller.y = self->y_pos.i.hi;
     self->animation_table = (const u8* const*)pod_spawner_animations;
     self->hurt_box = D_800FD834;
     self->attack_box = D_800FD830;
@@ -356,7 +356,7 @@ void func_8005AD00(struct MainObj* self)
         }
         break;
     case 2:
-        drop_item(BASE_OBJECT(self), 0x13);
+        drop_item(BASE_OBJECT(self), DEMO_ALT(0x13, 0x15));
         despawn_object(OBJECT_HEADER(self));
         break;
     }

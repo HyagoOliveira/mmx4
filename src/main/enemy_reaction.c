@@ -24,9 +24,9 @@ void spike_crawler_hit_flash(struct MainObj* self)
         self->unk42 |= 0x8000;
     }
     if (--self->invincibility_timer == 0) {
+        self->unk42 &= 0x7FFF;
         self->unk5 = 1;
         self->unk6 = 0;
-        self->unk42 &= 0x7FFF;
     }
 }
 
@@ -50,9 +50,9 @@ void func_80091EC4(struct MainObj* self)
     else
         self->unk42 |= 0x8000;
     if ((s8)--self->invincibility_timer == 0) {
+        self->unk42 &= 0x7FFF;
         self->unk5 = 1;
         self->unk6 = 0;
-        self->unk42 &= 0x7FFF;
     }
 }
 
@@ -80,7 +80,7 @@ void spike_crawler_hit_knockback(struct MainObj* self)
 
     speed = self->x_speed;
     if (speed < 0) {
-        speed = -speed;
+        speed *= -1;
     }
     if (speed < 0x6000) {
         self->x_speed = 0;
@@ -97,13 +97,12 @@ void spike_crawler_hit_knockback(struct MainObj* self)
         self->unk42 |= 0x8000;
     }
 
-    self->invincibility_timer--;
-    if (self->invincibility_timer == 0) {
+    if (--self->invincibility_timer == 0) {
+        self->unk42 &= 0x7FFF;
         self->unk5 = 1;
         self->unk6 = 0;
         self->x_speed = 0;
         self->x_accel = 0;
-        self->unk42 &= 0x7FFF;
     }
 }
 
@@ -123,6 +122,7 @@ void enemy_hit_reaction(struct MainObj* arg0)
     handlers.funcs[object->unk63](arg0);
 }
 
+#ifndef VERSION_DEMO
 #ifdef MMX4_SATURN
 void play_boss_voice(s32 arg0)
 {
@@ -160,7 +160,7 @@ void play_boss_voice(s32 arg0)
 }
 #endif
 
-s32 update_boss_music_delay(void)
+u32 update_boss_music_delay(void)
 {
 #ifdef VERSION_JP
     if (D_80173C84 == 0) {
@@ -169,8 +169,7 @@ s32 update_boss_music_delay(void)
     }
 #else
     if ((D_80173C84 == 0) && (engine_obj.unk36.timer != 0)) {
-        engine_obj.unk36.timer--;
-        if (engine_obj.unk36.timer == 0) {
+        if (--engine_obj.unk36.timer == 0) {
             engine_obj.unk36.timer = 0;
             func_8001653C();
         }
@@ -179,8 +178,11 @@ s32 update_boss_music_delay(void)
     return engine_obj.unk36.timer;
 }
 
+#endif
+
 s32 spike_crawler_knockback_speeds[2] = { FIXED(3), FIXED(10) };
 
+#ifndef VERSION_DEMO
 u8 boss_voice_tracks[13][3] = {
     { VOICE_WEB_SPIDER_1, VOICE_WEB_SPIDER_1, VOICE_WEB_SPIDER_2 },
     { VOICE_FROST_WALRUS_1, VOICE_FROST_WALRUS_2, VOICE_FROST_WALRUS_3 },
@@ -198,3 +200,4 @@ u8 boss_voice_tracks[13][3] = {
 };
 
 u8 D_80105FEF_padding = 0;
+#endif

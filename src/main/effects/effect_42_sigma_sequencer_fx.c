@@ -76,8 +76,8 @@ void func_800BE364(struct EffectObj* self)
             self->unk5++;
         } else {
             self->ext.effect_42.owner.main->ext.main_73_parts.effect_state = 3;
-            self->ext.effect_42.timer = 0xC8;
             self->unk5 += 2;
+            self->ext.effect_42.timer = 0xC8;
         }
     }
 }
@@ -98,7 +98,7 @@ void sigma_sequencer_fx_wait_parts(struct EffectObj* self)
         i += 1;
     } while (i < 3U);
     if (count == 3) {
-        self->unk5 = (u8)self->unk5 + 1;
+        self->unk5++;
         self->ext.effect_42.owner.main->ext.main_73_parts.effect_state = 3;
         self->ext.effect_42.timer = 0xC8;
     }

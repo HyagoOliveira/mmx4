@@ -15,7 +15,7 @@ void moving_block_despawn(struct ItemObj*);
 #include "main/object_motion.h"
 #endif
 
-extern u8 moving_block_terrain_box[4];
+extern u8 moving_block_terrain_box[DEMO_ALT(4, 32)];
 
 void moving_block_update(struct ItemObj* arg0)
 {
@@ -25,10 +25,36 @@ void moving_block_update(struct ItemObj* arg0)
 }
 
 // moving_block_init
+#ifdef VERSION_DEMO
 void func_800C20F4(struct ItemObj* self)
 {
-    self->active = 0x41;
+    u8 index;
+
     self->state++;
+    self->active = 0x41;
+    self->bg_offset = g_Player.bg_offset;
+    index = engine_obj.substage != 0 ? 3 : 6;
+    self->unk40 = OBJECT_STAGE_TEXTURE(index);
+    self->unk42 = OBJECT_CLUT(CLUT_FROM_XY(index, index));
+    self->sprite_frames = (const u8*)SP_ARCHIVE_ENTRY(SP_MENU_FRAMES, index);
+    self->unk16 = 6;
+    self->animation_step.fields.frame_index = self->unk2;
+    self->unk5C = 0;
+    self->unk61 = 0;
+    self->unk68 = (struct Unk_unk68*)(moving_block_terrain_box + 4 * self->unk2);
+    self->unk54 = NULL;
+    self->x_vel.val = 0;
+    self->y_vel.val = 0;
+    self->unk28 = 0;
+    self->unk2C = 0;
+    self->unk75 = 1;
+    self->unk76 = 0;
+}
+#else
+void func_800C20F4(struct ItemObj* self)
+{
+    self->state++;
+    self->active = 0x41;
     self->bg_offset = g_Player.bg_offset;
     self->unk40 = OBJECT_STAGE_TEXTURE(func_8002938C(0xA1));
     self->sprite_frames = (const u8*)SP_ARCHIVE_ENTRY(SP_MENU_FRAMES, func_8002938C(0xA1));
@@ -37,20 +63,21 @@ void func_800C20F4(struct ItemObj* self)
     self->animation_step.fields.frame_index = 0;
     self->unk5C = 0;
     self->unk61 = 0;
-    self->unk54 = NULL;
     self->unk68 = (struct Unk_unk68*)(moving_block_terrain_box + 4 * self->unk2);
+    self->unk54 = NULL;
     self->x_vel.val = moving_block_motion[self->unk2].x_velocity;
     self->y_vel.val = moving_block_motion[self->unk2].y_velocity;
     self->unk28 = 0;
     self->unk2C = 0;
-    self->unk7C.saved_pos.x = self->x_pos.u.hi;
-    self->unk7C.saved_pos.y = self->y_pos.u.hi;
+    self->unk7C.saved_pos.x = self->x_pos.i.hi;
+    self->unk7C.saved_pos.y = self->y_pos.i.hi;
     if (g_Player.x_pos.val < self->x_pos.val) {
-        self->x_vel.val = -self->x_vel.val;
+        self->x_vel.val *= -1;
     }
     self->unk75 = 0;
     self->unk76 = 0;
 }
+#endif
 
 // moving_block_move
 
@@ -59,6 +86,17 @@ void func_800C229C(struct ItemObj* self);
 void collide_with_players(struct PlayerObj*);
 #endif
 
+#ifdef VERSION_DEMO
+void collide_with_players(struct PlayerObj*);
+
+void func_800C229C(struct ItemObj* self)
+{
+    collide_with_players(PLAYER_OBJECT(self));
+    update_on_screen(BASE_OBJECT(self), 0x50, 0x20);
+    if (func_8002B1E8(BASE_OBJECT(self), 0x50, 0x20) == 1)
+        self->state++;
+}
+#else
 void func_800C229C(struct ItemObj* self)
 {
     s32 velocity;
@@ -98,6 +136,7 @@ void func_800C229C(struct ItemObj* self)
     }
     collide_with_players(PLAYER_OBJECT(self));
 }
+#endif
 
 void moving_block_despawn(struct ItemObj* arg0)
 {
@@ -105,9 +144,13 @@ void moving_block_despawn(struct ItemObj* arg0)
     despawn_object(OBJECT_HEADER(arg0));
 }
 
+#ifdef VERSION_DEMO
+u8 moving_block_terrain_box[32] = { 0, 0, 0x1E, 0x0E, 0, 0, 0x0E, 0x0D };
+#else
 u8 moving_block_terrain_box[4] = { 0, 0, 0x18, 0x10 };
 
 struct MovingBlockMotion moving_block_motion[1] = { { 0x10000, 0, 0x90, 0 } };
+#endif
 
 void (*moving_block_state_funcs[])(struct ItemObj*) = {
     func_800C20F4,

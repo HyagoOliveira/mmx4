@@ -52,7 +52,7 @@ extern void (*sentry_drone_dash_funcs[])(struct MainObj*);
 extern void (*sentry_drone_drop_funcs[])(struct MainObj*);
 
 extern u32 D_801076F8[];
-extern union AnimationStep* sentry_drone_animations[13];
+extern union AnimationStep* sentry_drone_animations[DEMO_ALT(13, 8)];
 extern s8 D_800FFACC[4];
 extern u8 D_800FFAD0[4];
 extern u8 D_800FFAD4[4];
@@ -75,11 +75,11 @@ void func_8006738C(struct MainObj* self)
     self->unk42 = OBJECT_STAGE_CLUT(0x30);
     self->animation_table = (const u8* const*)sentry_drone_animations;
     self->unk16 = VISUAL_SATURN_LAYER(4);
+    self->air_state = 0;
     self->terrain_box = (struct Unk_unk68*)D_800FFAD0;
     self->attack_box = D_800FFAD4;
     self->hurt_box = D_800FFACC;
     self->collision_data = D_801076F8;
-    self->air_state = 0;
     self->invincibility_timer = 0;
     self->hp = 5;
     self->contact_damage = 3;
@@ -115,7 +115,9 @@ void sentry_drone_main(struct MainObj* self)
     hit = func_8002DD04(self);
     if (hit < 0) {
         spawn_explosion(BASE_OBJECT(self));
+#ifndef VERSION_DEMO
         spawn_debris(5, sentry_drone_debris, self);
+#endif
         self->state = 2;
     } else {
         sentry_drone_check_player_near(self);
@@ -125,7 +127,7 @@ void sentry_drone_main(struct MainObj* self)
             is_on_screen(BASE_OBJECT(self));
             return;
         }
-        self->state = (u8)self->state + 1;
+        self->state++;
     }
 }
 
@@ -141,8 +143,8 @@ void sentry_drone_drift(struct MainObj* self)
 
 void sentry_drone_drift_start(struct MainObj* self)
 {
-    self->air_state = 1;
     self->unk6++;
+    self->air_state = 1;
     self->x_speed = self->unk15 != 0 ? FIXED(0.5) : -FIXED(0.5);
     self->x_accel = 0;
     self->y_speed = 0;
@@ -286,7 +288,9 @@ void sentry_drone_burst_fire(struct MainObj* self)
         shot->y_pos.val = self->y_pos.val;
         shot->unk2 = SP_CUR_MAIN_OBJ->ext.main_48.collision_result;
         shot->unk7C = self;
+#ifndef VERSION_DEMO
         shot->unk84.value = 0;
+#endif
         set_velocity_from_angle(MOVING_OBJECT(shot), (s8)SP_CUR_MAIN_OBJ->ext.main_48.collision_result & 0xFE);
         SP_CUR_MAIN_OBJ->ext.main_48.unk80 = 8;
         self->unk6++;
@@ -423,7 +427,9 @@ void sentry_drone_spread_fire(struct MainObj* self)
         shot->y_pos.val = self->y_pos.val;
         shot->unk2 = SP_CUR_MAIN_OBJ->ext.main_48.collision_result;
         shot->unk7C = self;
+#ifndef VERSION_DEMO
         shot->unk84.value = 0;
+#endif
         set_velocity_from_angle(MOVING_OBJECT(shot), (s8)SP_CUR_MAIN_OBJ->ext.main_48.collision_result & 0xFE);
         SP_CUR_MAIN_OBJ->ext.main_48.unk80 = 8;
         self->unk6++;
@@ -634,6 +640,7 @@ union AnimationStep sentry_drone_anim_7[] = {
     { 5, 0, 0, 0x1A },
 };
 
+#ifndef VERSION_DEMO
 union AnimationStep sentry_drone_anim_8[] = { { 1, 0, 0, 0x1B } };
 
 union AnimationStep sentry_drone_anim_9[] = { { 1, 0, 0, 0x1C } };
@@ -643,8 +650,9 @@ union AnimationStep sentry_drone_anim_10[] = { { 1, 0, 0, 0x1D } };
 union AnimationStep sentry_drone_anim_11[] = { { 1, 0, 0, 0x1E } };
 
 union AnimationStep sentry_drone_anim_12[] = { { 1, 0, 0, 0x1F } };
+#endif
 
-union AnimationStep* sentry_drone_animations[13] = {
+union AnimationStep* sentry_drone_animations[DEMO_ALT(13, 8)] = {
     sentry_drone_anim_0,
     sentry_drone_anim_1,
     sentry_drone_anim_2,
@@ -653,11 +661,13 @@ union AnimationStep* sentry_drone_animations[13] = {
     sentry_drone_anim_5,
     sentry_drone_anim_6,
     sentry_drone_anim_7,
+#ifndef VERSION_DEMO
     sentry_drone_anim_8,
     sentry_drone_anim_9,
     sentry_drone_anim_10,
     sentry_drone_anim_11,
     sentry_drone_anim_12,
+#endif
 };
 
 s8 D_800FFACC[4] = { -9, -9, 23, 18 };
@@ -668,7 +678,9 @@ u8 D_800FFAD4[4] = { 0, 0, 11, 11 };
 
 s16 sentry_drone_activation_distances[4] = { 0x40, 0x50, 0x60, 0x70 };
 
+#ifndef VERSION_DEMO
 u8 sentry_drone_debris[8] = { 8, 9, 10, 11, 12 };
+#endif
 
 void (*sentry_drone_state_funcs[])(struct MainObj*) = {
     func_8006738C,

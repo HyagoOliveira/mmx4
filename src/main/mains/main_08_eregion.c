@@ -165,6 +165,14 @@ void func_80047E58(struct MainObj* arg0)
     s32 collision;
     s8 timer;
 
+#ifdef VERSION_DEMO
+    func_8002D9BC(arg0);
+    if (arg0->ext.main_8.unk88 != 0) {
+        arg0->attack_box = arg0->ext.main_8.unk80;
+        func_8002D9BC(arg0);
+        arg0->attack_box = arg0->ext.main_8.unk84;
+    }
+#endif
     if (engine_obj.cur_character == 0)
         arg0->hurt_box = (const void*)&D_800FA740;
     else
@@ -191,11 +199,17 @@ void func_80047E58(struct MainObj* arg0)
     arg0->unk65 = arg0->ext.main_8.unk8C;
     collision = func_8002DD04(arg0);
     if (collision < 0) {
+#ifdef VERSION_DEMO
+        arg0->state++;
+#else
         arg0->state = 2;
+#endif
         arg0->unk5 = 0;
         arg0->unk6 = 0;
         update_on_screen(BASE_OBJECT(arg0), 0x90, 0x90);
+#ifndef VERSION_DEMO
         g_Player.spike_immune = 1;
+#endif
         return;
     }
     if (collision > 0) {
@@ -229,12 +243,14 @@ void func_80047E58(struct MainObj* arg0)
             arg0->unk42 &= 0x7FFF;
     }
 
+#ifndef VERSION_DEMO
     func_8002D9BC(arg0);
     if (arg0->ext.main_8.unk88 != 0) {
         arg0->attack_box = arg0->ext.main_8.unk80;
         func_8002D9BC(arg0);
         arg0->attack_box = arg0->ext.main_8.unk84;
     }
+#endif
     update_on_screen(BASE_OBJECT(arg0), 0x90, 0x90);
 }
 
@@ -255,10 +271,10 @@ void func_800480D0(struct MainObj* arg0)
     arg0->unk7C = 0;
     if (arg0->ext.main_8.unk8A++ >= 2) {
         arg0->ext.main_8.unk8A = 0;
-        if (arg0->hp <= 0x18)
-            arg0->unk5 = 6;
-        else
+        if (arg0->hp > 0x18)
             arg0->unk5 = 4;
+        else
+            arg0->unk5 = 6;
         return;
     }
 
@@ -534,7 +550,7 @@ void func_80048B04(struct MainObj* arg0)
     animate_object(ANIMATED_OBJECT(arg0));
 
     if (arg0->animation_step.fields.frame_index != 0xC) {
-        arg0->x_pos.u.hi = (s16)arg0->x_speed + (arg0->unk15 ? -8 : 8);
+        arg0->x_pos.i.hi = (s16)arg0->x_speed + (arg0->unk15 ? -8 : 8);
     }
 
     if (arg0->animation_step.fields.event == 2) {
@@ -544,7 +560,7 @@ void func_80048B04(struct MainObj* arg0)
     if (arg0->animation_step.fields.event == 1) {
         arg0->unk5 = 0;
         arg0->unk6 = 0;
-        arg0->x_pos.u.hi = arg0->x_speed;
+        arg0->x_pos.i.hi = arg0->x_speed;
     }
 }
 
@@ -747,13 +763,13 @@ void eregion_death_wait_explosion(struct MainObj* self)
     struct MiscObj* misc;
     s8* data;
 
-    data = (s8*)self->ext.main_9.effect;
     self->on_screen = 0;
+    data = (s8*)self->ext.main_9.effect;
     if (data[0] != 0) {
         if (data[7] == 0) {
             if (self->unk7E-- == 0) {
+                self->unk42 ^= 0x8000;
                 self->unk7E = 5;
-                self->unk42 = self->unk42 ^ 0x8000;
             }
             update_on_screen(BASE_OBJECT(self), 0x90, 0x90);
             return;
@@ -761,6 +777,9 @@ void eregion_death_wait_explosion(struct MainObj* self)
         self->unk7 = -0x80;
         return;
     }
+#ifdef VERSION_DEMO
+    engine_obj.unkF = 1;
+#else
     misc = find_free_misc_obj();
     if (misc != 0) {
         misc->active = 0x41;
@@ -768,6 +787,7 @@ void eregion_death_wait_explosion(struct MainObj* self)
         misc->state = 0;
     }
     player_start_script_action(0x14, PLAYER_FACING_RIGHT);
+#endif
     ZeroObjectState(OBJECT_HEADER(self));
 }
 
@@ -790,7 +810,7 @@ void eregion_recoil_start(struct MainObj* self)
 // eregion_recoil_wait
 void func_8004932C(struct MainObj* arg0)
 {
-    if ((u8)(arg0->animation_step.fields.frame_index - 0x1C) < 2)
+    if (arg0->animation_step.fields.frame_index == 0x1C || arg0->animation_step.fields.frame_index == 0x1D)
         arg0->x_pos.i.hi = (s16)arg0->x_speed + (arg0->unk15 != 0 ? -0x16 : 0x16);
     else
         arg0->x_pos.i.hi = arg0->x_speed;
@@ -805,8 +825,8 @@ void func_8004932C(struct MainObj* arg0)
         } else {
             eregion_pick_start(arg0);
         }
-        arg0->unk6 = 0;
         arg0->x_pos.i.hi = (s16)arg0->x_speed;
+        arg0->unk6 = 0;
     }
 }
 
@@ -842,8 +862,8 @@ void eregion_intro_warning(struct MainObj* self)
     if (effect != NULL) {
         effect->active = 1;
         effect->id = 0x18;
-        effect->x_pos.u.hi = self->x_pos.u.hi;
-        effect->y_pos.u.hi = self->y_pos.u.hi;
+        effect->x_pos.i.hi = self->x_pos.i.hi;
+        effect->y_pos.i.hi = self->y_pos.i.hi;
         self->ext.main_9.effect = effect;
     }
     self->unk15 = PLAYER_FACING_RIGHT;
@@ -870,7 +890,7 @@ void eregion_intro_leap(struct MainObj* self)
             visual->unk50 = PLAYER_OBJECT(self);
             visual->unk2 = 4;
         }
-        self->unk6 = (u8)self->unk6 + 1;
+        self->unk6++;
         start_screen_shake_y(-1, 4, 2);
         self->x_speed = self->unk15 != 0 ? FIXED(8.5) : FIXED(-8.5);
         self->y_speed = FIXED(-6);
@@ -895,8 +915,8 @@ void eregion_intro_rise(struct MainObj* self)
 
     if (self->y_pos.i.hi < 0x90) {
         start_screen_shake_y(-1, 4, 2);
-        self->unk6++;
         self->x_pos.i.hi = 0x1240;
+        self->unk6++;
         self->x_speed = 0;
         self->y_speed = FIXED(-2.5);
         self->x_accel = 0;
@@ -936,7 +956,11 @@ void eregion_intro_fill_health(struct MainObj* self)
 {
     if (self->hp < 0x30) {
         if (--self->unk7E == 0) {
+#ifdef VERSION_DEMO
+            func_8001540C(0, SATURN_SOUND(0xF, 0x14), NULL);
+#else
             func_8001540C(0, SATURN_SOUND(0xE, 0x14), NULL);
+#endif
             self->unk7E = 3;
         }
         self->hp++;

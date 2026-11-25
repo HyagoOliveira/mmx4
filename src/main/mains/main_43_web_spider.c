@@ -12,6 +12,13 @@
 #include "main/collision.h"
 #include "main/collision_bounds.h"
 #include "main/misc/misc_15_vent.h"
+#include "main/misc/misc_16_vent_puff.h"
+
+void func_80065168(struct MainObj* arg0, s16 x, s16 y);
+void web_spider_check_big_web(struct MainObj* self);
+
+void func_80065168(struct MainObj* arg0, s16 x, s16 y);
+void web_spider_check_big_web(struct MainObj* self);
 
 extern u8 web_spider_move_timers[];
 extern u8 web_spider_attack_cooldowns[4];
@@ -52,6 +59,7 @@ void web_spider_big_web(struct MainObj* arg0);
 
 // web_spider_shoot_funcs
 void web_spider_shoot_start(struct MainObj*);
+void func_8006E0B0_demo(struct MainObj*);
 void web_spider_shoot_fire(struct AnimatedObj*);
 
 // web_spider_swing_funcs
@@ -117,8 +125,15 @@ void web_spider_intro_warning(struct MainObj* self)
             self->ext.main_43.effect = effect;
         }
         player_start_script_action(0x14, PLAYER_FACING_RIGHT);
+#ifdef VERSION_DEMO
+        background_objects[0].unk26 = 0x1210;
+        background_objects[0].unk24 = 0x1230;
+        background_objects[0].unk2A = 0x500;
+        web_spider_arena_x = 0x500;
+#else
         web_spider_arena_x = background_objects[0].unk26;
         web_spider_arena_y = background_objects[0].unk2A;
+#endif
         self->unk5 = 1;
         self->unk6 = 0;
         self->unk7 = 0;
@@ -137,19 +152,23 @@ void web_spider_intro_setup(struct MainObj* self)
         self->terrain_box = NULL;
         self->collision_data = D_801075F4;
         self->bg_offset = g_Player.bg_offset;
+#ifdef VERSION_DEMO
+        self->unk40 = (OBJECT_STAGE_TEXTURE(0)) + OBJECT_TEXTURE_OFFSET(0xB0);
+#else
         if (engine_obj.stage != 0xC) {
             self->unk40 = (OBJECT_STAGE_TEXTURE(0)) + OBJECT_TEXTURE_OFFSET(0xB0);
         } else {
             self->unk40 = (OBJECT_STAGE_TEXTURE(0)) + OBJECT_TEXTURE_OFFSET(0x160);
             archive = SP_MENU_FRAMES;
             offset = archive[4];
-            self->unk42 = OBJECT_CLUT(0x7888);
             self->sprite_frames = (u8*)archive + offset;
+            self->unk42 = OBJECT_CLUT(0x7888);
         }
+#endif
         self->animation_table = (const u8* const*)web_spider_animations;
         self->unk16 = VISUAL_SATURN_LAYER(4);
         self->hp = 0;
-        self->contact_damage = 6;
+        self->contact_damage = DEMO_ALT(6, 5);
         self->invincibility_timer = -0x80;
         self->unk62 = 0;
         self->unk63 = 2;
@@ -158,7 +177,7 @@ void web_spider_intro_setup(struct MainObj* self)
         self->ext.main_43.shot = NULL;
         self->ext.main_43.hurt_collision = 0;
         self->ext.main_43.big_web_done = 0;
-        engine_obj.enable_boss = 0;
+        engine_obj.enable_boss = DEMO_ALT(0, 1);
         engine_obj.unk25 = 1;
         engine_obj.boss_ptr = self;
     }
@@ -169,6 +188,10 @@ void web_spider_intro_setup(struct MainObj* self)
 extern void (*web_spider_step_funcs[7])();
 extern RECT* web_spider_swing_paths[6];
 extern u8 D_800FF724[16];
+extern struct FixedPointPosition spiderling_velocities[8];
+extern struct Unk_unk68 D_800FF5B4;
+extern struct Unk_unk68 D_800FF5B8;
+extern struct Unk_unk68 D_800FF5BC;
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 static u8 main43_column(s16 index);
 void func_8006346C(struct MainObj* arg0);
@@ -181,10 +204,6 @@ void func_80065574(struct MainObj* arg0);
 void web_spider_check_big_web(struct MainObj* arg0);
 extern u16 web_spider_arena_y;
 u8 angle_from_delta(s32 arg0, s32 arg1);
-extern struct FixedPointPosition spiderling_velocities[8];
-extern struct Unk_unk68 D_800FF5B4;
-extern struct Unk_unk68 D_800FF5B8;
-extern struct Unk_unk68 D_800FF5BC;
 static u8 main43_column(s16 index)
 {
 #ifdef MMX4_SATURN
@@ -211,9 +230,9 @@ void func_8006346C(struct MainObj* arg0)
 #endif
         arg0->unk7C = *(volatile u16*)&arg0->unk7C + 1;
         arg0->unk7E = 0x10;
-        arena_x = web_spider_arena_x;
-        arg0->unk6 = 1;
+        arena_x = DEMO_ALT(web_spider_arena_x, 0x1210);
         arg0->x_pos.i.hi = arena_x + 0x30 + (value << 5);
+        arg0->unk6 = 1;
         vent_spawn_puffs((struct MiscObj*)arg0, 2);
         return;
     case 1:
@@ -222,17 +241,17 @@ void func_8006346C(struct MainObj* arg0)
                 arg0->unk5 = 3;
                 arg0->unk6 = 0;
                 arg0->unk7C = 0;
-                arg0->x_pos.i.hi = web_spider_arena_x + 0xF0;
+                arg0->x_pos.i.hi = DEMO_ALT(web_spider_arena_x, 0x1210) + 0xF0;
             } else {
                 arg0->unk6 = 0;
             }
         }
         return;
     case 2:
-        arg0->unk7E = 0x14;
-        arg0->x_pos.i.hi = web_spider_arena_x + 0x30 + (arg0->unk7C * 32);
-        arg0->unk6 = 3;
+        arg0->x_pos.i.hi = DEMO_ALT(web_spider_arena_x, 0x1210) + 0x30 + (arg0->unk7C * 32);
         arg0->unk7C++;
+        arg0->unk7E = 0x14;
+        arg0->unk6 = 3;
         vent_spawn_puffs((struct MiscObj*)arg0, 2);
         return;
     case 3:
@@ -273,8 +292,6 @@ void web_spider_intro_wait(struct MainObj* self)
 
 void web_spider_intro_descend(struct MainObj* self)
 {
-    s16 timer;
-
     if (self->unk6 == 0) {
         if (self->y_pos.i.hi - background_objects[self->bg_offset].y_pos.i.hi >= 0x88) {
             self->unk6 = 1;
@@ -284,23 +301,25 @@ void web_spider_intro_descend(struct MainObj* self)
         } else {
             move_with_gravity(ANIMATED_OBJECT(self));
         }
+        animate_object(ANIMATED_OBJECT(self));
     } else {
         move_with_gravity(ANIMATED_OBJECT(self));
-        timer = --self->unk7C;
-        if (timer == 0) {
+        self->unk7C--;
+        if (self->unk7C == 0) {
             self->y_speed = 0;
             self->gravity = 0;
             self->unk5 = 6;
             self->unk6 = 0;
             self->unk7 = 0;
             self->unk7C = 2;
-        } else if (timer == 0xF) {
+        } else if (self->unk7C == 0xF) {
             self->y_speed = FIXED(-1);
         }
+        animate_object(ANIMATED_OBJECT(self));
     }
-    animate_object(ANIMATED_OBJECT(self));
 }
 
+#ifndef VERSION_DEMO
 void web_spider_intro_pose(struct MainObj* self)
 {
     if (self->animation_step.fields.event != 0) {
@@ -327,6 +346,32 @@ void web_spider_intro_start_health_bar(struct MainObj* self)
     }
 }
 
+#endif
+
+#ifdef VERSION_DEMO
+void web_spider_intro_fill_health(struct MainObj* self)
+{
+    s16 timer;
+
+    if (self->animation_step.fields.relative_step == 0) {
+        if (self->hp < 0x30) {
+            timer = --self->unk7C;
+            if (timer == 0) {
+                func_8001540C(0, 0xF, 0);
+                self->unk7C = 2;
+            }
+            self->hp++;
+            return;
+        }
+        self->unk5 = 7;
+        self->y_speed = FIXED(3.5);
+        player_end_script_action();
+        set_animation(self, 0x1F);
+    } else {
+        animate_object(ANIMATED_OBJECT(self));
+    }
+}
+#else
 void web_spider_intro_fill_health(struct MainObj* self)
 {
     s16 timer;
@@ -339,7 +384,7 @@ void web_spider_intro_fill_health(struct MainObj* self)
                 func_8001540C(0, SATURN_SOUND(0xE, 0x14), 0);
                 self->unk7C = 2;
             }
-            self->hp = (u8)self->hp + 1;
+            self->hp++;
             return;
         }
         self->unk5 = 9;
@@ -348,6 +393,7 @@ void web_spider_intro_fill_health(struct MainObj* self)
         set_animation(self, 0x1F);
     }
 }
+#endif
 
 void web_spider_intro_climb(struct MainObj* self)
 {
@@ -374,6 +420,9 @@ void func_8006398C(struct MainObj* arg0)
     arg0->unk1C.val = arg0->y_pos.val;
     web_spider_check_big_web(arg0);
     ((void (*)(struct MainObj*))web_spider_step_funcs[arg0->unk5])(arg0);
+#ifdef VERSION_DEMO
+    func_8002D9BC(arg0);
+#endif
     result = -1;
     if (arg0->hp > 0)
         result = func_8002DD04(arg0);
@@ -391,14 +440,18 @@ void func_8006398C(struct MainObj* arg0)
         arg0->unk5 = 0;
         arg0->unk6 = 0;
         arg0->unk42 &= 0x7FFF;
+#ifndef VERSION_DEMO
         g_Player.spike_immune = 1;
+#endif
     } else if (result != 0 && result != 0x7F) {
         arg0->collision_data = D_801060F0;
         arg0->ext.main_43.flash_timer = 0x40;
         web_spider_spawn_web_piece((struct VisualObj*)arg0, 0);
         arg0->ext.main_43.hurt_collision = 1;
     }
+#ifndef VERSION_DEMO
     func_8002D9BC(arg0);
+#endif
     is_on_screen(BASE_OBJECT(arg0));
 }
 
@@ -415,6 +468,14 @@ void func_80063B20(struct MainObj* arg0)
     switch (arg0->unk7) {
     case 0:
         arg0->unk7 = 1;
+#ifdef VERSION_DEMO
+        arg0->unk7C = 0x40;
+        if ((u32)(get_random() & 7) < 5)
+            arg0->ext.main_43.unk94 = (g_Player.x_pos.i.hi - 0x1210) / 40;
+        else
+            arg0->ext.main_43.unk94 = get_random() & 7;
+        arg0->x_pos.i.hi = 0x1210 + 0x30 + (arg0->ext.main_43.unk94 << 5);
+#else
         if (g_Player.stun_timer != 0)
             arg0->unk7C = 0x10;
         else
@@ -427,9 +488,10 @@ void func_80063B20(struct MainObj* arg0)
         } else {
             arg0->ext.main_43.unk94 = (g_Player.x_pos.i.hi - (s16)web_spider_arena_x) / 40;
         }
-        arg0->gravity = 0x8000;
-        arg0->y_speed = 0;
         arg0->x_pos.i.hi = web_spider_arena_x + 0x30 + (arg0->ext.main_43.unk94 << 5);
+#endif
+        arg0->y_speed = 0;
+        arg0->gravity = 0x8000;
         vent_spawn_mixed_puffs((struct MiscObj*)arg0, 8);
         set_animation(arg0, 0);
         break;
@@ -439,7 +501,11 @@ void func_80063B20(struct MainObj* arg0)
                 arg0->y_speed = -0x80000;
                 arg0->gravity = 0;
             }
+#ifdef VERSION_DEMO
+            if (get_random() & 1)
+#else
             if (g_Player.stun_timer != 0 || (get_random() & 3) != 0)
+#endif
                 threshold = 0x80;
             else
                 threshold = 0x50;
@@ -457,7 +523,8 @@ void func_80063B20(struct MainObj* arg0)
         break;
     case 2:
         move_with_gravity(ANIMATED_OBJECT(arg0));
-        if (--arg0->unk7C == 0) {
+        arg0->unk7C--;
+        if (arg0->unk7C == 0) {
             arg0->y_speed = 0;
             arg0->gravity = 0;
         }
@@ -479,7 +546,11 @@ void web_spider_drop_climb(struct MainObj* self)
     switch (self->unk7) {
     case 0:
         if (self->unk7C == 0) {
+#ifdef VERSION_DEMO
+            if ((get_random() & 0xF) != 0) {
+#else
             if ((get_random() & 0xF) != 0 && g_Player.stun_timer == 0) {
+#endif
                 self->unk5 = 3;
                 self->unk6 = 0;
                 self->unk7 = 0;
@@ -529,11 +600,26 @@ void web_spider_shoot(struct MainObj* self)
     web_spider_shoot_funcs[self->unk6](self);
 }
 
+#ifdef VERSION_DEMO
+void func_8006E0B0_demo(struct MainObj* self)
+{
+    self->unk6 = 1;
+    if (self->hp >= 0x26) {
+        self->unk7 = 3;
+        set_animation(self, 3);
+    } else {
+        self->unk7 = 4;
+        set_animation(self, 0x26);
+    }
+}
+#else
 void web_spider_shoot_start(struct MainObj* self)
 {
     self->unk6 = 1;
     set_animation(self, 3);
 }
+
+#endif
 
 void web_spider_shoot_fire(struct AnimatedObj* self)
 {
@@ -583,6 +669,7 @@ void func_80064154(struct MainObj* arg0)
     s16 dy;
 
     if (arg0->ext.main_43.attack_cooldown == 0) {
+#ifndef VERSION_DEMO
         arg0->ext.main_43.unk94 = 0;
         if (g_Player.stun_timer != 0) {
             arg0->ext.main_43.unk94 = 1;
@@ -591,6 +678,7 @@ void func_80064154(struct MainObj* arg0)
             arg0->unk7 = 0;
             return;
         }
+#endif
         dx = arg0->x_pos.i.hi - g_Player.x_pos.i.hi;
         dy = arg0->y_pos.i.hi - g_Player.y_pos.i.hi;
         if ((dx < 0 ? -dx : dx) >= 0x40 && (dy < 0 ? -dy : dy) >= 0x50) {
@@ -603,8 +691,13 @@ void func_80064154(struct MainObj* arg0)
         arg0->ext.main_43.attack_cooldown--;
     }
     point = (const u16*)web_spider_swing_paths[arg0->ext.main_43.animation_set] + arg0->ext.main_43.animation_index * 2;
+#ifdef VERSION_DEMO
+    dx = point[0];
+    dy = point[1];
+#else
     dx = point[0] + web_spider_arena_x + 0x10;
     dy = point[1] + web_spider_arena_y;
+#endif
     func_80065168(arg0, dx, dy);
     if (--arg0->unk7C == 0) {
         arg0->ext.main_43.animation_index++;
@@ -634,11 +727,23 @@ void web_spider_swing_wait(struct MainObj* self)
 
 void web_spider_attack(struct MainObj* self)
 {
-    if ((self->ext.main_43.unk94 == 0) && (self->ext.main_43.attack_count != 0)) {
+#ifdef VERSION_DEMO
+    if (self->ext.main_43.attack_count == 0) {
+        func_800643B0(self);
+    } else {
         web_spider_attack_web(self);
+    }
+#else
+    if (self->ext.main_43.unk94 == 0) {
+        if (self->ext.main_43.attack_count == 0) {
+            func_800643B0(self);
+        } else {
+            web_spider_attack_web(self);
+        }
     } else {
         func_800643B0(self);
     }
+#endif
 }
 
 // web_spider_attack_spiderlings
@@ -689,7 +794,8 @@ void func_800643B0(struct MainObj* arg0)
         arg0->unk7 = 0;
         set_animation(arg0, arg0->ext.main_43.animation_id);
         web_spider_set_attack_cooldown(arg0);
-        if (++arg0->ext.main_43.attack_count >= 3)
+        arg0->ext.main_43.attack_count++;
+        if (arg0->ext.main_43.attack_count >= 3)
             arg0->ext.main_43.attack_count = 0;
         break;
     }
@@ -700,7 +806,17 @@ void web_spider_attack_web(struct MainObj* self)
 {
     if (self->unk6 == 0) {
         self->unk6 = 1;
+#ifdef VERSION_DEMO
+        if (self->hp >= 0x10) {
+            self->unk7 = 3;
+            set_animation(self, 0xA);
+        } else {
+            self->unk7 = 4;
+            set_animation(self, 0x26);
+        }
+#else
         set_animation(self, 0xA);
+#endif
         if (self->x_pos.i.hi - g_Player.x_pos.i.hi >= 0) {
             self->unk15 = 0;
         } else {
@@ -743,14 +859,14 @@ void func_800646EC(struct MainObj* arg0)
     switch (arg0->unk7) {
     case 0:
         arg0->unk7 = 1;
-        arg0->unk7C = 0xC0;
         arg0->ext.main_43.attack_count = 0;
-        arg0->gravity = 0x8000;
         arg0->ext.main_43.attack_cooldown = 0;
+        arg0->unk7C = 0xC0;
+        arg0->x_pos.i.hi = DEMO_ALT(web_spider_arena_x, 0x1210) + 0xB0;
         arg0->x_pos.i.lo = 0;
         arg0->y_speed = 0;
+        arg0->gravity = 0x8000;
         arg0->ext.main_43.flash_timer = 0;
-        arg0->x_pos.i.hi = web_spider_arena_x + 0xB0;
         arg0->collision_data = D_801060F0;
         vent_spawn_mixed_puffs((struct MiscObj*)arg0, 8);
         set_animation(arg0, 0);
@@ -775,7 +891,8 @@ void func_800646EC(struct MainObj* arg0)
         break;
     case 2:
         move_with_gravity(ANIMATED_OBJECT(arg0));
-        if (--arg0->unk7C == 0) {
+        arg0->unk7C--;
+        if (arg0->unk7C == 0) {
             arg0->y_speed = 0;
             arg0->gravity = 0;
         }
@@ -849,10 +966,10 @@ void web_spider_big_web_center(struct MainObj* self)
         self->unk5 = 4;
         self->unk6 = 0;
         self->unk7 = 0;
+        self->x_pos.i.hi = DEMO_ALT(web_spider_arena_x + 0xA0, 0x12C0);
+        self->y_pos.i.hi = DEMO_ALT(web_spider_arena_y + 0x70, 0x570);
         self->x_pos.i.lo = 0;
-        self->x_pos.i.hi = web_spider_arena_x + 0xA0;
         self->y_pos.i.lo = 0;
-        self->y_pos.i.hi = web_spider_arena_y + 0x70;
         web_spider_set_attack_cooldown(self);
         self->collision_data = D_801075F4;
         break;
@@ -899,7 +1016,9 @@ void web_spider_fall_land(struct MainObj* self)
         self->gravity = 0;
         set_animation(self, 0xF);
         self->terrain_box = NULL;
+#ifndef VERSION_DEMO
         func_8001540C(2, 0x74, self);
+#endif
         return;
     }
     animate_object(ANIMATED_OBJECT(self));
@@ -949,7 +1068,7 @@ void web_spider_fall_rethread(struct MainObj* self)
 
 void web_spider_check_big_web(struct MainObj* self)
 {
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
     if (self->ext.main_43.big_web_done == 0 && self->state < 2 && self->unk5 == 2 && self->unk6 == 1 && self->unk7 == 2 && self->hp < 0x18) {
 #else
     if (self->ext.main_43.big_web_done == 0 && self->state < 2 && self->unk5 == 2 && (*(u32*)&self->state & 0xFFFF0000) == 0x02010000 && self->hp < 0x18) {
@@ -993,45 +1112,45 @@ struct ShotObj* web_spider_spawn_thread(struct MainObj* self, s32 variant)
 
 void web_spider_spawn_web_piece(struct VisualObj* self, u8 arg1)
 {
-    struct VisualObj* temp_v0;
+    struct VisualObj* visual;
 
-    temp_v0 = find_free_visual_obj();
-    if (temp_v0 != NULL) {
-        temp_v0->active = 0x41;
-        temp_v0->id = 0x11;
-        temp_v0->unk2 = arg1;
-        temp_v0->x_pos.val = self->x_pos.val;
-        temp_v0->y_pos.val = self->y_pos.val;
-        temp_v0->animation_table = self->animation_table;
-        temp_v0->unk40 = self->unk40;
-        temp_v0->unk3C = self->unk3C;
-        temp_v0->unk42 = self->unk42 & 0x7FFF;
-        temp_v0->unk16 = self->unk16;
-        temp_v0->unk50 = (struct PlayerObj*)self;
-        temp_v0->unk15 = self->unk15;
+    visual = find_free_visual_obj();
+    if (visual != NULL) {
+        visual->active = 0x41;
+        visual->id = 0x11;
+        visual->unk2 = arg1;
+        visual->x_pos.val = self->x_pos.val;
+        visual->y_pos.val = self->y_pos.val;
+        visual->animation_table = self->animation_table;
+        visual->unk40 = self->unk40;
+        visual->unk3C = self->unk3C;
+        visual->unk42 = self->unk42 & 0x7FFF;
+        visual->unk16 = self->unk16;
+        visual->unk50 = (struct PlayerObj*)self;
+        visual->unk15 = self->unk15;
     }
 }
 
 void web_spider_spawn_web_flash(struct AnimatedObj* arg0)
 {
     struct AnimatedObj* self;
-    struct VisualObj* temp_v0;
+    struct VisualObj* visual;
 
     self = arg0;
-    temp_v0 = find_free_visual_obj();
-    if (temp_v0 != 0) {
-        temp_v0->active = 0x41;
-        temp_v0->id = 0x14;
-        temp_v0->unk2 = 1;
-        temp_v0->x_pos.val = self->x_pos.val;
-        temp_v0->y_pos.val = self->y_pos.val + FIXED(28);
-        temp_v0->animation_table = self->animation_table;
-        temp_v0->unk40 = self->unk40;
-        temp_v0->unk3C = self->unk3C;
-        temp_v0->unk42 = self->unk42 & 0x7FFF;
-        temp_v0->unk16 = self->unk16;
-        temp_v0->unk50 = (struct PlayerObj*)self;
-        temp_v0->unk15 = self->unk15;
+    visual = find_free_visual_obj();
+    if (visual != 0) {
+        visual->active = 0x41;
+        visual->id = 0x14;
+        visual->unk2 = 1;
+        visual->x_pos.val = self->x_pos.val;
+        visual->y_pos.val = self->y_pos.val + FIXED(28);
+        visual->animation_table = self->animation_table;
+        visual->unk40 = self->unk40;
+        visual->unk3C = self->unk3C;
+        visual->unk42 = self->unk42 & 0x7FFF;
+        visual->unk16 = self->unk16;
+        visual->unk50 = (struct PlayerObj*)self;
+        visual->unk15 = self->unk15;
     }
 }
 
@@ -1114,7 +1233,7 @@ void web_spider_set_attack_cooldown(struct MainObj* self)
 
 void web_spider_set_swing_animation(struct MainObj* self)
 {
-    u8* animation_table;
+    const u8* animation_table;
     u8 animation_id;
 
     animation_table = web_spider_swing_animations[self->ext.main_43.animation_set];
@@ -1130,7 +1249,9 @@ void web_spider_death_start(struct MainObj* self)
     self->unk7E = 0x19;
     self->ext.main_43.flash_timer = 0x19;
     self->unk42 &= 0x7FFF;
+#ifndef VERSION_DEMO
     player_start_script_action(0x14, g_Player.unk15);
+#endif
     set_animation(self, 0x22);
     is_on_screen(BASE_OBJECT(self));
 }
@@ -1144,18 +1265,15 @@ void web_spider_death_explode(struct MainObj* self)
         if (effect != NULL) {
             effect->active = 1;
             effect->id = 0x1A;
-            effect->x_pos.u.hi = self->x_pos.u.hi;
-            effect->y_pos.u.hi = self->y_pos.u.hi;
+            effect->x_pos.i.hi = self->x_pos.i.hi;
+            effect->y_pos.i.hi = self->y_pos.i.hi;
             self->ext.main_43.effect = effect;
         }
     }
     is_on_screen(BASE_OBJECT(self));
     if (self->unk7E-- == 0) {
-        u16 temp;
-        temp = self->ext.main_43.flash_timer - 5;
         self->unk42 ^= 0x8000;
-        self->ext.main_43.flash_timer = temp;
-        if (temp >= 0x1A) {
+        if ((self->ext.main_43.flash_timer -= 5) > 0x19) {
             self->ext.main_43.flash_timer = 0;
         }
         self->unk7E = self->ext.main_43.flash_timer > 5 ? self->ext.main_43.flash_timer : 5;
@@ -1169,12 +1287,15 @@ void web_spider_death_finish(struct MainObj* self)
     if (effect->active != 0) {
         if (effect->unk7 == 0) {
             if (self->unk7E-- == 0) {
-                self->unk7E = 5;
                 self->unk42 ^= 0x8000;
+                self->unk7E = 5;
             }
             is_on_screen(BASE_OBJECT(self));
         }
     } else {
+#ifdef VERSION_DEMO
+        engine_obj.unkF = 0x10;
+#else
         if (engine_obj.stage == 1) {
             engine_obj.unkF = 0x10;
         } else {
@@ -1182,6 +1303,7 @@ void web_spider_death_finish(struct MainObj* self)
             engine_obj.character_state.bytes[engine_obj.checkpoint + 6] = 1;
             engine_obj.checkpoint += 9;
         }
+#endif
         ZeroObjectState(OBJECT_HEADER(self));
         return;
     }
@@ -1193,39 +1315,36 @@ void web_spider_death(struct MainObj* self)
 }
 
 // spiderling_init
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
 void func_80065574(struct MainObj* arg0)
 {
-    const s32* velocity = (const s32*)&spiderling_velocities[((arg0->unk2 - 1) & 3) * 2];
+    s32* velocity;
 
-    arg0->unk5 = 2;
     arg0->state = 1;
-    arg0->on_screen = 1;
-    arg0->unk63 = 1;
-    arg0->contact_damage = 4;
+    arg0->unk5 = 2;
     arg0->unk6 = 0;
     arg0->unk7C = 0;
+    arg0->on_screen = 1;
     arg0->hp = 3;
+    arg0->contact_damage = DEMO_ALT(4, 3);
     arg0->invincibility_timer = 0;
     arg0->unk62 = 0;
-    arg0->air_state = 0;
+    arg0->unk63 = 1;
     arg0->unk18.val = arg0->x_pos.val;
     arg0->unk1C.val = arg0->y_pos.val;
-    arg0->x_speed = velocity[0];
-    arg0->x_accel = velocity[1];
-    arg0->y_speed = velocity[2];
-    arg0->gravity = velocity[3];
+    arg0->air_state = 0;
+    velocity = (s32*)&spiderling_velocities[((arg0->unk2 - 1) & 3) * 2];
+    arg0->x_speed = *velocity++;
+    arg0->x_accel = *velocity++;
+    arg0->y_speed = *velocity++;
+    arg0->gravity = *velocity++;
+    arg0->unk16 = 3;
+    arg0->collision_flags = 0;
     arg0->hurt_box = &D_800FF5B8;
     arg0->attack_box = &D_800FF5B4;
     arg0->terrain_box = &D_800FF5BC;
-    arg0->unk16 = 3;
-    arg0->collision_flags = 0;
     arg0->collision_data = D_801075F4;
     set_animation(arg0, 0x1B);
 }
-#else
-INCLUDE_ASM("main/nonmatchings/mains/main_43_web_spider", func_80065574);
-#endif
 
 void spiderling_run(struct MainObj* self)
 {
@@ -1234,6 +1353,9 @@ void spiderling_run(struct MainObj* self)
     self->unk1C.val = self->y_pos.val;
     spiderling_step_funcs[self->unk5](self);
     CollisionRelated(PLAYER_OBJECT(self));
+#ifdef VERSION_DEMO
+    func_8002D9BC(self);
+#endif
     hit = func_8002DD04(self);
     if (hit < 0) {
         spawn_explosion(BASE_OBJECT(self));
@@ -1245,7 +1367,9 @@ void spiderling_run(struct MainObj* self)
         self->state = 2;
         return;
     }
+#ifndef VERSION_DEMO
     func_8002D9BC(self);
+#endif
     is_on_screen(BASE_OBJECT(self));
 }
 
@@ -1342,7 +1466,7 @@ union AnimationStep D_800FEF9C[] = {
     { 7, 0, 1, 0x08 },
     { 8, 0, 1, 0x09 },
     { 8, 0, 1, 0x08 },
-    { 10, 1, 1, 0x05 },
+    { 10, DEMO_ALT(1, 0), 1, 0x05 },
     { 10, 0, 1, 0x06 },
     { 8, 0, 1, 0x07 },
     { 43, 0, 1, 0x0A },
@@ -1365,8 +1489,8 @@ union AnimationStep D_800FF004[] = {
     { 5, 1, 1, 0x05 },
     { 5, 0, 1, 0x0D },
     { 7, 0, 1, 0x0F },
-    { 5, 1, 1, 0x0D },
-    { 5, 0, 1, 0x05 },
+    { 5, DEMO_ALT(1, 0), 1, 0x0D },
+    { 5, DEMO_ALT(0, 1), 1, 0x05 },
     { 7, 0, 1, 0x0E },
     { 1, 0, -6, 0x0E },
 };
@@ -1840,46 +1964,49 @@ struct Unk_unk68 D_800FF5B8 = { -10, -8, 18, 15 };
 
 struct Unk_unk68 D_800FF5BC = { 0, 0, 8, 8 };
 
+#define SWING_X(x) DEMO_ALT(x, 0x1220 + (x))
+#define SWING_Y(y) DEMO_ALT(y, 0x500 + (y))
+
 RECT D_800FF5C0[4] = {
-    { 112, 56, 160, 0 },
-    { 208, 56, 160, 104 },
-    { 112, 152, 160, 192 },
-    { 208, 152, 160, 104 },
+    { SWING_X(112), SWING_Y(56), SWING_X(160), SWING_Y(0) },
+    { SWING_X(208), SWING_Y(56), SWING_X(160), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(192) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 RECT D_800FF5E0[4] = {
-    { 112, 56, 64, 104 },
-    { 112, 152, 160, 104 },
-    { 208, 56, 256, 104 },
-    { 208, 152, 160, 104 },
+    { SWING_X(112), SWING_Y(56), SWING_X(64), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(56), SWING_X(256), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 RECT D_800FF600[4] = {
-    { 112, 152, 64, 104 },
-    { 112, 152, 160, 104 },
-    { 208, 135, 256, 104 },
-    { 208, 152, 160, 104 },
+    { SWING_X(112), SWING_Y(152), SWING_X(64), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(135), SWING_X(256), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 RECT D_800FF620[4] = {
-    { 208, 56, 160, 16 },
-    { 112, 56, 160, 104 },
-    { 208, 152, 160, 192 },
-    { 112, 152, 160, 104 },
+    { SWING_X(208), SWING_Y(56), SWING_X(160), SWING_Y(16) },
+    { SWING_X(112), SWING_Y(56), SWING_X(160), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(192) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 RECT D_800FF640[4] = {
-    { 208, 56, 256, 104 },
-    { 208, 152, 160, 104 },
-    { 112, 56, 64, 104 },
-    { 112, 152, 160, 104 },
+    { SWING_X(208), SWING_Y(56), SWING_X(256), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(56), SWING_X(64), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 RECT D_800FF660[4] = {
-    { 208, 152, 256, 104 },
-    { 208, 152, 160, 104 },
-    { 112, 152, 64, 104 },
-    { 112, 152, 160, 104 },
+    { SWING_X(208), SWING_Y(152), SWING_X(256), SWING_Y(104) },
+    { SWING_X(208), SWING_Y(152), SWING_X(160), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(64), SWING_Y(104) },
+    { SWING_X(112), SWING_Y(152), SWING_X(160), SWING_Y(104) },
 };
 
 u8 D_800FF680[8] = { 8, 9, 6, 7, 7, 6, 9, 8 };
@@ -1912,7 +2039,7 @@ const u8* web_spider_swing_animations[6] = {
     D_800FF6A8,
 };
 
-#ifdef MMX4_SATURN
+#if defined(MMX4_SATURN) || defined(VERSION_DEMO)
 extern u16 web_spider_arena_x;
 extern u16 web_spider_arena_y;
 #else
@@ -1933,15 +2060,17 @@ void (*spiderling_state_funcs[3])() = {
     spiderling_despawn,
 };
 
-void (*web_spider_intro_funcs[10])(struct MainObj*) = {
+void (*web_spider_intro_funcs[DEMO_ALT(10, 8)])(struct MainObj*) = {
     web_spider_intro_warning,
     web_spider_intro_setup,
     func_8006346C,
     web_spider_intro_spawn_thread,
     web_spider_intro_wait,
     web_spider_intro_descend,
+#ifndef VERSION_DEMO
     web_spider_intro_pose,
     web_spider_intro_start_health_bar,
+#endif
     web_spider_intro_fill_health,
     web_spider_intro_climb,
 };
@@ -1965,7 +2094,7 @@ void (*web_spider_drop_funcs[3])() = {
 };
 
 void (*web_spider_shoot_funcs[3])() = {
-    web_spider_shoot_start,
+    DEMO_ALT(web_spider_shoot_start, func_8006E0B0_demo),
     web_spider_shoot_fire,
     web_spider_shoot_fire,
 };

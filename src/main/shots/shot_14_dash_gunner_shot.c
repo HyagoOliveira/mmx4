@@ -26,39 +26,39 @@ void dash_gunner_shot_init(struct ShotObj* self)
     self->state = 1;
     self->on_screen = 1;
     self->unk58.collision_data = D_80106070;
-    self->unk16 = 0;
     self->unk42 &= 0x7FFF;
+    self->unk16 = 0;
     if (0 == self->unk15) {
-        self->x_pos.i.hi = (u16)self->x_pos.i.hi - 6;
+        self->x_pos.i.hi -= 6;
     } else {
-        self->x_pos.i.hi = (u16)self->x_pos.i.hi + 6;
+        self->x_pos.i.hi += 6;
     }
     self->unk68 = NULL;
     self->unk54 = dash_gunner_shot_hit_box;
     self->unk50.data = dash_gunner_shot_hit_box;
     self->unk5C = 1;
-    self->unk60 = 3;
+    self->unk60 = DEMO_ALT(3, 2);
     set_animation(self, 5);
 }
 
 void dash_gunner_shot_fly(struct ShotObj* self)
 {
-    s32 in_range;
-
     animate_object(ANIMATED_OBJECT(self));
     move_object(MOVING_OBJECT(self));
     if (engine_obj.stage == 3) {
-        if ((u8)self->unk2 < 4) {
-            in_range = g_Player.x_pos.i.hi <= 0x7B6;
-        } else {
-            in_range = g_Player.x_pos.i.hi <= 0x9B6;
-        }
-        if (in_range != 0) {
+        if ((u8)self->unk2 <= 3) {
+            if (g_Player.x_pos.i.hi <= 0x7B6) {
+                func_8002D9BC(self);
+            }
+        } else if (g_Player.x_pos.i.hi <= 0x9B6) {
             func_8002D9BC(self);
         }
-    } else {
+    }
+#ifndef VERSION_DEMO
+    else {
         func_8002D9BC(self);
     }
+#endif
     if (func_8002DD04(MAIN_OBJECT(self)) < 0) {
         spawn_explosion(BASE_OBJECT(self));
         self->state = 2;

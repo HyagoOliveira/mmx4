@@ -9,13 +9,13 @@
 #include "main/object_motion.h"
 #include "main/objects.h"
 #include "main/collision_bounds.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #include "main/stage_objects.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/collision_bounds.h"
 #include "main/stage_objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #endif
 
 void falling_ceiling_main(struct MainObj*);
@@ -115,9 +115,9 @@ void func_800615CC(struct MainObj* self)
     self->bg_offset = g_Player.bg_offset;
     self->air_state = 0;
     self->animation_table = (const u8* const*)falling_ceiling_animations;
+    self->unk16 = VISUAL_SATURN_LAYER(6);
     self->terrain_box = (struct Unk_unk68*)D_800FE94C;
     self->hurt_box = D_800FE944;
-    self->unk16 = VISUAL_SATURN_LAYER(6);
     self->attack_box = D_800FE948;
     self->unk15 = 0;
     set_animation(self, 0);
@@ -200,8 +200,10 @@ void func_800615CC(struct MainObj* self)
     self->ext.main_39.unk88 = 0;
     self->ext.main_39.unk90 = 0;
     self->ext.main_39.unk94 = 1;
-    self->y_pos.val = 0x1100000;
     self->unk7E = 0;
+    self->y_pos.val = 0x1100000;
+    self->unk18.val = self->x_pos.val;
+    self->unk1C.val = self->y_pos.val;
     self->x_speed = 0;
     self->y_speed = 0;
     self->x_accel = 0;
@@ -209,8 +211,6 @@ void func_800615CC(struct MainObj* self)
     self->state = 1;
     self->unk5 = 0;
     self->unk6 = 0;
-    self->unk18.val = self->x_pos.val;
-    self->unk1C.val = self->y_pos.val;
 }
 #endif
 
@@ -260,14 +260,12 @@ void func_80061918(struct MainObj* self)
         }
         if (self->ext.main_39.unk8C > g_Player.y_pos.val && g_Player.y_pos.val > self->y_pos.val) {
             if (!(self->unk2 & 1)) {
-                s32 target_x = g_Player.x_pos.i.hi - 0x10;
-                if (ABS(target_x, self->x_pos.i.hi) <= 0x10) {
+                if (ABS(g_Player.x_pos.i.hi, self->x_pos.i.hi + 0x10) <= 0x10) {
                     self->gravity = 0x8000;
                     self->unk5 = 2;
                 }
             } else {
-                s32 target_x = g_Player.x_pos.i.hi + 0x10;
-                if (ABS(target_x, self->x_pos.i.hi) <= 0x10) {
+                if (ABS(g_Player.x_pos.i.hi, self->x_pos.i.hi - 0x10) <= 0x10) {
                     self->gravity = 0x8000;
                     self->unk5 = 2;
                 }
@@ -297,6 +295,22 @@ void falling_ceiling_drop_start(struct MainObj* self)
 }
 
 // falling_ceiling_drop_fall
+#ifdef VERSION_DEMO
+#define FALLING_CEILING_DEBRIS_KIND(item, i) \
+    do {                                     \
+        if (self->unk2 < 8)                  \
+            (item)->unk2 = (i);              \
+        else                                 \
+            (item)->unk2 = (i) + 2;          \
+    } while (0)
+#else
+#define FALLING_CEILING_DEBRIS_KIND(item, i) \
+    if (self->unk2 < 8)                      \
+        (item)->unk2 = (i);                  \
+    else                                     \
+        (item)->unk2 = (i) + 2
+#endif
+
 void func_80061B58(struct MainObj* self)
 {
     s32 i;
@@ -310,8 +324,7 @@ void func_80061B58(struct MainObj* self)
         self->y_speed = 0;
         self->gravity = 0;
     }
-    self->unk7E++;
-    if ((self->unk7E & 7) == 0 && (!(background_objects[0].unk34 & 0x10) || (((u8*)&background_objects[0].unk3E)[0] & 7) != 4))
+    if ((++self->unk7E & 7) == 0 && (!(background_objects[0].unk34 & 0x10) || (((u8*)&background_objects[0].unk3E)[0] & 7) != 4))
         start_screen_shake_x(8, 4, 2);
     if ((self->unk7E & 0xF) == 0)
         ((void (*)(s32, s32, s32, s32))spawn_explosion_at)(0, self->x_pos.i.hi, self->y_pos.i.hi + 0x10, 1);
@@ -326,15 +339,16 @@ void func_80061B58(struct MainObj* self)
         if (item != NULL) {
             item->active = 0x41;
             item->id = 0xF;
-            if (self->unk2 < 8)
-                item->unk2 = i;
-            else
-                item->unk2 = i + 2;
+            FALLING_CEILING_DEBRIS_KIND(item, i);
             item->bg_offset = self->bg_offset;
+#ifndef VERSION_DEMO
             item->x_pos.val = 0;
-            item->x_pos.u.hi = self->ext.main_39.unk80.h.unk80;
+#endif
+            item->x_pos.i.hi = self->ext.main_39.unk80.h.unk80;
+#ifndef VERSION_DEMO
             item->y_pos.val = 0;
-            item->y_pos.u.hi = self->ext.main_39.unk84.h.unk86;
+#endif
+            item->y_pos.i.hi = self->ext.main_39.unk84.h.unk86;
             item->state = 0;
         }
     }

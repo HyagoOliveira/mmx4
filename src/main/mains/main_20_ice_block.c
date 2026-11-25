@@ -9,11 +9,11 @@
 #include "main/mains/main_26_ice_wall.h"
 #include "main/objects.h"
 #include "main/1CF60.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/1CF60.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #endif
 
 extern struct Unk_unk68 ice_block_crumble_attack_box;
@@ -61,14 +61,14 @@ void func_800548B8(struct MainObj* arg0);
 
 void func_800545EC(struct MainObj* arg0)
 {
-    arg0->unk5 = 2;
     arg0->state++;
+    arg0->unk5 = 2;
     arg0->bg_offset = g_Player.bg_offset;
     arg0->unk15 = 0;
     arg0->animation_table = (const u8* const*)ice_block_animations;
     arg0->unk16 = VISUAL_SATURN_LAYER(6);
-    arg0->collision_data = D_80106C74;
     arg0->terrain_box = NULL;
+    arg0->collision_data = D_80106C74;
     arg0->invincibility_timer = 0;
     arg0->hp = 9;
     arg0->contact_damage = 3;
@@ -85,12 +85,12 @@ void func_800545EC(struct MainObj* arg0)
     arg0->x_accel = 0;
     arg0->y_speed = 0;
     arg0->gravity = 0;
-    arg0->air_state = 0;
-    arg0->unk7C = 0;
     arg0->x_pos.i.hi &= ~0xF;
     arg0->y_pos.i.hi &= ~0xF;
     arg0->x_pos.i.hi += 8;
     arg0->y_pos.i.hi += 0x14;
+    arg0->air_state = 0;
+    arg0->unk7C = 0;
     set_animation(arg0, 0);
     update_on_screen(BASE_OBJECT(arg0), 0x50, 0x50);
 }
@@ -124,8 +124,8 @@ void ice_block_main(struct MainObj* self)
         self->ext.main_20.unk80 = self->hp;
     }
     if (collision < 0) {
-        self->unk5 = 0;
         self->state++;
+        self->unk5 = 0;
         self->unk42 &= 0x7FFF;
         return;
     }

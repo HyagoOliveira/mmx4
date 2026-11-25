@@ -77,15 +77,15 @@ void proximity_door_main(struct EffectObj* self)
 void proximity_door_step(struct EffectObj* self)
 {
     s32* entry;
-    s8 timer;
-
-    timer = self->ext.effect_32.palette.fields.timer - 1;
-    self->ext.effect_32.palette.fields.timer = timer;
-    if (timer == 0) {
+    if (--self->ext.effect_32.palette.fields.timer == 0) {
         self->ext.effect_32.palette_source.words += self->ext.effect_32.palette.fields.step;
         self->ext.effect_32.palette.packed = *self->ext.effect_32.palette_source.words;
         apply_tile_effect(self->ext.effect_32.palette.fields.id,
+#ifdef VERSION_DEMO
+            self->x_pos.i.hi - 0x10, self->y_pos.i.hi - 0x20);
+#else
             self->x_pos.i.hi - 0x30, self->y_pos.i.hi - 0x30);
+#endif
     }
 }
 
@@ -94,7 +94,7 @@ void proximity_door_check_player(struct EffectObj* self)
     s16 x_pos;
 
     x_pos = self->x_pos.i.hi;
-    if (((g_Player.x_pos.i.hi - x_pos) < 0 ? x_pos - g_Player.x_pos.i.hi : g_Player.x_pos.i.hi - x_pos) < 0x30) {
+    if (ABS(g_Player.x_pos.i.hi, x_pos) < 0x30) {
         if (self->ext.effect_32.unk15 != 1) {
             if (self->ext.effect_32.palette.fields.step == 0) {
                 proximity_door_start_script(self, 0);

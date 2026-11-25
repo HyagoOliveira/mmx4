@@ -9,11 +9,11 @@
 #include "main/object_motion.h"
 #include "main/objects.h"
 #include "main/1E1BC.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/1E1BC.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #endif
 
 // bulldozer_state_funcs
@@ -245,12 +245,12 @@ void bulldozer_charge_move(struct MainObj* self)
     s16 y;
 
     if (self->unk15 != 0) {
-        x = self->x_pos.u.hi + (s8)(u8)self->terrain_box->unk0 + self->ext.main_6.ground_probe_distance;
+        x = self->x_pos.i.hi + (s8)(u8)self->terrain_box->unk0 + self->ext.main_6.ground_probe_distance;
     } else {
-        x = (self->x_pos.u.hi - (s8)(u8)self->terrain_box->unk0) - self->ext.main_6.ground_probe_distance;
+        x = (self->x_pos.i.hi - (s8)(u8)self->terrain_box->unk0) - self->ext.main_6.ground_probe_distance;
     }
 
-    y = self->terrain_box->unk3 + (self->y_pos.u.hi + (s8)(u8)self->terrain_box->unk1);
+    y = self->terrain_box->unk3 + (self->y_pos.i.hi + (s8)(u8)self->terrain_box->unk1);
     if (func_8002D724(PLAYER_OBJECT(self), x, y) == 0x38) {
         move_object(MOVING_OBJECT(self));
     }

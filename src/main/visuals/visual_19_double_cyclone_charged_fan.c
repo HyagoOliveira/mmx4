@@ -7,6 +7,8 @@
 #include "weapon_resources.h"
 #include "main/mains/main_23_slope_skier.h"
 
+void double_cyclone_charged_fan_draw(struct VisualObj* arg0);
+
 extern union AnimationStep* D_8011C0F0[5];
 extern struct VisualSpawnOffset double_cyclone_charged_fan_offsets[2];
 
@@ -14,34 +16,42 @@ extern struct VisualSpawnOffset double_cyclone_charged_fan_offsets[2];
 
 void func_800B2698(struct VisualObj* arg0)
 {
-    s32* player_gfx;
-    s32* sprite_frames;
     s16 dx;
+    s32* sprite_frames;
+    s32* player_gfx;
     struct PlayerObj* player = &g_Player;
     s16 dy;
-    s32 cancel;
+    u32 cancel = 0;
 
-    cancel = g_Player.input_locked != 0;
-    if (g_Player.capsule_state != 0)
+    if (player->input_locked != 0)
         cancel = 1;
-    if (g_Player.weapon != 7)
+#ifndef VERSION_DEMO
+    if (player->capsule_state != 0)
         cancel = 1;
-    if (g_Player.actions_reset != 0)
+#endif
+    if (player->weapon != 7)
         cancel = 1;
-    if (g_Player.hp == 0)
+    if (player->actions_reset != 0)
         cancel = 1;
-    if (cancel)
-        goto zero;
+    if (player->hp == 0)
+        cancel = 1;
+    if (cancel) {
+        ZeroObjectState(OBJECT_HEADER(arg0));
+        return;
+    }
     if (arg0->state == 0) {
         arg0->on_screen = 1;
+#ifdef VERSION_DEMO
+        arg0->bg_offset = g_Player.bg_offset;
+#endif
         player_gfx = SP_PLAYER_GFX;
-        sprite_frames = SP_SPRITE_FRAMES;
         arg0->unk38 = (u8*)player_gfx + player_gfx[8];
+        sprite_frames = SP_SPRITE_FRAMES;
         arg0->unk3C = (u8*)sprite_frames + sprite_frames[0x10];
         arg0->animation_table = D_8011C0F0;
         arg0->unk40 = WEAPON_TEXTURE_SPECIAL_0;
         arg0->unk42 = WEAPON_PALETTE_1;
-        arg0->unk16 = VISUAL_SATURN_LAYER(0);
+        arg0->unk16 = DEMO_ALT(VISUAL_SATURN_LAYER(0), 1);
         dx = double_cyclone_charged_fan_offsets[arg0->unk2].x;
         dy = double_cyclone_charged_fan_offsets[arg0->unk2].y;
         if (arg0->unk2 == 0)
@@ -56,16 +66,15 @@ void func_800B2698(struct VisualObj* arg0)
         }
         {
             s16 y = player->y_pos.i.hi + dy;
+            arg0->y_pos.i.hi = y;
             arg0->unk5C.value = 0x10;
             arg0->unk49 = 0;
-            arg0->y_pos.i.hi = y;
         }
         set_animation(arg0, 3);
         arg0->state++;
         double_cyclone_charged_fan_draw(arg0);
     } else {
         if (arg0->unk5C.value == 0) {
-        zero:
             ZeroObjectState(OBJECT_HEADER(arg0));
             return;
         }

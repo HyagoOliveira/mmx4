@@ -32,6 +32,7 @@ void ride_armor_pilot_despawn(struct MainObj* arg0);
 extern void* ride_armor_pilot_animations[31];
 extern struct Unk_unk68 ride_armor_pilot_terrain_box;
 
+#ifndef VERSION_DEMO
 // ride_armor_pilot_init
 #if defined(VERSION_EU) && !defined(MMX4_PC)
 INCLUDE_ASM("main/nonmatchings/mains/main_71_ride_armor_pilot", func_80089AA4);
@@ -172,11 +173,11 @@ void func_80089C7C(struct MainObj* self)
     }
     if (self->air_state != 0 || ext->unk86 != 0 || ext->unk87 != 0 || (ext->unk8D & 8) != 0)
         return;
-    y = self->y_pos.u.hi + self->terrain_box->unk3;
+    y = self->y_pos.i.hi + self->terrain_box->unk3;
     if (ext->unk8A & self->collision_flags) {
         u32 i;
-        x = self->unk15 == 0 ? self->x_pos.u.hi - self->terrain_box->unk2
-                             : self->x_pos.u.hi + self->terrain_box->unk2 + 1;
+        x = self->unk15 == 0 ? self->x_pos.i.hi - self->terrain_box->unk2
+                             : self->x_pos.i.hi + self->terrain_box->unk2 + 1;
         y--;
         for (i = 0; i < 5; i++, y -= 0x10) {
             if ((u8)func_8002D724(PLAYER_OBJECT(self), x, y) == 0) {
@@ -211,14 +212,19 @@ void func_80089C7C(struct MainObj* self)
     } else {
         self->ext.main_71.unk8A = 0;
     }
+#ifdef MMX4_BIG_ENDIAN
+    if (self->air_state != 0 || self->ext.main_71.unk86 != 0 || self->ext.main_71.unk87 != 0 || (self->ext.main_71.unk8D & 8))
+        return;
+#else
     if (self->air_state != 0 || (*(u32*)&self->ext.main_71.unk84 & 0xFFFF0000) || (self->ext.main_71.unk8D & 8))
         return;
-    y = self->y_pos.u.hi + self->terrain_box->unk3;
+#endif
+    y = self->y_pos.i.hi + self->terrain_box->unk3;
     if (self->collision_flags & self->ext.main_71.unk8A) {
         if (self->unk15 == 0)
-            x = self->x_pos.u.hi - self->terrain_box->unk2;
+            x = self->x_pos.i.hi - self->terrain_box->unk2;
         else
-            x = self->x_pos.u.hi + (self->terrain_box->unk2 + 1);
+            x = self->x_pos.i.hi + (self->terrain_box->unk2 + 1);
         y--;
         for (i = 0; i < 5; i++) {
             u8 hit = func_8002D724((struct PlayerObj*)self, x, y);
@@ -326,10 +332,13 @@ void ride_armor_pilot_set_scripted_speed(struct MainObj* self)
     }
 }
 
+#endif
+
 void ride_armor_pilot_stub(struct MainObj* self, s32 arg1, s32 arg2)
 {
 }
 
+#ifndef VERSION_DEMO
 // ride_armor_pilot_idle
 void func_8008A064(struct MainObj* self)
 {
@@ -360,9 +369,10 @@ void func_8008A064(struct MainObj* self)
                 return;
             }
         }
-    } else {
-        self->ext.main_71.unk8C--;
+        animate_object(ANIMATED_OBJECT(self));
+        return;
     }
+    self->ext.main_71.unk8C--;
     animate_object(ANIMATED_OBJECT(self));
 }
 
@@ -374,7 +384,7 @@ void func_8008A180(struct MainObj* self)
         set_animation(self, 1);
         self->ext.main_71.unk84 = 0x160;
         ride_armor_pilot_update_facing(self);
-        self->ext.main_71.unk8D &= 0xF3;
+        self->ext.main_71.unk8D &= ~0xC;
         self->hurt_box = ride_armor_pilot_hurt_box;
         self->attack_box = ride_armor_pilot_attack_box;
         self->contact_damage = 5;
@@ -501,8 +511,10 @@ void func_8008A4D8(struct MainObj* self)
             ride_armor_pilot_set_walk_speed(self);
             ride_armor_pilot_apply_x_speed(self);
         }
+        animate_object(ANIMATED_OBJECT(self));
+    } else {
+        animate_object(ANIMATED_OBJECT(self));
     }
-    animate_object(ANIMATED_OBJECT(self));
 }
 
 // ride_armor_pilot_jump_punch
@@ -550,9 +562,10 @@ void func_8008A60C(struct MainObj* self)
             self->attack_box = ride_armor_pilot_attack_box;
             self->contact_damage = 5;
         }
+        animate_object(ANIMATED_OBJECT(self));
+    } else {
+        animate_object(ANIMATED_OBJECT(self));
     }
-
-    animate_object(ANIMATED_OBJECT(self));
 }
 
 // ride_armor_pilot_dash
@@ -564,9 +577,9 @@ void func_8008A778(struct MainObj* self)
         self->ext.main_71.unk84 = 0x420;
 
         if (self->unk15 != 0) {
-            self->x_speed = FIXED(4.125);
+            self->x_speed = self->ext.main_71.unk84 << 8;
         } else {
-            self->x_speed = FIXED(-4.125);
+            self->x_speed = -(self->ext.main_71.unk84 << 8);
         }
 
         self->ext.main_71.unk8E = 0x1E;
@@ -605,7 +618,7 @@ void func_8008A8E4(struct MainObj* self)
         self->unk6 = 1;
         self->ext.main_71.unk84 = 0x160;
         set_animation(self, 6);
-        self->ext.main_71.unk8D &= 0xFB;
+        self->ext.main_71.unk8D &= ~4;
         self->hurt_box = ride_armor_pilot_hurt_box;
         self->attack_box = ride_armor_pilot_attack_box;
         self->contact_damage = 5;
@@ -628,9 +641,10 @@ void func_8008A8E4(struct MainObj* self)
             ride_armor_pilot_set_step(BASE_OBJECT(self), 3);
             return;
         }
+        animate_object(ANIMATED_OBJECT(self));
+    } else {
+        animate_object(ANIMATED_OBJECT(self));
     }
-
-    animate_object(ANIMATED_OBJECT(self));
 }
 
 // ride_armor_pilot_guard
@@ -639,8 +653,8 @@ void func_8008A9F4(struct MainObj* self)
     if (self->unk6 == 0) {
         self->unk6 = 1;
         set_animation(self, 8);
-        self->attack_box = &ride_armor_pilot_guard_box;
         self->ext.main_71.unk8D |= 8;
+        self->attack_box = &ride_armor_pilot_guard_box;
         self->contact_damage = 6;
         func_8001540C(2, SATURN_SOUND(0x3C, 0x13F), self);
     }
@@ -659,8 +673,10 @@ void func_8008A9F4(struct MainObj* self)
                 ride_armor_pilot_apply_x_speed(self);
             }
         }
+        animate_object(ANIMATED_OBJECT(self));
+    } else {
+        animate_object(ANIMATED_OBJECT(self));
     }
-    animate_object(ANIMATED_OBJECT(self));
 }
 
 // ride_armor_pilot_fall
@@ -741,6 +757,8 @@ void ride_armor_pilot_despawn_remove(struct MainObj* self)
     despawn_object(OBJECT_HEADER(self));
 }
 
+#endif
+
 void ride_armor_pilot_despawn_idle(void)
 {
 }
@@ -749,6 +767,7 @@ void ride_armor_pilot_despawn_idle2(void)
 {
 }
 
+#ifndef VERSION_DEMO
 void ride_armor_pilot_despawn(struct MainObj* self)
 {
     ride_armor_pilot_despawn_funcs[self->unk5](self);
@@ -1047,3 +1066,4 @@ void (*ride_armor_pilot_state_funcs[3])() = {
     func_8008AC40,
     ride_armor_pilot_despawn,
 };
+#endif

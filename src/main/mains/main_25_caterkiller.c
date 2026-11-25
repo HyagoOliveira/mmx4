@@ -40,6 +40,8 @@ extern struct Unk_unk68 D_80106EF4[];
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 void caterkiller_check_fall(struct MainObj*);
 #endif
+
+void caterkiller_check_fall(struct MainObj* self);
 extern void (*caterkiller_step_funcs[])(struct MainObj*);
 extern struct Unk_unk68* D_800FD018[12];
 extern struct Unk_unk68* D_800FD048[];
@@ -186,21 +188,25 @@ void func_80057308(struct MainObj* self)
         self->hurt_box = D_800FD018[self->ext.main_25.unk84 * 2];
         result = func_8002DD04(self);
         if (result < 0) {
-        die:
             spawn_explosion(BASE_OBJECT(self));
             spawn_debris(4, caterkiller_debris, self);
             drop_item(BASE_OBJECT(self), 0xC);
-            goto done;
+            self->state = 2;
+            return;
         }
         self->hurt_box = D_800FD018[self->ext.main_25.unk84 * 2 + 1];
         result = func_8002DD04(self);
-        if (result < 0)
-            goto die;
+        if (result < 0) {
+            spawn_explosion(BASE_OBJECT(self));
+            spawn_debris(4, caterkiller_debris, self);
+            drop_item(BASE_OBJECT(self), 0xC);
+            self->state = 2;
+            return;
+        }
         if (func_8002B1E8(BASE_OBJECT(self), 0x40, 0x28) == 0) {
             update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
             return;
         }
-    done:
         self->state = 2;
     }
 }
@@ -329,7 +335,7 @@ void func_80057874(struct MainObj* self)
     if (self->animation_step.fields.event == 1)
         self->ext.main_25.unk84 = 0;
     move_object(MOVING_OBJECT(self));
-    if ((g_Player.y_pos.i.hi - self->y_pos.i.hi >= 0 ? g_Player.y_pos.i.hi - self->y_pos.i.hi : self->y_pos.i.hi - g_Player.y_pos.i.hi) > 0x19) {
+    if (ABS(g_Player.y_pos.i.hi, self->y_pos.i.hi) > 0x19) {
         set_animation(self, 0);
         self->unk5 = 2;
         self->unk6 = 0;
@@ -398,8 +404,8 @@ void caterkiller_fall_drop(struct MainObj* self)
     move_with_gravity(ANIMATED_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
 
-    tx = self->x_pos.u.hi + self->terrain_box->unk0;
-    ty = self->terrain_box->unk3 + (self->y_pos.u.hi + self->terrain_box->unk1) + 0x1B;
+    tx = self->x_pos.i.hi + self->terrain_box->unk0;
+    ty = self->terrain_box->unk3 + (self->y_pos.i.hi + self->terrain_box->unk1) + 0x1B;
 
     hits = func_8002D724(PLAYER_OBJECT(self), tx, ty);
     tx -= self->terrain_box->unk2;
@@ -420,16 +426,16 @@ void func_80057C00(struct MainObj* self)
     animate_object(ANIMATED_OBJECT(self));
     switch (self->animation_step.fields.event) {
     case 2:
-        self->y_pos.u.hi += 5;
+        self->y_pos.i.hi += 5;
         break;
     case 3:
         self->ext.main_25.unk84 = 3;
-        self->y_pos.u.hi += 0xC;
+        self->y_pos.i.hi += 0xC;
         break;
     case 4:
         self->ext.main_25.unk84 = 4;
+        self->y_pos.i.hi += 0xC;
         self->y_speed = -0x50000;
-        self->y_pos.u.hi += 0xC;
         break;
     case 5:
         if (self->collision_flags & 8) {
@@ -443,7 +449,7 @@ void func_80057C00(struct MainObj* self)
         self->ext.main_25.unk84 = 5;
         break;
     case 1:
-        if ((g_Player.y_pos.i.hi - self->y_pos.i.hi >= 0 ? g_Player.y_pos.i.hi - self->y_pos.i.hi : self->y_pos.i.hi - g_Player.y_pos.i.hi) < 0x1A) {
+        if ((g_Player.y_pos.i.hi - self->y_pos.i.hi >= 0 ? g_Player.y_pos.i.hi - self->y_pos.i.hi : self->y_pos.i.hi - g_Player.y_pos.i.hi) <= 0x19) {
             set_animation(self, 1);
             self->unk5 = 3;
             self->unk6 = 0;
@@ -490,8 +496,8 @@ void caterkiller_climb_rise(struct MainObj* self)
     u8 r;
     move_with_gravity(ANIMATED_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
-    tx = self->x_pos.u.hi + self->terrain_box->unk0;
-    ty = (self->y_pos.u.hi + self->terrain_box->unk1) - self->terrain_box->unk3;
+    tx = self->x_pos.i.hi + self->terrain_box->unk0;
+    ty = (self->y_pos.i.hi + self->terrain_box->unk1) - self->terrain_box->unk3;
     r = func_8002D724(PLAYER_OBJECT(self), tx, ty);
     tx -= self->terrain_box->unk2;
     r = r | func_8002D724(PLAYER_OBJECT(self), tx, ty);
@@ -508,8 +514,8 @@ void caterkiller_climb_cling(struct MainObj* self)
     u8 r;
     move_with_gravity(ANIMATED_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
-    tx = self->x_pos.u.hi + self->terrain_box->unk0;
-    ty = (self->y_pos.u.hi + self->terrain_box->unk1) - self->terrain_box->unk3;
+    tx = self->x_pos.i.hi + self->terrain_box->unk0;
+    ty = (self->y_pos.i.hi + self->terrain_box->unk1) - self->terrain_box->unk3;
     r = func_8002D724(PLAYER_OBJECT(self), tx, ty);
     tx -= self->terrain_box->unk2;
     r = r | func_8002D724(PLAYER_OBJECT(self), tx, ty);
@@ -524,8 +530,8 @@ void caterkiller_climb_cling(struct MainObj* self)
 void caterkiller_wait_above(struct MainObj* self)
 {
     if (g_Player.x_pos.i.hi - self->x_pos.i.hi > 0x10) {
-        self->unk5 = 4;
         self->y_pos.i.hi -= 0x18;
+        self->unk5 = 4;
     }
 }
 
@@ -547,7 +553,7 @@ void caterkiller_check_fall(struct MainObj* self)
         if (self->unk15 == 0) {
             self->x_pos.i.hi -= 2;
         } else {
-            self->x_pos.u.hi += 2;
+            self->x_pos.i.hi += 2;
         }
         self->x_speed = 0;
         self->y_speed = 0;

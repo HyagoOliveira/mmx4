@@ -40,11 +40,11 @@ void drone_beam_init(struct ShotObj* self)
     self->unk60 = 6;
     self->unk84.value = 0x6E;
     owner = self->unk7C;
+    self->state++;
+    self->unk42 &= 0x7FFF;
     self->unk68 = NULL;
     self->unk54 = NULL;
     self->unk5C = 0;
-    self->state++;
-    self->unk42 &= 0x7FFF;
 
     if (self->unk2 != 0) {
         set_animation(self, 4);
@@ -74,11 +74,14 @@ void func_800A3A4C(struct ShotObj* self)
     struct WeaponObj* owner;
     u16 distance;
     s16 adjusted_distance;
+#ifdef VERSION_DEMO
+    u16 offset_distance;
+#endif
 
     owner = self->unk7C;
     animate_object(ANIMATED_OBJECT(self));
 
-    if ((u32)(self->unk84.value - 0x1A) < 0x4A) {
+    if (self->unk84.value < 0x64 && self->unk84.value > 0x19) {
         func_8002D9BC(self);
     }
 
@@ -98,31 +101,56 @@ void func_800A3A4C(struct ShotObj* self)
         }
     }
 
-    distance = ABS(background_objects[0].x_pos.i.hi, owner->x_pos.i.hi);
+    distance = ABS(DEMO_ALT(background_objects[0].x_pos.i.hi, g_Player.x_pos.i.hi), owner->x_pos.i.hi);
 
+#ifdef VERSION_DEMO
+    if (distance >= 0x120) {
+        if (self->unk2 != 0) {
+            if (self->unk15 == 0) {
+                self->x_pos.i.hi = owner->x_pos.i.hi - distance - 0x70;
+            } else {
+                offset_distance = distance + -0x90;
+                self->x_pos.i.hi = owner->x_pos.i.hi + offset_distance + 0x100;
+            }
+        } else {
+            if (self->unk15 == 0) {
+                adjusted_distance = distance - 0x90;
+                self->x_pos.i.hi = owner->x_pos.i.hi - adjusted_distance;
+            } else {
+                offset_distance = distance + -0x90;
+                self->x_pos.i.hi = owner->x_pos.i.hi + offset_distance;
+            }
+        }
+    }
+#else
     if (distance >= 0x180) {
         if (self->unk2 != 0) {
             if (self->unk15 == 0) {
-                self->x_pos.i.hi = owner->x_pos.u.hi - distance - 0x10;
+                self->x_pos.i.hi = owner->x_pos.i.hi - distance - 0x10;
             } else {
-                self->x_pos.i.hi = distance + owner->x_pos.u.hi + 0x10;
+                self->x_pos.i.hi = distance + owner->x_pos.i.hi + 0x10;
             }
         } else {
             if (self->unk15 == 0) {
                 adjusted_distance = distance - 0xF0;
-                self->x_pos.i.hi = owner->x_pos.u.hi - adjusted_distance;
+                self->x_pos.i.hi = owner->x_pos.i.hi - adjusted_distance;
             } else {
                 adjusted_distance = distance - 0xF0;
-                self->x_pos.i.hi = owner->x_pos.u.hi + adjusted_distance;
+                self->x_pos.i.hi = owner->x_pos.i.hi + adjusted_distance;
             }
         }
     }
+#endif
 
     if ((--self->unk84.value == 0) || (owner->active == 0) || (owner->state >= 2)) {
         self->state++;
     }
 
+#ifdef VERSION_DEMO
+    update_on_screen(BASE_OBJECT(self), 0x80, 0x20);
+#else
     beam_update_visibility(self, background_objects[0].x_pos.i.hi, owner->x_pos.i.hi, 0xA0);
+#endif
 }
 
 void drone_beam_despawn(struct ShotObj* self)

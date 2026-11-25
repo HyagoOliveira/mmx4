@@ -31,25 +31,25 @@ void cannon_blast_init(struct ShotObj* raw_arg0)
     struct WeaponObj* temp_s1;
 
     arg0 = raw_arg0;
-    arg0->state = (u8)arg0->state + 1;
+    arg0->state++;
     arg0->on_screen = 1;
     temp_s1 = arg0->unk7C;
+    arg0->unk42 &= 0x7FFF;
     arg0->unk68 = 0;
     arg0->unk54 = 0;
     arg0->unk58.data = (u8*)D_80105FF0;
     arg0->unk5C = 0;
     arg0->unk60 = 6;
     arg0->unk84.value = 0x6E;
-    arg0->unk42 &= 0x7FFF;
     if (arg0->unk2 != 0) {
         set_animation(arg0, 4);
         arg0->unk50.data = cannon_blast_long_box;
-        var_v0 = (u16)temp_s1->x_pos.i.hi - 0x177;
+        var_v0 = temp_s1->x_pos.i.hi - 0x177;
         arg0->x_pos.i.hi = var_v0;
     } else {
         set_animation(arg0, 3);
         arg0->unk50.data = cannon_blast_short_box;
-        var_v0 = (u16)temp_s1->x_pos.i.hi - 0x77;
+        var_v0 = temp_s1->x_pos.i.hi - 0x77;
         arg0->x_pos.i.hi = var_v0;
     }
     arg0->y_pos.i.hi = (s16)(u16)temp_s1->y_pos.i.hi;
@@ -65,7 +65,7 @@ void func_8009D048(struct ShotObj* self)
     owner = self->unk7C;
     animate_object(ANIMATED_OBJECT(self));
 
-    if ((u32)(self->unk84.value - 0x1A) < 0x4A) {
+    if (self->unk84.value < 0x64 && self->unk84.value > 0x19) {
         func_8002D9BC(self);
     }
 
@@ -85,13 +85,13 @@ void func_8009D048(struct ShotObj* self)
         }
     }
 
-    distance = ABS(background_objects->x_pos.i.hi, owner->x_pos.i.hi);
-    if ((u16)distance >= 0x1A0) {
+    distance = ABS(DEMO_ALT(background_objects->x_pos.i.hi, g_Player.x_pos.i.hi), owner->x_pos.i.hi);
+    if ((u16)distance >= DEMO_ALT(0x1A0, 0xF0)) {
         if (self->unk2 != 0) {
-            self->x_pos.i.hi = (owner->x_pos.u.hi - distance) + 0x29;
+            self->x_pos.i.hi = (owner->x_pos.i.hi - distance) + DEMO_ALT(0x29, -0x89);
         } else {
-            adjusted_distance = distance - 0x129;
-            self->x_pos.i.hi = owner->x_pos.u.hi - adjusted_distance;
+            adjusted_distance = distance - DEMO_ALT(0x129, 0x77);
+            self->x_pos.i.hi = owner->x_pos.i.hi - adjusted_distance;
         }
     }
 

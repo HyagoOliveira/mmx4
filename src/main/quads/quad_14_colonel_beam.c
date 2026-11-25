@@ -19,11 +19,21 @@ void colonel_beam_wait(struct QuadObj*);
 
 void colonel_beam_place(struct QuadObj* arg0, u8 arg1);
 
+#ifdef VERSION_DEMO
+extern void (*train_scroll_state_funcs[])(struct LayerObj*);
+
+void colonel_beam_update(struct QuadObj* arg0)
+{
+    train_scroll_state_funcs[arg0->state]((struct LayerObj*)arg0);
+}
+#else
 void colonel_beam_update(struct QuadObj* arg0)
 {
     colonel_beam_state_funcs[arg0->state](arg0);
 }
+#endif
 
+#ifndef VERSION_DEMO
 void colonel_beam_init(struct QuadObj* arg0)
 {
     arg0->active = -0x6D;
@@ -33,8 +43,8 @@ void colonel_beam_init(struct QuadObj* arg0)
     arg0->x_pos.i.hi = 0;
     arg0->y_pos.i.hi = 0;
     colonel_beam_place(arg0, (u8)arg0->unk2);
+    arg0->state++;
     arg0->unk5 = 0;
-    arg0->state = (u8)arg0->state + 1;
 }
 
 void colonel_beam_main(struct QuadObj* arg0)
@@ -110,3 +120,4 @@ void (*colonel_beam_step_funcs[])(struct QuadObj*) = {
     colonel_beam_widen,
     colonel_beam_wait,
 };
+#endif

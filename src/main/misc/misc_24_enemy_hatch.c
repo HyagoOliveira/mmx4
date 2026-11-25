@@ -46,7 +46,6 @@ void enemy_hatch_update(struct MiscObj* self)
 void func_800CBF14(struct MiscObj* self)
 {
     u8 bg_offset;
-    u8 state;
 
     if (self->x_pos.i.hi - g_Player.x_pos.i.hi <= 0) {
         self->unk15 = PLAYER_FACING_RIGHT;
@@ -57,14 +56,13 @@ void func_800CBF14(struct MiscObj* self)
     self->unk3C = SP_ARCHIVE_ENTRY(SP_MENU_FRAMES, func_8002938C(0x8F));
     self->unk42 = OBJECT_STAGE_CLUT(0x8F);
     bg_offset = g_Player.bg_offset;
-    state = self->state;
+    self->bg_offset = bg_offset;
     self->animation_table = (u32**)enemy_hatch_animations;
+    self->state++;
     self->unk5 = 0;
     self->unk16 = VISUAL_SATURN_LAYER(5);
     self->unk6 = 0;
-    self->bg_offset = bg_offset;
     self->ext.misc_24.child_active = 0;
-    self->state = state + 1;
 }
 
 void enemy_hatch_main(struct MiscObj* self)
@@ -73,7 +71,15 @@ void enemy_hatch_main(struct MiscObj* self)
     if (func_8002B160(self) == 0) {
         is_on_screen(self);
     } else {
+#ifdef VERSION_DEMO
+        if (self->ext.misc_24.child_active) {
+            self->ext.misc_24.child_active = 0;
+            self->ext.misc_24.child->ext.misc_11.active = 1;
+        }
+        self->state++;
+#else
         self->state = 2;
+#endif
     }
 }
 
@@ -116,8 +122,13 @@ void func_800CC114(struct MiscObj* self)
     child->x_pos.val = self->x_pos.val;
     child->y_pos.val = self->y_pos.val;
     set_animation(child, 2);
+#ifdef VERSION_DEMO
+    self->ext.misc_24.child = child;
+    child->ext.misc_11.active = 0;
+#else
     child->ext.misc_11.active = 0;
     self->ext.misc_24.child = child;
+#endif
     self->ext.misc_24.child_active = 1;
 }
 
@@ -131,16 +142,19 @@ void enemy_hatch_release_spawn(struct MiscObj* self)
     struct MainObj* main;
 
     set_animation(self, 1);
+#ifndef VERSION_DEMO
     animate_object(ANIMATED_OBJECT(self));
+#endif
     main = find_free_main_obj();
     if (main != NULL) {
         main->active = 0x41;
         if (self->unk2 != 0) {
             main->id = 3;
+            main->unk2 = -0x80;
         } else {
             main->id = 0x30;
+            main->unk2 = -0x80;
         }
-        main->unk2 = -0x80;
         main->unk15 = self->unk15;
         main->x_pos.val = self->x_pos.val;
         if (main->id == 3) {
@@ -151,7 +165,9 @@ void enemy_hatch_release_spawn(struct MiscObj* self)
         self->ext.misc_5.owner = main;
         self->ext.misc_24.timer = 0x20;
         self->unk6++;
+#ifndef VERSION_DEMO
         func_8001540C(2, SATURN_SOUND(0xE7, 0xA8), self);
+#endif
     }
 }
 
@@ -191,7 +207,11 @@ void enemy_hatch_close_finish(struct MiscObj* self)
 void enemy_hatch_despawn(struct MiscObj* self)
 {
     if (self->ext.misc_24.child_active != 0) {
+#ifdef VERSION_DEMO
+        self->ext.misc_24.child->ext.misc_11.active = 1;
+#else
         ZeroObjectState(OBJECT_HEADER(self->ext.misc_24.child));
+#endif
     }
     despawn_object(OBJECT_HEADER(self));
 }

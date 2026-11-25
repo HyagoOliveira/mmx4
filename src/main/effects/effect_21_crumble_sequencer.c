@@ -57,7 +57,7 @@ void func_800B9F38(struct EffectObj* arg0)
     u8 id;
 
     arg0->ext.effect_21.was_inside = arg0->ext.effect_21.inside;
-    if ((u16)(g_Player.x_pos.i.hi - 0x2A1) < 0x9BF)
+    if (g_Player.x_pos.i.hi >= 0x2A1 && g_Player.x_pos.i.hi < 0xC60)
         arg0->ext.effect_21.inside = 1;
     if (arg0->ext.effect_21.inside == 0)
         return;
@@ -138,8 +138,8 @@ void func_800BA178(struct EffectObj* arg0)
             }
             if (arg0->ext.effect_21.cursor->flags & 0x80) {
                 if (arg0->unk2 == 4) {
-                    arg0->ext.effect_21.timer = 0x78;
                     arg0->unk5++;
+                    arg0->ext.effect_21.timer = 0x78;
                     return;
                 }
                 if (arg0->unk2 == 5) {
@@ -197,8 +197,8 @@ void crumble_sequencer_chain(struct EffectObj* self)
                 misc->x_pos.i.hi = self->ext.effect_21.cursor->x;
                 misc->y_pos.i.hi = self->ext.effect_21.cursor->y;
                 misc->unk2 = self->ext.effect_21.cursor->object_id;
-                record = self->ext.effect_21.cursor;
                 self->ext.effect_21.timer = 1;
+                record = self->ext.effect_21.cursor;
                 if (record->flags & 0x80) {
                     item = find_free_item_obj();
                     if (item != NULL) {

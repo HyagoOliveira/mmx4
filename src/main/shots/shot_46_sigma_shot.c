@@ -8,7 +8,7 @@
 #include "main/collision.h"
 #include "main/object_motion.h"
 #include "main/collision_bounds.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #include "main/stage_objects.h"
 
 // sigma_bolt_funcs
@@ -56,7 +56,7 @@ void sigma_shot_despawn(struct ShotObj*);
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
 #include "main/collision_bounds.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #include "main/stage_objects.h"
 #endif
 
@@ -197,7 +197,7 @@ void func_800A8628(struct ShotObj* self)
         if ((u8)(self->unk94 - 9) < 8)
             self->unk94 = 0x10;
         self->unk60 = 9;
-        self->y_pos.u.hi -= 0x15;
+        self->y_pos.i.hi -= 0x15;
         self->x_pos.i.hi += self->unk15 ? 0x21 : -0x21;
         self->unk68 = (struct Unk_unk68*)sigma_shot_box_6;
         self->unk50.data = (u8*)sigma_shot_box_5;
@@ -324,8 +324,8 @@ void sigma_bolt_gather(struct ShotObj* self)
     }
     collision = angle_to_point(OBJECT_HEADER(self), x, y);
     if (sigma_shot_at_position(self, x, y) & 0xFF) {
+        self->unk5++;
         self->timer = 0x14;
-        self->unk5 = (u8)self->unk5 + 1;
     }
     set_velocity_from_angle(MOVING_OBJECT(self), collision & 0xFF);
 }
@@ -397,6 +397,20 @@ void sigma_shot_bolt(struct ShotObj* self)
     }
 }
 
+#ifdef MMX4_SATURN
+#define SIGMA_SHOT_IMPACT_SOUND(self)                    \
+    do {                                                 \
+        func_8001540C(6, 6, NULL);                       \
+        func_8001540C(2, SATURN_SOUND(6, 0xC5), (self)); \
+    } while (0)
+#else
+#define SIGMA_SHOT_IMPACT_SOUND(self)                    \
+    do {                                                 \
+        stop_sound(2, 5);                                \
+        func_8001540C(2, SATURN_SOUND(6, 0xC5), (self)); \
+    } while (0)
+#endif
+
 // sigma_planted_scythe_fly
 void func_800A8E50(struct ShotObj* self)
 {
@@ -409,10 +423,11 @@ void func_800A8E50(struct ShotObj* self)
         self->unk5++;
         start_screen_shake_x(0x14, 4, 2);
         set_animation(self, 0x1F);
+        self->unk15 = (self->unk70 & 2) ? 0 : PLAYER_FACING_RIGHT;
         self->timer = 0x18;
-        self->unk15 = ((self->unk70 & 2) == 0) << PLAYER_FACING_SHIFT;
         self->unk95 = 3;
         spawn_debris_offset(6, sigma_shot_debris, MAIN_OBJECT(self), self->unk15 != 0 ? 0xFFED0000 : 0x130000, 0xFFEA0000);
+        SIGMA_SHOT_IMPACT_SOUND(self);
     } else if (self->unk70 & 8) {
         self->unk5++;
         self->unk15 ^= PLAYER_FACING_RIGHT;
@@ -421,15 +436,8 @@ void func_800A8E50(struct ShotObj* self)
         self->timer = 0x24;
         self->unk95 = 4;
         spawn_debris_offset(6, sigma_shot_debris, MAIN_OBJECT(self), self->unk15 != 0 ? 0xFFF10000 : 0xF0000, 0);
-    } else {
-        return;
+        SIGMA_SHOT_IMPACT_SOUND(self);
     }
-#ifdef MMX4_SATURN
-    func_8001540C(6, 6, NULL);
-#else
-    stop_sound(2, 5);
-#endif
-    func_8001540C(2, SATURN_SOUND(6, 0xC5), self);
 }
 
 void sigma_planted_scythe_stuck(struct ShotObj* self)
@@ -459,13 +467,13 @@ void sigma_planted_scythe_recall(struct ShotObj* self)
     self->unk5++;
     weapon = self->unk7C;
     x = weapon->x_pos.i.hi;
-    if (weapon->unk15 == 0) {
-        target_x = x - 0x21;
-    } else {
+    if (weapon->unk15 != 0) {
         target_x = x + 0x21;
+    } else {
+        target_x = x - 0x21;
     }
     self->unk90.i.lo = target_x;
-    self->unk90.u.hi = weapon->y_pos.u.hi - 0x15;
+    self->unk90.i.hi = weapon->y_pos.i.hi - 0x15;
     set_animation(self, 0x1E);
     func_8001540C(2, SATURN_SOUND(5, 0xC4), self);
 }
@@ -524,8 +532,8 @@ void sigma_dart_wait(struct ShotObj* self)
 
     if (--self->timer == 0) {
         self->unk5++;
-        self->unk90.u.lo = player->x_pos.u.hi;
-        self->unk90.u.hi = player->y_pos.u.hi;
+        self->unk90.u.lo = player->x_pos.i.hi;
+        self->unk90.i.hi = player->y_pos.i.hi;
         func_8001540C(2, SATURN_SOUND(0xB, 0xCA), self);
     }
 }
@@ -612,8 +620,8 @@ void sigma_shot_cloak_fire(struct ShotObj* self)
     if (self->animation_step.fields.relative_step == 0) {
         self->state = 2;
     }
-    self->x_pos.u.hi = owner->x_pos.u.hi + owner->y_vel.u.hi;
-    self->y_pos.u.hi = owner->y_pos.u.hi + owner->unk28.u.hi;
+    self->x_pos.i.hi = owner->x_pos.i.hi + owner->y_vel.i.hi;
+    self->y_pos.i.hi = owner->y_pos.i.hi + owner->unk28.i.hi;
     if (!(WEAPON_FRAME_COUNTER % 8)) {
         spawn_debris(6, sigma_shot_debris, self);
     }
@@ -627,8 +635,8 @@ void sigma_shot_dropped_scythe(struct ShotObj* self)
         animate_object(ANIMATED_OBJECT(self));
         move_with_gravity(ANIMATED_OBJECT(self));
         if (self->y_vel.val < 0) {
-            self->y_vel.val = 0;
             self->unk5++;
+            self->y_vel.val = 0;
         }
         break;
     case 1:
@@ -650,8 +658,8 @@ void sigma_shot_flash(struct ShotObj* self)
     struct WeaponObj* weapon;
 
     weapon = self->unk7C;
-    self->x_pos.u.hi = weapon->x_pos.u.hi;
-    self->y_pos.u.hi = weapon->y_pos.u.hi;
+    self->x_pos.i.hi = weapon->x_pos.i.hi;
+    self->y_pos.i.hi = weapon->y_pos.i.hi;
     animate_object(ANIMATED_OBJECT(self));
     if (self->animation_step.fields.relative_step == 0) {
         self->state = 2;

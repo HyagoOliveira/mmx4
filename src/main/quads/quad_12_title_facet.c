@@ -72,8 +72,8 @@ void title_facet_follow(struct QuadObj* arg0)
     arg0->vertices[3].x.i.hi = vertex[0];
     arg0->vertices[3].y.i.hi = vertex[2];
     if (game_info.unk6 == 0) {
-        arg0->state++;
         arg0->ext.unk_ext.unk38 = 5;
+        arg0->state++;
     }
     QUAD_SET_ON_SCREEN(arg0);
 }
@@ -87,8 +87,16 @@ void title_facet_finish(struct QuadObj* arg0)
             if (misc != NULL) {
                 misc->active = 1;
                 misc->id = 0x13;
-                misc->unk2 = 0xB;
+                misc->unk2 = DEMO_ALT(0xB, 0x1B);
             }
+#ifdef VERSION_DEMO
+            misc = find_free_misc_obj();
+            if (misc != NULL) {
+                misc->active = 1;
+                misc->id = 0x1D;
+                misc->unk2 = 0x21;
+            }
+#endif
         }
         arg0->state++;
     }

@@ -100,13 +100,15 @@ extern u8 D_800F1FBC[4];
 extern const char D_80010058[];
 extern const char D_8001005C[];
 
-#ifdef MMX4_PC
+#ifndef MMX4_SATURN
 const char D_80010058[4] = "";
-const char D_8001005C[16] = "BASLUS-00561";
+#if defined(VERSION_JP)
+const char D_8001005C[16] = "BISLPS-00901";
+#elif defined(VERSION_EU)
+const char D_8001005C[16] = "BESLES-01176";
 #else
-INCLUDE_RODATA("main/nonmatchings/menu", D_80010058);
-
-INCLUDE_RODATA("main/nonmatchings/menu", D_8001005C);
+const char D_8001005C[16] = "BASLUS-00561";
+#endif
 #endif
 
 void func_800193D8(struct EngineObj* arg0)
@@ -296,7 +298,7 @@ void func_8001989C(struct EngineObj* arg0)
         func_8001B644(D_800F1DFC);
         return;
     case 2:
-        arg0->unk1 = (u8)arg0->unk1 + 1;
+        arg0->unk1++;
         return;
     case 3:
         arg0->unk1 = 0xB;
@@ -344,7 +346,7 @@ void func_80019B64(struct EngineObj* arg0)
 
 void func_80019BA0(struct EngineObj* arg0)
 {
-    arg0->unk2 = (u8)arg0->unk2 + 1;
+    arg0->unk2++;
     reset_objects();
     func_8001B644(D_800F1E90);
 #ifndef VERSION_JP
@@ -362,7 +364,7 @@ void func_80019BF4(struct EngineObj* arg0)
     if (controller_input.pressed & PAD_SELECTION_BUTTONS) {
         func_8001540C(0, 0x22, 0);
         if (main_bss_state.transition.selection == 0 && !(controller_input.pressed & PAD_SELECTION_ALT)) {
-            arg0->unk2 = (u8)arg0->unk2 + 1;
+            arg0->unk2++;
             reset_objects();
             func_8001B644(D_800F1EAC);
             func_8001B718(0x40, (memcard_menu.port + 0xB) & 0xFF, 0xFF);
@@ -562,7 +564,7 @@ void func_8001A308(struct EngineObj* arg0)
             return;
         }
 
-        arg0->unk1 = (u8)arg0->unk1 + 1;
+        arg0->unk1++;
         reset_objects();
         func_8001B718(0x40, (memcard_menu.port + 0xB) & 0xFF, 0xFF);
         func_8001B644(D_800F1E0C);
@@ -642,12 +644,9 @@ static inline u8* memcard_menu_timer(struct MemcardMenuState* menu)
 void func_8001A710(struct EngineObj* arg0)
 {
     u8* timer;
-    u8 remaining;
 
     timer = memcard_menu_timer(&memcard_menu);
-    remaining = *timer - 1;
-    *timer = remaining;
-    if (remaining != 0) {
+    if (--*timer != 0) {
         return;
     }
     func_8001C07C();
@@ -677,7 +676,7 @@ void func_8001A7D4(struct EngineObj* arg0)
         } else {
             func_8001540C(0, 0x22, 0);
         }
-        arg0->unk1 = (u8)arg0->unk1 + 1;
+        arg0->unk1++;
     }
 }
 
@@ -874,13 +873,10 @@ void func_8001AE8C(struct EngineObj* arg0)
     u8* timer;
     u8* script;
     s32 status;
-    u8 remaining;
     u8 empty;
 
     timer = memcard_menu_timer(&memcard_menu);
-    remaining = *timer - 1;
-    *timer = remaining;
-    if (remaining != 0) {
+    if (--*timer != 0) {
         return;
     }
 
@@ -976,11 +972,9 @@ void func_8001B10C(struct EngineObj* arg0)
         u8 current = *cursor;
 
         if (current == 0) {
-            i = 0;
-            do {
+            for (i = 0; i < 3; i++) {
                 memcard_menu.slot++;
-                i++;
-            } while (i < 3);
+            }
             main_bss_state.transition.selection = 3;
         } else {
             struct MemcardSaveSlot** slot = memcard_menu_slot(&memcard_menu);
@@ -998,11 +992,9 @@ void func_8001B10C(struct EngineObj* arg0)
         u8 current = *cursor;
 
         if (current == 3) {
-            j = 0;
-            do {
+            for (j = 0; j < 3; j++) {
                 memcard_menu.slot--;
-                j++;
-            } while (j < 3);
+            }
             main_bss_state.transition.selection = 0;
         } else {
             struct MemcardSaveSlot** slot = memcard_menu_slot(&memcard_menu);
@@ -1036,7 +1028,7 @@ void func_8001B10C(struct EngineObj* arg0)
         main_bss_state.transition.selection = 0;
 #endif
         reset_objects();
-        arg0->unk1 = (u8)arg0->unk1 + 1;
+        arg0->unk1++;
         func_8001B718(0x30, (*character + memcard_menu.port * 3 + 0x1A) & 0xFF, 0xFF);
         func_8001B644(D_800F1F48);
         func_8001B7C0(0xD0, 0x88, 1);
@@ -1057,7 +1049,7 @@ void func_8001B388(struct EngineObj* arg0)
         func_8001540C(0, 0x22, 0);
         if (main_bss_state.transition.selection != 0 || (controller_input.pressed & PAD_SELECTION_ALT)) {
             reset_objects();
-            arg0->unk1 = (u8)arg0->unk1 - 1;
+            arg0->unk1--;
             main_bss_state.transition.selection = 0;
             memcard_menu.slot = (struct MemcardSaveSlot*)(memcard_menu.buffer + 0x200);
             func_8001B718(0x30, (memcard_menu.port + 0x11) & 0xFF, 0xFF);
@@ -1066,7 +1058,7 @@ void func_8001B388(struct EngineObj* arg0)
             func_8001C008(3, 1);
             return;
         }
-        arg0->unk1 = (u8)arg0->unk1 + 1;
+        arg0->unk1++;
         func_8001C210();
         reset_objects();
         func_800129F0(8);
@@ -1253,13 +1245,13 @@ void func_8001B8B0(s16 x, s16 y, u8 arg2)
                 if (arg2 == 0) {
                     value = main_bss_state.transition.selection;
                     mode = 3;
-                    obj->ext.misc_42.unk55 = mode;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = mode;
                 } else {
                     value = engine_obj.unk1;
                     mode = 1;
-                    obj->ext.misc_42.unk55 = mode;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = mode;
                 }
                 obj->x_pos.i.hi = x + (s16)(count * 16 - 0x28);
                 count++;
@@ -1275,21 +1267,21 @@ void func_8001B8B0(s16 x, s16 y, u8 arg2)
             if (obj != NULL) {
                 obj->active = 0x41;
                 obj->id = 0x2A;
+                obj->unk2 = 3;
                 obj->animation_step.fields.frame_index = 0x13;
                 obj->unk42 = 0x784A;
                 obj->x_pos.i.hi = x + (s16)(count * 16 - 0x28);
-                obj->unk2 = 3;
                 obj->y_pos.i.hi = y;
                 if (arg2 == 0) {
                     u8 value = main_bss_state.transition.selection;
 
-                    obj->ext.misc_42.unk55 = 3;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = 3;
                 } else {
                     u8 value = engine_obj.unk1;
 
-                    obj->ext.misc_42.unk55 = 1;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = 1;
                 }
                 count++;
             }
@@ -1324,13 +1316,13 @@ void func_8001B8B0(s16 x, s16 y, u8 arg2)
                 if (arg2 == 0) {
                     value = main_bss_state.transition.selection;
                     mode = 3;
-                    obj->ext.misc_42.unk55 = mode;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = mode;
                 } else {
                     value = engine_obj.unk1;
                     mode = 1;
-                    obj->ext.misc_42.unk55 = mode;
                     obj->ext.misc_42.unk54 = value;
+                    obj->ext.misc_42.unk55 = mode;
                 }
                 count++;
             }
@@ -1342,12 +1334,7 @@ void func_8001B8B0(s16 x, s16 y, u8 arg2)
 struct MemcardSignature {
     u8 bytes[3];
 };
-#if defined(MMX4_PC) || defined(MMX4_SATURN)
 const struct MemcardSignature D_80010090 = { { 's', 'c', 0 } };
-#else
-extern const struct MemcardSignature D_80010090;
-INCLUDE_RODATA("main/nonmatchings/menu", D_80010090);
-#endif
 
 void func_8001BCAC(s16 x, s16 y, u8 arg2)
 {
@@ -1380,8 +1367,8 @@ void func_8001BCAC(s16 x, s16 y, u8 arg2)
         } else {
             obj->animation_step.fields.frame_index = 0x5D;
             obj->x_pos.i.hi = x + 0x14;
-            obj->y_pos.i.hi = y - 8;
             obj->unk2 = 0;
+            obj->y_pos.i.hi = y - 8;
             obj->ext.misc_42.unk56 = -1;
         }
         if (arg2 == 0) {
@@ -1410,8 +1397,8 @@ void func_8001BE10(s16 x, s16 y, u8 arg2)
             if (memcard_menu.slot->unk3 & D_800F1FBC[i]) {
                 obj = find_free_misc_obj();
                 if (obj != NULL) {
-                    obj->id = 0x2A;
                     obj->active = 1;
+                    obj->id = 0x2A;
                     obj->unk2 = 2;
                     obj->unk16 = 3;
                     obj->animation_step.fields.frame_index = i + 0x2D;
@@ -1425,13 +1412,13 @@ void func_8001BE10(s16 x, s16 y, u8 arg2)
                     if (arg2 == 0) {
                         u8 value = main_bss_state.transition.selection;
 
-                        obj->ext.misc_42.unk55 = 3;
                         obj->ext.misc_42.unk54 = value;
+                        obj->ext.misc_42.unk55 = 3;
                     } else {
                         u8 value = engine_obj.unk1;
 
-                        obj->ext.misc_42.unk55 = 1;
                         obj->ext.misc_42.unk54 = value;
+                        obj->ext.misc_42.unk55 = 1;
                     }
                 }
             }
@@ -1450,13 +1437,13 @@ void func_8001BE10(s16 x, s16 y, u8 arg2)
             if (arg2 == 0) {
                 u8 value = main_bss_state.transition.selection;
 
-                obj->ext.misc_42.unk55 = 3;
                 obj->ext.misc_42.unk54 = value;
+                obj->ext.misc_42.unk55 = 3;
             } else {
                 u8 value = engine_obj.unk1;
 
-                obj->ext.misc_42.unk55 = 1;
                 obj->ext.misc_42.unk54 = value;
+                obj->ext.misc_42.unk55 = 1;
             }
         }
     }

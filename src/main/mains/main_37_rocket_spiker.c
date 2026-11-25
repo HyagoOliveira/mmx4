@@ -8,10 +8,10 @@
 #include "main/55C4.h"
 #include "main/CB184.h"
 #include "main/collision.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #include "main/object_motion.h"
 #include "main/objects.h"
-#include "main/visuals/visual_03_small_effect.h"
+#include "main/visuals/visual_04_blast.h"
 #include "main/collision_bounds.h"
 
 #if defined(MMX4_PC) || defined(MMX4_SATURN)
@@ -124,8 +124,10 @@ void func_8005FE1C(struct MainObj* arg0)
         arg0->collision_data = (const u16*)D_801060F0;
         arg0->hurt_box = (const u8*)&D_800FE4DC;
         arg0->attack_box = (const u8*)&D_800FE4E0;
-        arg0->y_speed = 0;
+#ifndef VERSION_DEMO
         arg0->unk42 += 2;
+#endif
+        arg0->y_speed = 0;
         if (arg0->x_pos.i.hi >= 0x1799) {
             MAIN_37_S16(arg0, 0x84) = 0x17E0;
             arg0->x_pos.val = 0x18180000;
@@ -172,9 +174,12 @@ void func_8005FE1C(struct MainObj* arg0)
     arg0->x_accel = 0;
     arg0->gravity = 0;
     arg0->state = 1;
-    arg0->unk6 = 0;
     arg0->unk18.val = arg0->x_pos.val;
+    arg0->unk6 = 0;
     arg0->unk1C.val = arg0->y_pos.val;
+#ifdef VERSION_DEMO
+    MAIN_37_S16(arg0, 0x8A) = arg0->unk42;
+#endif
 }
 
 extern void (*rocket_spiker_step_funcs[])(struct MainObj*);
@@ -194,7 +199,7 @@ void rocket_spiker_main(struct MainObj* self)
         spawn_debris(0xA, rocket_spiker_debris, self);
         drop_item(BASE_OBJECT(self), 0x13);
         self->state = 2;
-    } else if (self->unk2 == 3) {
+    } else if (DEMO_ALT(self->unk2 == 3, 0)) {
         update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
     } else if (func_8002B1E8(BASE_OBJECT(self), 0x60, 0x40) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
@@ -265,16 +270,17 @@ void rocket_spiker_crawl(struct MainObj* self)
 
 void rocket_spiker_crawl_move(struct MainObj* self)
 {
-    s8 direction_mask;
-
     move_object(MOVING_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
     if (self->unk15 == 0) {
-        direction_mask = self->collision_flags & 2;
-    } else {
-        direction_mask = self->collision_flags & 1;
-    }
-    if (direction_mask != 0) {
+        if (self->collision_flags & 2) {
+            self->unk6 = 2;
+            self->unk15 ^= PLAYER_FACING_RIGHT;
+            self->x_speed = -self->x_speed;
+            set_animation(self, 2);
+            return;
+        }
+    } else if (self->collision_flags & 1) {
         self->unk6 = 2;
         self->unk15 ^= PLAYER_FACING_RIGHT;
         self->x_speed = -self->x_speed;
@@ -326,18 +332,31 @@ void rocket_spiker_boost_wait(struct MainObj* self)
         self->unk6 = 1;
     }
     if (!(self->unk7E & 3)) {
+#ifdef VERSION_DEMO
+        self->ext.main_37.unk80.halves[1] = self->x_pos.i.hi;
+        if (self->unk15 == 0) {
+            self->x_pos.i.hi -= 0x20;
+        } else {
+            self->x_pos.i.hi += 0x20;
+        }
+        self->unk42 = OBJECT_CLUT(0x798A);
+        spawn_debris(1, &rocket_spiker_exhaust_variants[self->ext.main_37.unk8C.bytes[0]], self);
+        self->x_pos.i.hi = self->ext.main_37.unk80.halves[1];
+        self->unk42 = self->ext.main_37.unk88.i.hi;
+#else
         if (self->unk15 == 0) {
             spawn_owner_debris(1, &rocket_spiker_exhaust_variants[self->ext.main_37.unk8C.bytes[0]], self, OBJECT_CLUT(0x7988), FIXED(-32), 0);
         } else {
             spawn_owner_debris(1, &rocket_spiker_exhaust_variants[self->ext.main_37.unk8C.bytes[0]], self, OBJECT_CLUT(0x7988), FIXED(32), 0);
         }
+#endif
         if (++self->ext.main_37.unk8C.bytes[0] == 0xA) {
             self->ext.main_37.unk8C.bytes[0] = 0;
         }
     }
     if (!(++self->unk7E & 7)) {
 
-        func_800B10E4(0x11, (s16)(self->ext.main_37.unk84.i.lo + 0x10), (s16)(self->ext.main_37.unk84.u.hi + 0x10), (s16)(self->ext.main_37.unk84.i.lo + 0x20), (s16)(self->ext.main_37.unk84.u.hi + 0x30), 1);
+        func_800B10E4(0x11, (s16)(self->ext.main_37.unk84.i.lo + 0x10), (s16)(self->ext.main_37.unk84.i.hi + 0x10), (s16)(self->ext.main_37.unk84.i.lo + 0x20), (s16)(self->ext.main_37.unk84.i.hi + 0x30), 1);
     }
 }
 
@@ -358,11 +377,24 @@ void func_800606D8(struct MainObj* main)
         main->unk6 = 2;
     }
     if (!(main->unk7E & 3)) {
+#ifdef VERSION_DEMO
+        main->ext.main_37.unk80.halves[1] = main->x_pos.i.hi;
+        if (main->unk15 == 0) {
+            main->x_pos.i.hi -= 0x20;
+        } else {
+            main->x_pos.i.hi += 0x20;
+        }
+        main->unk42 = OBJECT_CLUT(0x798A);
+        spawn_debris(1, &rocket_spiker_exhaust_variants[main->ext.main_37.unk8C.bytes[0]], main);
+        main->x_pos.i.hi = main->ext.main_37.unk80.halves[1];
+        main->unk42 = main->ext.main_37.unk88.i.hi;
+#else
         if (main->unk15 == 0) {
             spawn_owner_debris(1, &rocket_spiker_exhaust_variants[main->ext.main_37.unk8C.bytes[0]], main, OBJECT_CLUT(0x7988), FIXED(-32), 0);
         } else {
             spawn_owner_debris(1, &rocket_spiker_exhaust_variants[main->ext.main_37.unk8C.bytes[0]], main, OBJECT_CLUT(0x7988), FIXED(32), 0);
         }
+#endif
         if (++main->ext.main_37.unk8C.bytes[0] == 0xA) {
             main->ext.main_37.unk8C.bytes[0] = 0;
         }

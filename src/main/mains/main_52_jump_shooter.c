@@ -60,27 +60,27 @@ void func_8006A55C(struct MainObj* self)
 {
     const u8* const* animations = (const u8* const*)jump_shooter_animations;
 
-    self->hp = 9;
-    self->contact_damage = 3;
+    self->hp = DEMO_ALT(9, 6);
+    self->contact_damage = DEMO_ALT(3, 2);
     self->invincibility_timer = 0;
     self->collision_data = D_801077F8;
     self->bg_offset = g_Player.bg_offset;
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
     self->x_speed = 0;
-    self->animation_table = animations;
-    self->unk16 = VISUAL_SATURN_LAYER(6);
-    self->terrain_box = &jump_shooter_terrain_box;
-    self->hurt_box = &jump_shooter_hurt_box;
     self->y_speed = 0;
     self->x_accel = 0;
     self->gravity = 0;
     self->air_state = 0;
+    self->animation_table = animations;
+    self->unk16 = VISUAL_SATURN_LAYER(6);
+    self->terrain_box = &jump_shooter_terrain_box;
+    self->hurt_box = &jump_shooter_hurt_box;
     self->attack_box = &jump_shooter_attack_box;
     jump_shooter_face_player(ANIMATED_OBJECT(self));
-    self->unk7C = 0x5A;
     self->ext.main_52.unk80 = 0;
     self->ext.main_52.unk8C = 0;
+    self->unk7C = 0x5A;
     self->state = 1;
     self->unk5 = 3;
     self->unk6 = 0;
@@ -100,11 +100,12 @@ void jump_shooter_main(struct MainObj* self)
         spawn_explosion(self);
         spawn_debris(3, &jump_shooter_debris, self);
         drop_item(BASE_OBJECT(self), 0);
+        self->state = 2;
     } else if (func_8002B1E8(BASE_OBJECT(self), 0x40, 0x40) == 0) {
         update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
-        return;
+    } else {
+        self->state = 2;
     }
-    self->state = 2;
 }
 
 void jump_shooter_despawn(struct MainObj* self)
@@ -235,6 +236,9 @@ void func_8006AAB4(struct MainObj* arg0)
     struct Unk_unk68* bounds;
     s16 x;
     s16 y;
+#ifdef VERSION_DEMO
+    struct WeaponObj* weapon;
+#endif
 
     move_object(MOVING_OBJECT(arg0));
     animate_object(ANIMATED_OBJECT(arg0));
@@ -271,6 +275,46 @@ void func_8006AAB4(struct MainObj* arg0)
     arg0->unk5 = 4;
     arg0->unk6 = 0;
 countdown:
+#ifdef VERSION_DEMO
+    if (engine_obj.cur_character == 0) {
+        for (weapon = weapon_objects; weapon < &weapon_objects[3]; weapon++) {
+            if (weapon->active == 0)
+                continue;
+            if (ABS(arg0->y_pos.i.hi, weapon->y_pos.i.hi) < 0x20) {
+                if (weapon->unk15 == 0) {
+                    if (arg0->x_pos.i.hi < weapon->x_pos.i.hi) {
+                        set_animation(arg0, 0x16);
+                        arg0->unk5 = 5;
+                        return;
+                    }
+                } else if (arg0->x_pos.i.hi > weapon->x_pos.i.hi) {
+                    set_animation(arg0, 0x16);
+                    arg0->unk5 = 5;
+                    return;
+                }
+            }
+        }
+    } else {
+        for (weapon = weapon_objects; weapon < &weapon_objects[3]; weapon++) {
+            if (weapon->active == 0)
+                continue;
+            if (ABS(arg0->y_pos.i.hi, g_Player.y_pos.i.hi) < 0x20
+                && ABS(arg0->x_pos.i.hi, g_Player.x_pos.i.hi) < 0x50) {
+                if (weapon->unk15 == 0) {
+                    if (arg0->x_pos.i.hi < weapon->x_pos.i.hi) {
+                        set_animation(arg0, 0x16);
+                        arg0->unk5 = 5;
+                        return;
+                    }
+                } else if (arg0->x_pos.i.hi > weapon->x_pos.i.hi) {
+                    set_animation(arg0, 0x16);
+                    arg0->unk5 = 5;
+                    return;
+                }
+            }
+        }
+    }
+#endif
     if (--arg0->unk7C != 0) {
         return;
     }
@@ -309,10 +353,10 @@ void jump_shooter_jump_launch(struct MainObj* self)
         self->gravity = FIXED(0.25);
         direction = self->ext.main_52.unk8C;
         if (direction == 0) {
-            if (self->unk15 != 0) {
-                self->x_speed = FIXED(1.8);
-            } else {
+            if (self->unk15 == 0) {
                 self->x_speed = FIXED(-1.8);
+            } else {
+                self->x_speed = FIXED(1.8);
             }
         } else if (direction == 1) {
             self->x_speed = 0;
@@ -354,6 +398,30 @@ void jump_shooter_jump_land(struct MainObj* self)
         self->unk6 = 0;
     }
 }
+
+#ifdef VERSION_DEMO
+void func_80074E38_demo(struct MainObj* self)
+{
+    struct WeaponObj* weapon;
+    s16 free_count;
+
+    animate_object(ANIMATED_OBJECT(self));
+    if (self->animation_step.fields.event != 0) {
+        self->collision_data = D_801060F0;
+    }
+    free_count = 0;
+    for (weapon = weapon_objects; weapon < &weapon_objects[3]; weapon++) {
+        if (weapon->active == 0) {
+            free_count++;
+        }
+    }
+    if (free_count == 3) {
+        self->collision_data = D_801077F8;
+        self->unk5 = 3;
+        self->unk6 = 0;
+    }
+}
+#endif
 
 void jump_shooter_face_player(struct AnimatedObj* self)
 {
@@ -486,7 +554,7 @@ struct Unk_unk68 jump_shooter_hurt_box = { -14, -19, 25, 33 };
 
 struct Unk_unk68 jump_shooter_attack_box = { -10, -18, 16, 30 };
 
-struct Unk_unk68 jump_shooter_terrain_box = { 0, 0, 6, 15 };
+struct Unk_unk68 jump_shooter_terrain_box = { DEMO_ALT(0, -4), 0, DEMO_ALT(6, 10), 15 };
 
 union AnimationStep jump_shooter_anim_0[] = {
     { 8, 0, 1, 0x0F },
@@ -695,12 +763,15 @@ void (*jump_shooter_state_funcs[3])() = {
     jump_shooter_despawn,
 };
 
-void (*jump_shooter_step_funcs[5])() = {
+void (*jump_shooter_step_funcs[DEMO_ALT(5, 6)])() = {
     enemy_hit_reaction,
     jump_shooter_resume_step,
     jump_shooter_fire,
     jump_shooter_walk,
     jump_shooter_jump,
+#ifdef VERSION_DEMO
+    func_80074E38_demo,
+#endif
 };
 
 void (*jump_shooter_fire_funcs[4])(struct MainObj*) = {

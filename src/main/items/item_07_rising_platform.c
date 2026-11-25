@@ -8,7 +8,7 @@
 #include "main/1E1BC.h"
 #include "main/55C4.h"
 #include "main/collision.h"
-#include "main/misc/misc_02_rubble.h"
+#include "main/misc/misc_03_debris.h"
 #include "main/object_motion.h"
 #include "weapon_resources.h"
 
@@ -30,14 +30,12 @@ extern u8 rising_platform_debris[2][4];
 // rising_platform_init
 void func_800C16F0(struct ItemObj* self)
 {
-    s32 resource;
 
+    self->state++;
     self->active = 0x41;
     self->animation_table = (const u8* const*)rising_platform_animations;
-    self->state++;
     self->bg_offset = g_Player.bg_offset;
-    resource = func_8002938C(0x87);
-    self->sprite_frames = (u8*)SP_MENU_FRAMES + SP_MENU_FRAMES[resource];
+    self->sprite_frames = (u8*)SP_MENU_FRAMES + SP_MENU_FRAMES[func_8002938C(0x87)];
     self->unk40 = OBJECT_STAGE_TEXTURE(func_8002938C(0x87));
     self->unk42 = OBJECT_STAGE_CLUT(0x87);
     self->unk16 = VISUAL_SATURN_LAYER(6);
@@ -83,7 +81,11 @@ void rising_platform_rise(struct ItemObj* self)
 
 void rising_platform_despawn(struct ItemObj* arg0)
 {
+#ifdef VERSION_DEMO
+    despawn_object(OBJECT_HEADER(arg0));
+#else
     ZeroObjectState(OBJECT_HEADER(arg0));
+#endif
 }
 
 void rising_platform_update(struct ItemObj* arg0)

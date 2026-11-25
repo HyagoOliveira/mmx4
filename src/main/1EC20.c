@@ -57,6 +57,7 @@ void func_8002F264(struct EngineObj* arg0);
 void func_8002F2A0(struct EngineObj* arg0);
 void func_8002F47C(struct EngineObj* arg0);
 
+#ifndef VERSION_DEMO
 // engine_state_3_update_funcs state 0 (load video)
 void func_8002E420(struct EngineObj* arg0)
 {
@@ -71,11 +72,9 @@ void func_8002E420(struct EngineObj* arg0)
     arg0->substage = 0;
     arg0->checkpoint = 0;
     main_bss_state.character_mode = 0;
-    i = 0;
-    do {
+    for (i = 0; i < 0x10; i++) {
         arg0->character_state.bytes[i] = 0;
-        i++;
-    } while (i < 0x10);
+    }
     arg0->unk1F = 0;
     arg0->enable_boss = 0;
     arg0->unk8 = 0;
@@ -99,8 +98,8 @@ void func_8002E420(struct EngineObj* arg0)
 
     switch (arg0->unk5F) {
     case 0:
-        arg0->unk1 = 8;
         arg0->unkE = arg0->cur_character;
+        arg0->unk1 = 8;
         break;
     case 1:
     case 2:
@@ -167,12 +166,204 @@ void func_8002E5E0(void)
     }
 }
 
+#else
+void func_8002E698(struct EngineObj* arg0)
+{
+    struct MiscObj* misc;
+
+    func_800129A4(8);
+    func_8001663C(3, 0x70);
+    misc = find_free_misc_obj();
+    if (misc != NULL) {
+        misc->active = 0x41;
+        misc->id = 0xA;
+        misc->unk2 = 0;
+    }
+    arg0->unk1++;
+}
+
+void func_8002E7BC(struct EngineObj* arg0)
+{
+    struct MiscObj* misc;
+    struct QuadObj* quad;
+    u8 i;
+
+    if (BRIEFING_PAD_PRESSED & BRIEFING_PAD_CONFIRM) {
+        background_objects[0].y_pos.i.hi = 0x110;
+        background_objects[0].unk4C = 1;
+    }
+    if (background_objects[0].y_pos.i.hi < 0x110) {
+        background_objects[0].y_pos.i.hi++;
+        return;
+    }
+
+    arg0->unk1++;
+    misc = find_free_misc_obj();
+    if (misc != NULL) {
+        misc->active = 0x41;
+        misc->id = 0xD;
+        misc->unk2 = 0;
+    }
+    misc = find_free_misc_obj();
+    if (misc != NULL) {
+        misc->active = 0x41;
+        misc->id = 0xF;
+        misc->unk2 = 0;
+    }
+    misc = find_free_misc_obj();
+    if (misc != NULL) {
+        misc->active = 0x41;
+        misc->id = 0xF;
+        misc->unk2 = 1;
+    }
+    for (i = 0; i < 8; i++) {
+        quad = find_free_quad_obj();
+        if (quad != NULL) {
+            quad->active = -0x7F;
+            quad->id = 1;
+            quad->unk2 = i;
+        }
+    }
+    arg0->unk3C = BASE_OBJECT(quad);
+}
+
+u8 D_800C81BC_demo[16][2] = {
+    { 0, 0 },
+    { 1, 0 },
+    { 1, 0 },
+    { 0, 0 },
+    { 1, 0 },
+    { 1, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+};
+
+u8 mission_stage_order[8] = { 1, 6, 7, 4, 5, 3, 8, 2 };
+
+extern s8 D_800F59DC_demo;
+
+void func_8002E994(struct EngineObj* arg0)
+{
+    if (arg0->unk3C->state != 2) {
+        return;
+    }
+
+    switch (BRIEFING_PAD_HELD & 0xF000) {
+    case BRIEFING_PAD_UP:
+        if (!((BRIEFING_PAD_HELD ^ BRIEFING_PAD_PRESSED) & BRIEFING_PAD_UP)) {
+            break;
+        }
+
+        if (arg0->unk8 != 0) {
+            arg0->unk8--;
+        } else {
+            if (arg0->unkA++ < 3) {
+                arg0->unk8 = 0x1E;
+            } else {
+                arg0->unk8 = 0xA;
+            }
+            if (arg0->unk3 >= 4) {
+                arg0->unk3 -= 4;
+                BRIEFING_CURSOR_SOUND();
+            }
+        }
+        break;
+    case BRIEFING_PAD_DOWN:
+        if (!((BRIEFING_PAD_HELD ^ BRIEFING_PAD_PRESSED) & BRIEFING_PAD_DOWN)) {
+            break;
+        }
+
+        if (arg0->unk8 != 0) {
+            arg0->unk8--;
+        } else {
+            if (arg0->unkA++ < 3) {
+                arg0->unk8 = 0x1E;
+            } else {
+                arg0->unk8 = 0xA;
+            }
+            if (arg0->unk3 < 4) {
+                arg0->unk3 += 4;
+                BRIEFING_CURSOR_SOUND();
+            }
+        }
+        break;
+    case BRIEFING_PAD_RIGHT:
+        if (!((BRIEFING_PAD_HELD ^ BRIEFING_PAD_PRESSED) & BRIEFING_PAD_RIGHT)) {
+            break;
+        }
+
+        if (arg0->unk8 == 0) {
+            if (arg0->unkA++ < 3) {
+                arg0->unk8 = 0x1E;
+            } else {
+                arg0->unk8 = 0xA;
+            }
+            if ((arg0->unk3 & 3) != 3) {
+                arg0->unk3++;
+                BRIEFING_CURSOR_SOUND();
+            }
+        } else {
+            arg0->unk8--;
+        }
+        break;
+    case BRIEFING_PAD_LEFT:
+        if (!((BRIEFING_PAD_HELD ^ BRIEFING_PAD_PRESSED) & BRIEFING_PAD_LEFT)) {
+            break;
+        }
+
+        if (arg0->unk8 != 0) {
+            arg0->unk8--;
+            break;
+        }
+
+        if (arg0->unkA++ < 3) {
+            arg0->unk8 = 0x1E;
+        } else {
+            arg0->unk8 = 0xA;
+        }
+        if (arg0->unk3 & 3) {
+            arg0->unk3--;
+            BRIEFING_CURSOR_SOUND();
+        }
+        break;
+    default:
+        arg0->unk8 = 0;
+        arg0->unkA = 0;
+        break;
+    }
+
+    D_8013B814 = mission_stage_order[arg0->unk3];
+    if (BRIEFING_PAD_PRESSED & BRIEFING_PAD_CONFIRM) {
+        if (D_800C81BC_demo[(s8)D_8013B814][D_800F59DC_demo] != 0) {
+            BRIEFING_SELECT_SOUND();
+            arg0->stage = D_8013B814;
+            arg0->substage = D_800F59DC_demo;
+            arg0->unk1++;
+        }
+    }
+}
+
+void func_8002ED98(struct EngineObj* arg0)
+{
+    reset_objects();
+    arg0->unk1++;
+}
+#endif
+#ifndef VERSION_DEMO
 // engine_state_3_update_funcs state 1 (load briefing room)
 void func_8002E698(struct EngineObj* arg0)
 {
     s8 var_a0;
     s8 var_a1;
-    struct MiscObj* temp_v0;
+    struct MiscObj* misc;
     struct MiscObj* temp_v0_2;
 
 #ifdef MMX4_SATURN
@@ -199,11 +390,11 @@ void func_8002E698(struct EngineObj* arg0)
     }
 #endif
     func_8002E5E0();
-    temp_v0 = find_free_misc_obj();
-    if (temp_v0 != 0) {
-        temp_v0->active = 0x41;
-        temp_v0->id = 0xA;
-        temp_v0->unk2 = 0;
+    misc = find_free_misc_obj();
+    if (misc != 0) {
+        misc->active = 0x41;
+        misc->id = 0xA;
+        misc->unk2 = 0;
     }
     if (arg0->cur_character == 0) {
         if ((u8)arg0->unk5F < 9) {
@@ -252,8 +443,8 @@ void func_8002E7BC(struct EngineObj* arg0)
         return;
     }
 
-    arg0->unk2 = 0;
     arg0->unk1++;
+    arg0->unk2 = 0;
     misc = find_free_misc_obj();
     if (misc != NULL) {
         misc->active = 0x41;
@@ -314,7 +505,9 @@ void func_8002E994(struct EngineObj* arg0)
             break;
         }
 
-        if (arg0->unk8 == 0) {
+        if (arg0->unk8 != 0) {
+            arg0->unk8--;
+        } else {
             if (arg0->unkA++ < 3) {
                 arg0->unk8 = 0x1E;
             } else {
@@ -334,8 +527,6 @@ void func_8002E994(struct EngineObj* arg0)
                     BRIEFING_CURSOR_SOUND();
                 }
             }
-        } else {
-            arg0->unk8--;
         }
         break;
     case BRIEFING_PAD_DOWN:
@@ -343,7 +534,9 @@ void func_8002E994(struct EngineObj* arg0)
             break;
         }
 
-        if (arg0->unk8 == 0) {
+        if (arg0->unk8 != 0) {
+            arg0->unk8--;
+        } else {
             if (arg0->unkA++ < 3) {
                 arg0->unk8 = 0x1E;
             } else {
@@ -363,8 +556,6 @@ void func_8002E994(struct EngineObj* arg0)
                     BRIEFING_CURSOR_SOUND();
                 }
             }
-        } else {
-            arg0->unk8--;
         }
         break;
     case BRIEFING_PAD_RIGHT:
@@ -444,8 +635,8 @@ void func_8002E994(struct EngineObj* arg0)
             arg0->substage = D_8013B814;
         }
         BRIEFING_SELECT_SOUND();
-        arg0->unk2 = 0;
         arg0->unk1++;
+        arg0->unk2 = 0;
     }
 }
 
@@ -509,8 +700,8 @@ void func_8002EDD4(struct EngineObj* arg0)
         } else {
         block_12:
             if ((arg0->stage > 8) || (arg0->stage == 0) || ((((u8)arg0->palette_flags >> (arg0->stage - 1)) & 1) != 0)) {
+                arg0->state++;
                 arg0->unk1 = 0;
-                arg0->state = (u8)arg0->state + 1;
             } else {
                 arg0->unk1 = 0xB;
             }
@@ -527,7 +718,7 @@ void func_8002EDD4(struct EngineObj* arg0)
 }
 
 // engine_state_3_update_funcs state 8 (play video)
-#ifndef MMX4_PC
+#if !defined(MMX4_PC) && !defined(MMX4_PSX_MOD)
 extern RECT D_800F4768;
 extern RECT D_800F4770;
 #endif
@@ -594,14 +785,14 @@ void func_8002EF14(struct EngineObj* arg0)
 {
     s8 next;
 
-#ifdef MMX4_PC
+#if defined(MMX4_PC) || defined(MMX4_PSX_MOD)
     MoveImage(&mission_route_a_positions, 576, 0);
 #else
     MoveImage(&D_800F4768, 576, 0);
 #endif
     DrawSync(0);
     func_80018000(mission_route_b[arg0->unkE]);
-#ifdef MMX4_PC
+#if defined(MMX4_PC) || defined(MMX4_PSX_MOD)
     MoveImage(&mission_route_b_positions, 320, 176);
 #else
     MoveImage(&D_800F4770, 320, 176);
@@ -1228,3 +1419,4 @@ void (*briefing_room_state_9_update_funcs[])(struct EngineObj*) = {
     func_8002F2A0,
     func_8002F47C,
 };
+#endif

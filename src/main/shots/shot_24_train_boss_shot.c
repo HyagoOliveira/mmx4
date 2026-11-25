@@ -35,13 +35,12 @@ void train_boss_arm_hold(struct ShotObj* arg0);
 void train_boss_arm_retract(struct ShotObj* arg0);
 
 void train_boss_arm_return(struct ShotObj* arg0);
-#ifdef MMX4_SATURN
+#ifdef MMX4_BIG_ENDIAN
 #define ARM_OWNER_X(owner) ((owner)->x_pos.i.lo)
-#define ARM_OWNER_STATE(owner) ((owner)->x_pos.bytes[0])
 #else
 #define ARM_OWNER_X(owner) ((owner)->x_pos.i.hi)
-#define ARM_OWNER_STATE(owner) ((u8)(owner)->x_pos.val)
 #endif
+#define ARM_OWNER_STATE(owner) ((owner)->x_pos.bytes[0])
 #include "weapon_resources.h"
 
 extern u8 train_boss_arm_active_bits[4];
@@ -92,8 +91,7 @@ void func_8009E188(struct ShotObj* self)
     if ((((struct Main45Ext*)self->unk7C)->attack_flags & 7) == 7 || (((struct Main45Ext*)self->unk7C)->attack_flags & 8))
         goto despawn;
     if (self->unk6 == 0) {
-        self->unk84.shot_24.timer = (u16)self->unk84.shot_24.timer - 1;
-        if (self->unk84.shot_24.timer == 0) {
+        if (--self->unk84.shot_24.timer == 0) {
             func_8001540C(2, SATURN_SOUND(0x65, 0x4E), self);
             set_velocity_from_angle(MOVING_OBJECT(self), (u8)angle_to_object(OBJECT_HEADER(self), OBJECT_HEADER(&g_Player)));
             self->x_vel.val = (u32)self->x_vel.val * 3;
@@ -112,7 +110,7 @@ void func_8009E188(struct ShotObj* self)
                 ((struct Main45Ext*)self->unk7C)->projectile_command = 0xFF;
             }
         } else {
-            self->unk84.shot_24.timer = (u16)self->unk84.shot_24.timer - 1;
+            self->unk84.shot_24.timer--;
         }
         move_object(MOVING_OBJECT(self));
         func_8002D9BC(self);
@@ -120,7 +118,12 @@ void func_8009E188(struct ShotObj* self)
             goto despawn;
         if (func_8002DD04(MAIN_OBJECT(self)) < 0) {
             spawn_explosion(BASE_OBJECT(self));
+#ifdef VERSION_DEMO
+            self->on_screen = 0;
+            self->state = 2;
+#else
             goto despawn;
+#endif
         }
     }
     if (func_8002B1E8(BASE_OBJECT(self), 0x20, 0x20))
@@ -152,18 +155,18 @@ void train_boss_arm_init(struct ShotObj* self)
     self->unk5 = 2;
     self->on_screen = 1;
     self->unk58.animation_steps = D_80105FF0;
+    self->unk42 &= 0x7FFF;
     self->unk28 = 0;
     self->unk2C = 0;
     self->x_vel.val = FIXED(1);
     self->y_vel.val = 0;
-    self->unk42 &= 0x7FFF;
     self->x_pos.i.hi += train_boss_arm_offsets[0][self->unk2 * 2];
     y_offset = train_boss_arm_offsets[0][self->unk2 * 2 + 1];
+    self->y_pos.i.hi += y_offset;
     self->unk16 = VISUAL_SATURN_LAYER(5);
     self->unk68 = NULL;
     self->unk54 = train_boss_arm_attack_box;
     self->unk50.data = train_boss_arm_hurt_boxes[0];
-    self->y_pos.i.hi += y_offset;
     set_animation(self, 1);
     self->unk5C = 0x1A;
     self->unk60 = 6;
@@ -225,7 +228,7 @@ void train_boss_arm_advance(struct ShotObj* self)
 
 void train_boss_arm_wait_signal(struct ShotObj* self)
 {
-    if (((*(u8*)&self->unk7C->x_pos.val) == self->unk2) || ((*(u8*)&self->unk7C->x_pos.val) == 4)) {
+    if (ARM_OWNER_STATE(self->unk7C) == self->unk2 || ARM_OWNER_STATE(self->unk7C) == 4) {
         func_8001540C(2, SATURN_SOUND(0x63, 0x4C), self);
         self->unk84.bytes[0] = self->unk7C->unk6;
         self->unk28 = 1;
@@ -237,17 +240,11 @@ void train_boss_arm_wait_signal(struct ShotObj* self)
 
 void train_boss_arm_windup(struct ShotObj* self)
 {
-    s8 timer;
-    u8* owner_state;
-
-    owner_state = (u8*)&self->unk7C->x_pos;
-    if (*owner_state == 4) {
-        *owner_state = 5;
+    if (ARM_OWNER_STATE(self->unk7C) == 4) {
+        ARM_OWNER_STATE(self->unk7C) = 5;
     }
     move_object(MOVING_OBJECT(self));
-    timer = (u8)self->unk7 - 1;
-    self->unk7 = timer;
-    if (timer == 0) {
+    if (--self->unk7 == 0) {
         func_8001540C(2, SATURN_SOUND(0x64, 0x4D), self);
         self->x_vel.val = FIXED(6);
         self->unk7 = 0x2A;
@@ -258,7 +255,6 @@ void train_boss_arm_windup(struct ShotObj* self)
 void train_boss_arm_punch(struct ShotObj* self)
 {
     s8 subtype;
-    s8 timer;
     struct WeaponObj* owner;
 
     move_object(MOVING_OBJECT(self));
@@ -267,9 +263,7 @@ void train_boss_arm_punch(struct ShotObj* self)
     if (self->x_pos.i.hi > (ARM_OWNER_X(owner) + train_boss_arm_reach[subtype])) {
         owner->unk7 = (u8)owner->unk7 | train_boss_arm_extended_bits[subtype];
     }
-    timer = self->unk7 - 1;
-    self->unk7 = timer;
-    if (timer == 0) {
+    if (--self->unk7 == 0) {
         self->unk7 = 0x10;
         self->unk5 = 6;
     }
@@ -296,8 +290,7 @@ void train_boss_arm_retract(struct ShotObj* self)
         weapon->unk7 = (u8)weapon->unk7 & train_boss_arm_extended_clear_masks[shot_variant];
     }
 
-    self->unk7 = (u8)self->unk7 - 1;
-    if (self->unk7 == 0) {
+    if (--self->unk7 == 0) {
         if ((self->unk84.bytes[0] == 3 || self->unk84.bytes[0] == 4)) {
             self->unk7C->x_pos.bytes[0] = 0xFF;
         }
@@ -357,8 +350,8 @@ void func_8009E8E0(struct ShotObj* self)
     self->x_pos.i.hi = ((struct Main45Ext*)self->unk7C)->unk8A + train_boss_arm_offsets[self->unk2][0] - 0x70;
     self->unk5C = 0x1A;
     self->unk42 &= 0x7FFF;
-    self->unk28 = 0;
     self->x_vel.val = FIXED(1);
+    self->unk28 = 0;
     self->unk61 = 1;
     self->unk5 = 9;
 }
@@ -381,7 +374,11 @@ void train_boss_arm_return(struct ShotObj* self)
 
 void train_boss_arm_wait_sync(struct ShotObj* self)
 {
+#ifdef VERSION_DEMO
+    if (((u8)self->unk7C->active & 0xF) == (train_boss_arm_extended_bits[self->unk2] ^ 0xF)) {
+#else
     if ((self->unk7C->active & 7) == ((self->unk7C->active & 0x70) >> 4)) {
+#endif
         self->unk5 = 3;
     }
     if (ARM_OWNER_STATE(self->unk7C) != 4) {
@@ -416,7 +413,7 @@ s16 train_boss_arm_offsets[3][2] = {
 
 s16 train_boss_arm_reach[4] = { -0x53, -0x4F, -0x4E, 0 };
 
-u16 train_boss_arm_debris_positions[6] = {
+s16 train_boss_arm_debris_positions[6] = {
     0x1A8B,
     0x0143,
     0x1A8E,

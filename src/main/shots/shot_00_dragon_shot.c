@@ -89,8 +89,8 @@ void func_800994DC(struct ShotObj* arg0)
         arg0->unk16 = 1;
         arg0->unk60 = 5;
         arg0->unk68 = (struct Unk_unk68*)dragon_shot_box_2;
-        arg0->bg_offset = 0;
         arg0->unk42 &= 0x7FFF;
+        arg0->bg_offset = 0;
         x_offset = owner->unk15 == 0 ? 0x280000 : -0x280000;
         arg0->x_pos.val
             = owner->x_pos.val + (background_objects[0].x_pos.val + x_offset);
@@ -166,8 +166,8 @@ void func_800994DC(struct ShotObj* arg0)
         arg0->unk16 = 1;
         arg0->unk60 = 5;
         arg0->unk68 = (struct Unk_unk68*)dragon_shot_box_2;
-        arg0->bg_offset = 0;
         arg0->unk42 &= 0x7FFF;
+        arg0->bg_offset = 0;
         if (owner->unk15 != 0) {
             arg0->x_pos.val = owner->x_pos.val - 0x280000 + background_objects[0].x_pos.val;
         } else {
@@ -179,10 +179,10 @@ void func_800994DC(struct ShotObj* arg0)
         } else {
             arg0->x_vel.val = owner->unk15 != 0 ? -0x28000 : 0x28000;
         }
+        arg0->unk28 = 0;
         arg0->y_vel.val = 0x18000;
         arg0->unk2C = 0x1000;
         arg0->unk50.data = dragon_shot_bomb_box;
-        arg0->unk28 = 0;
         arg0->state = 3;
         set_animation(arg0, 0xA);
         break;
@@ -251,7 +251,7 @@ void dragon_shot_pulse(struct ShotObj* self)
 
 void dragon_shot_bomb_fall(struct ShotObj* self)
 {
-    struct MiscObj* temp_v0;
+    struct MiscObj* misc;
 
     move_with_gravity(MOVING_OBJECT(self));
     animate_object(ANIMATED_OBJECT(self));
@@ -265,15 +265,15 @@ void dragon_shot_bomb_fall(struct ShotObj* self)
         set_animation(self, 0xB);
 
         if (!(self->unk70 & 3)) {
-            temp_v0 = find_free_misc_obj();
-            if (temp_v0 != 0) {
-                temp_v0->active = 0x41;
-                temp_v0->id = 4;
-                temp_v0->unk2 = 0;
-                temp_v0->state = 0;
-                temp_v0->ext.pointer.unk50 = self->unk7C;
-                temp_v0->x_pos.val = self->x_pos.val + (get_random() & 3);
-                temp_v0->y_pos.val = self->y_pos.val + (get_random() & 3);
+            misc = find_free_misc_obj();
+            if (misc != 0) {
+                misc->active = 0x41;
+                misc->id = 4;
+                misc->unk2 = 0;
+                misc->state = 0;
+                misc->ext.pointer.unk50 = self->unk7C;
+                misc->x_pos.val = self->x_pos.val + (get_random() & 3);
+                misc->y_pos.val = self->y_pos.val + (get_random() & 3);
             }
         }
     }

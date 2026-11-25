@@ -25,7 +25,7 @@ void func_8002509C(struct PlayerObj* arg0);
 #include <string.h>
 #endif
 void func_80016F0C();
-extern u8 D_800F2B5C[21][12];
+extern u8 D_800F2B5C[DEMO_ALT(21, 16)][12];
 extern u8 D_800F2C58[];
 extern u8 D_800F2D18[];
 extern u32 D_800F2F08[12];
@@ -179,6 +179,7 @@ void init_objects(void);
 
 void func_800241E8(void);
 
+#ifndef VERSION_DEMO
 u8 D_800F2C58[] = {
     0x0A,
     0x0B,
@@ -873,9 +874,52 @@ u32 D_800F2F08[12] = {
     0x00FE19FE,
 };
 #endif
+#else
+u8 D_800F2C58[] = { 0x01, 0x02, 0x93, 0x03, 0x01, 0x02, 0x94, 0x03, 0x01, 0x02, 0x95, 0x03, 0x01, 0x02, 0x96, 0x03 };
+
+u8 x_ready_text_flags[] = { 1, 0, 0, 0 };
+static u8 x_ready_text_flags_4[] = { 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0 };
+static u8 x_ready_text_flags_16[] = { 0, 1, 0, 1, 1, 0, 0, 0 };
+static u8 x_ready_text_flags_24[] = { 1, 0, 1, 1, 0, 1, 0, 0 };
+
+static u8* x_ready_text[] = {
+    x_ready_text_flags,
+    x_ready_text_flags_4,
+    x_ready_text_flags_16,
+    x_ready_text_flags_24,
+};
+
+u8 D_800F2D18[] = { 0x01, 0x02, 0x95, 0x03, 0x01, 0x02, 0x96, 0x03 };
+
+static u8 zero_ready_text_flags[] = { 0, 1, 0, 1, 1, 0, 0, 0 };
+static u8 zero_ready_text_flags_1[] = { 1, 0, 1, 1, 0, 1, 0, 0 };
+
+static u8* zero_ready_text[] = { zero_ready_text_flags, zero_ready_text_flags_1 };
+
+const u8* D_800F2DD0[] = { D_800F2C58, D_800F2D18 };
+
+u8* const* D_800F2DD8[] = { x_ready_text, zero_ready_text };
+
+static union AnimationStep anim_91_0[] = { { 1, 0, 1, 0x00 }, { 1, 1, -1, 0x01 } };
+
+static union AnimationStep anim_91_1[] = { { 1, 0, 1, 0x02 }, { 1, 1, -1, 0x03 } };
+
+static const union AnimationStep* animation_91[] = { anim_91_0, anim_91_1 };
+
+const union AnimationStep* const* D_800F2EE8[] = {
+    animation_91,
+    animation_91,
+    animation_91,
+    animation_91,
+    animation_91,
+    animation_91,
+    animation_91,
+};
+#endif
 
 u32 D_800F2F38[2] = { 0x00010001, 0 };
 
+#ifndef VERSION_DEMO
 u16 D_800F2F40[16] = {
     0x0000,
     0xEDE1,
@@ -894,6 +938,7 @@ u16 D_800F2F40[16] = {
     0xC2BB,
     0x8E40,
 };
+#endif
 
 union AnimationStep D_800F2F60[] = {
     { 4, 0, 1, 0x28 },
@@ -965,7 +1010,248 @@ void func_80024260(void)
 #endif
 
 #ifndef MMX4_SATURN
+#if defined(VERSION_EU) || defined(MMX4_PC)
 INCLUDE_ASM("main/nonmatchings/14A60", func_80024334);
+#else
+#ifdef MMX4_GAMECUBE
+void gc_set_primitive_enabled(unsigned long* tag, unsigned char enabled);
+void gc_set_primitive_next(unsigned long* tag, unsigned long next);
+#undef setlen
+#define setlen(p, _len) gc_set_primitive_enabled((unsigned long*)(p), (_len))
+#undef setaddr
+#define setaddr(p, _addr) gc_set_primitive_next((unsigned long*)(p), (unsigned long)(_addr))
+#endif
+#ifdef MMX4_PS2
+#undef setlen
+#define setlen(p, _len) (*(u32*)(p) |= 1)
+#endif
+#ifdef MMX4_PS2
+#undef setaddr
+#define setaddr(p, _addr) \
+    (*(u32*)(p) = (*(u32*)(p) != -1) ? ((*(u32*)(p)&1) | (u32)(_addr)) : (u32)(_addr))
+#endif
+#if defined(MMX4_GAMECUBE) || defined(MMX4_PS2)
+#undef BG_DRAW_TPAGE
+#define BG_DRAW_TPAGE(p, tpage) SetDrawTPage((DR_TPAGE*)(p), 0, 0, (u16)(tpage))
+#endif
+#ifdef MMX4_PS2
+#define TEXTURE_PAGE(x) ((x) >> 8)
+#else
+#define TEXTURE_PAGE(x) ((u16)(x) >> 8)
+#endif
+void func_80024334(struct VisualObj* arg0)
+{
+    u8* frame_data;
+    POLY_FT4* primitive;
+    DR_TPAGE* draw_mode;
+    u8 flipped;
+#ifdef MMX4_PS2
+    s32 texture;
+#else
+    u16 texture;
+#endif
+    u16 clut;
+    s16 origin_x;
+    s16 origin_y;
+    u32 frame_count;
+    u16* frame_header;
+
+#ifndef VERSION_DEMO
+    if (SP_SPRITE_COUNT >= 1000)
+        return;
+#endif
+
+    if (arg0->bg_offset < 0) {
+        origin_x = arg0->x_pos.i.hi;
+        origin_y = arg0->y_pos.i.hi;
+    } else {
+        origin_x = arg0->x_pos.i.hi - background_objects[arg0->bg_offset].x_pos.i.hi;
+        origin_y = arg0->y_pos.i.hi - background_objects[arg0->bg_offset].y_pos.i.hi;
+    }
+
+    frame_header = (u16*)((u8*)arg0->unk3C + arg0->animation_step.fields.frame_index * 4);
+    frame_count = frame_header[0];
+    frame_data = (u8*)arg0->unk3C + frame_header[1] * 4;
+    flipped = arg0->unk15;
+    texture = arg0->unk40;
+    clut = arg0->unk42;
+    primitive = SP_PRIM_CURSOR;
+    draw_mode = SP_DRAW_MODE_CURSOR;
+
+    for (; frame_count > 0; primitive++, draw_mode++, frame_data += 4, frame_count--) {
+        u8 u0;
+        u8 flags;
+        s8 active;
+        s16 x0;
+        s16 x1;
+        s16 y0;
+        s16 y1;
+#if defined(MMX4_WIN32) || defined(MMX4_GAMECUBE) || defined(MMX4_COLLECTION)
+        u16 texture_index;
+#else
+        u32 texture_index;
+        u32 scratch;
+#endif
+        u16 primitive_clut;
+        u8 u1;
+        u8 v0;
+        u8 v1;
+
+#ifndef VERSION_DEMO
+        if (SP_SPRITE_COUNT >= 1000)
+            return;
+        SP_SPRITE_COUNT++;
+#endif
+
+        flags = frame_data[0];
+        x0 = (s8)frame_data[2];
+        if (flipped == 0) {
+            x1 = x0 + 16;
+        } else {
+            x1 = -x0;
+            x0 = -(x0 + 16);
+        }
+        active = arg0->active;
+        x0 += origin_x;
+        x1 += origin_x;
+        y0 = origin_y + (s8)frame_data[3];
+        y1 = y0 + 16;
+        texture_index = texture + (u16)(frame_data[1] | ((flags & 3) << 8));
+        if (active & 0x40) {
+#if defined(MMX4_WIN32) || defined(MMX4_GAMECUBE) || defined(MMX4_COLLECTION)
+            texture_index = (texture_index & 0xFFFF) % 176 + ((u16)texture_index / 176 << 8) + 0x600;
+#else
+            scratch = texture_index & 0xFFFF;
+            texture_index = ((u16)(scratch / 176) << 8) + scratch % 176 + 0x600;
+#endif
+        }
+        if (active & 0x20) {
+#if defined(MMX4_WIN32) || defined(MMX4_GAMECUBE) || defined(MMX4_COLLECTION)
+            texture_index = (texture_index & 0xFFFF) % 80 + ((u16)texture_index / 80 << 8) + 0x5B0;
+#else
+            scratch = texture_index;
+            texture_index = ((u16)((scratch & 0xFFFF) / 80) << 8) + (scratch & 0xFFFF) % 80 + 0x5B0;
+#endif
+        }
+        if (clut & 0x8000) {
+            primitive_clut = 0x7840;
+        } else {
+            u16 base = clut + ((flags & 0xC) >> 2);
+
+            primitive_clut = base;
+            if (base & 0x30) {
+                primitive_clut += 0x30;
+            }
+        }
+
+        if (!(flags & 0x80)) {
+            v0 = texture_index & 0xF0;
+            if (((flags & 0x40) ^ flipped) == 0) {
+                SPRT_16* sprite = (SPRT_16*)primitive;
+
+                setSprt16(sprite);
+                setShadeTex(sprite, 1);
+                setSemiTrans(sprite, arg0->active & 0x10);
+                sprite->clut = primitive_clut;
+                sprite->x0 = x0;
+                sprite->y0 = y0;
+                u1 = texture_index * 16;
+#ifdef MMX4_GAMECUBE
+                if (flags & 0x10) {
+                    setUV0(sprite, u1 + 8, v0);
+                } else {
+                    setUV0(sprite, u1, v0);
+                }
+#else
+                sprite->u0 = u1;
+                sprite->v0 = v0;
+#endif
+                BG_DRAW_TPAGE(draw_mode, TEXTURE_PAGE(texture_index) | 0x20);
+                setaddr(draw_mode, sprite);
+                setaddr(sprite, draw_mode + 1);
+                continue;
+            }
+            setPolyFT4(primitive);
+            setShadeTex(primitive, 1);
+            setSemiTrans(primitive, arg0->active & 0x10);
+            primitive->tpage = TEXTURE_PAGE(texture_index) | 0x20;
+            primitive->clut = primitive_clut;
+            u0 = (u8)(texture_index * 16) - 1;
+            u1 = u0 + 16;
+            if (u0 == 0xFF) {
+                u0++;
+#ifndef MMX4_PS2
+                x1--;
+#endif
+            }
+            v1 = v0 + 16;
+            if (v1 == 0) {
+                v1--;
+#ifndef MMX4_PS2
+                y1--;
+#endif
+            }
+            setXY4(primitive, x0, y0, x1, y0, x0, y1, x1, y1);
+            setUV4(primitive, u1, v0, u0, v0, u1, v1, u0, v1);
+            BG_DRAW_TPAGE(draw_mode, 0x20);
+            setaddr(draw_mode, primitive);
+            setaddr(primitive, draw_mode + 1);
+        } else {
+            u16 tile;
+
+            setPolyFT4(primitive);
+            setShadeTex(primitive, 1);
+            setSemiTrans(primitive, arg0->active & 0x10);
+            primitive->tpage = TEXTURE_PAGE(texture_index) | 0x20;
+            primitive->clut = primitive_clut;
+            tile = texture_index;
+            v1 = (u8)(tile & 0xF0) - 1;
+            v0 = v1 + 16;
+            if (v1 == 0xFF) {
+                v1++;
+#ifndef MMX4_PS2
+                y1--;
+#endif
+            }
+            if (((flags & 0x40) ^ flipped) == 0) {
+                u1 = tile << 4;
+                u0 = u1 + 16;
+                if (u0 == 0) {
+                    u0--;
+#ifndef MMX4_PS2
+                    x1--;
+#endif
+                }
+            } else {
+                u0 = (u8)(tile << 4) - 1;
+                u1 = u0 + 16;
+                if (u0 == 0xFF) {
+                    u0++;
+#ifndef MMX4_PS2
+                    x1--;
+#endif
+                }
+            }
+            setXY4(primitive, x0, y0, x1, y0, x0, y1, x1, y1);
+            setUV4(primitive, u1, v0, u0, v0, u1, v1, u0, v1);
+            BG_DRAW_TPAGE(draw_mode, 0x20);
+            setaddr(draw_mode, primitive);
+            setaddr(primitive, draw_mode + 1);
+        }
+    }
+
+    {
+        u8 ordering = arg0->unk16;
+        s8 layer = ordering >> 4;
+        s8 slot = ordering & 0xF;
+
+        setaddr(D_8013BC40[SP_DRAW_BUFFER][layer][slot], SP_DRAW_MODE_CURSOR);
+        D_8013BC40[SP_DRAW_BUFFER][layer][slot] = (P_TAG*)(primitive - 1);
+        SP_PRIM_CURSOR = primitive;
+        SP_DRAW_MODE_CURSOR = draw_mode;
+    }
+}
+#endif
 #endif
 
 #ifndef MMX4_SATURN
@@ -981,17 +1267,19 @@ void func_80024920(struct QuadObj* quad)
     u8 ordering;
     u32 buffer;
 
+#ifndef VERSION_DEMO
     if (SP_SPRITE_COUNT >= 1000) {
         return;
     }
     SP_SPRITE_COUNT++;
+#endif
 
     if (quad->bg_offset < 0) {
-        x = quad->x_pos.u.hi;
-        y = quad->y_pos.u.hi;
+        x = quad->x_pos.i.hi;
+        y = quad->y_pos.i.hi;
     } else {
-        x = quad->x_pos.u.hi - background_objects[quad->bg_offset].x_pos.u.hi;
-        y = quad->y_pos.u.hi - background_objects[quad->bg_offset].y_pos.u.hi;
+        x = quad->x_pos.i.hi - background_objects[quad->bg_offset].x_pos.i.hi;
+        y = quad->y_pos.i.hi - background_objects[quad->bg_offset].y_pos.i.hi;
     }
 
     draw_mode = SP_DRAW_MODE_CURSOR;
@@ -1000,14 +1288,14 @@ void func_80024920(struct QuadObj* quad)
     setPolyF4(primitive);
     setSemiTrans(primitive, quad->active & 0x10);
 
-    primitive->x0 = x + quad->vertices[0].x.u.hi;
-    primitive->y0 = y + quad->vertices[0].y.u.hi;
-    primitive->x1 = x + quad->vertices[1].x.u.hi;
-    primitive->y1 = y + quad->vertices[1].y.u.hi;
-    primitive->x2 = x + quad->vertices[3].x.u.hi;
-    primitive->y2 = y + quad->vertices[3].y.u.hi;
-    primitive->x3 = x + quad->vertices[2].x.u.hi;
-    primitive->y3 = y + quad->vertices[2].y.u.hi;
+    primitive->x0 = x + quad->vertices[0].x.i.hi;
+    primitive->y0 = y + quad->vertices[0].y.i.hi;
+    primitive->x1 = x + quad->vertices[1].x.i.hi;
+    primitive->y1 = y + quad->vertices[1].y.i.hi;
+    primitive->x2 = x + quad->vertices[3].x.i.hi;
+    primitive->y2 = y + quad->vertices[3].y.i.hi;
+    primitive->x3 = x + quad->vertices[2].x.i.hi;
+    primitive->y3 = y + quad->vertices[2].y.i.hi;
 
     red = (u8)quad->unk34 & 0x1F;
     primitive->r0 = (red * 8) + (red >> 2);
@@ -1033,25 +1321,27 @@ void func_80024920(struct QuadObj* quad)
 #ifndef MMX4_SATURN
 void func_80024B9C(struct QuadObj* quad)
 {
-    POLY_G4* primitive;
-    DR_TPAGE* draw_mode;
-    u8* color;
-    u16 x;
-    u16 y;
-    u8 ordering;
     u32 buffer;
+    u8 ordering;
+    u16 y;
+    u16 x;
+    u8* color;
+    DR_TPAGE* draw_mode;
+    POLY_G4* primitive;
 
+#ifndef VERSION_DEMO
     if (SP_SPRITE_COUNT >= 1000) {
         return;
     }
     SP_SPRITE_COUNT++;
+#endif
 
     if (quad->bg_offset < 0) {
-        x = quad->x_pos.u.hi;
-        y = quad->y_pos.u.hi;
+        x = quad->x_pos.i.hi;
+        y = quad->y_pos.i.hi;
     } else {
-        x = quad->x_pos.u.hi - background_objects[quad->bg_offset].x_pos.u.hi;
-        y = quad->y_pos.u.hi - background_objects[quad->bg_offset].y_pos.u.hi;
+        x = quad->x_pos.i.hi - background_objects[quad->bg_offset].x_pos.i.hi;
+        y = quad->y_pos.i.hi - background_objects[quad->bg_offset].y_pos.i.hi;
     }
 
     draw_mode = SP_DRAW_MODE_CURSOR;
@@ -1060,14 +1350,14 @@ void func_80024B9C(struct QuadObj* quad)
     setPolyG4(primitive);
     setSemiTrans(primitive, quad->active & 0x10);
 
-    primitive->x0 = x + quad->vertices[0].x.u.hi;
-    primitive->y0 = y + quad->vertices[0].y.u.hi;
-    primitive->x1 = x + quad->vertices[1].x.u.hi;
-    primitive->y1 = y + quad->vertices[1].y.u.hi;
-    primitive->x2 = x + quad->vertices[3].x.u.hi;
-    primitive->y2 = y + quad->vertices[3].y.u.hi;
-    primitive->x3 = x + quad->vertices[2].x.u.hi;
-    primitive->y3 = y + quad->vertices[2].y.u.hi;
+    primitive->x0 = x + quad->vertices[0].x.i.hi;
+    primitive->y0 = y + quad->vertices[0].y.i.hi;
+    primitive->x1 = x + quad->vertices[1].x.i.hi;
+    primitive->y1 = y + quad->vertices[1].y.i.hi;
+    primitive->x2 = x + quad->vertices[3].x.i.hi;
+    primitive->y2 = y + quad->vertices[3].y.i.hi;
+    primitive->x3 = x + quad->vertices[2].x.i.hi;
+    primitive->y3 = y + quad->vertices[2].y.i.hi;
 
     color = D_800F2B5C[quad->unk34];
     primitive->r0 = *color++;
@@ -1098,6 +1388,40 @@ void func_80024B9C(struct QuadObj* quad)
 #endif
 
 #ifndef MMX4_SATURN
+#ifdef VERSION_DEMO
+void func_80024E70(void)
+{
+    struct PlayerObj* player = &g_Player;
+    struct EngineObj* ptr = &engine_obj;
+    s8 divisor;
+    s8 energy;
+    s8 temp;
+
+    if (engine_obj.unk1F != 0) {
+        func_800253F0(MAIN_OBJECT(player), 0);
+        func_80025188(1, engine_obj.player_lives + 0x3B);
+        func_80025188(0, (engine_obj.max_hp - 0x20) / 2 + 0x45);
+    }
+    if (player->weapon != 0) {
+        energy = player->weapon_energy[player->weapon];
+        func_80025588(0x24, 0x29, 0x4F - energy, 0x4F, 0);
+        divisor = player_weapon_energy.hud.health_divisors[player->shot_types[0]];
+        temp = energy / divisor;
+        func_80025188(3, (temp / 10) + 0x3B);
+        func_80025188(4, (temp % 10) + 0x3B);
+        if (player->weapon == 3) {
+            func_80025188(6, player->weapon + 0x4E);
+        } else {
+            func_80025188(5, player->weapon + 0x4E);
+        }
+        func_80025188(2, 0x4E);
+    }
+    if (ptr->enable_boss) {
+        func_800253F0(ptr->boss_ptr, 1);
+        func_80025188(7, ptr->unk25 + 0x57);
+    }
+}
+#else
 void func_80024E70(void)
 {
     struct PlayerObj* player = &g_Player;
@@ -1119,7 +1443,9 @@ void func_80024E70(void)
     }
 }
 #endif
+#endif
 #ifndef MMX4_SATURN
+#ifndef VERSION_DEMO
 void func_80024F5C(struct PlayerObj* arg0)
 {
     s8 temp_v0_2;
@@ -1144,7 +1470,9 @@ void func_80024F5C(struct PlayerObj* arg0)
     }
 }
 #endif
+#endif
 #ifndef MMX4_SATURN
+#ifndef VERSION_DEMO
 void func_8002509C(struct PlayerObj* arg0)
 {
     s8 temp_s0;
@@ -1159,6 +1487,7 @@ void func_8002509C(struct PlayerObj* arg0)
         func_80025188(2, 0x4E);
     }
 }
+#endif
 #endif
 
 #ifndef MMX4_SATURN
@@ -1278,7 +1607,7 @@ void func_80025588(s16 arg0, s16 arg1, s16 arg2, s16 arg3, s32 arg4)
 
     if ((g_FilterAmountR | g_FilterAmountG | g_FilterAmountB) != 0) {
         if ((engine_obj.stage != 0x2 || engine_obj.substage != 0) && g_FilterAmountR == ((u16)g_FilterAmountG >> 5) && g_FilterAmountR == ((u16)g_FilterAmountB >> 10)) {
-            if (*(u8*)&g_FilterModeR != 0) {
+            if ((u8)g_FilterModeR != 0) {
                 var_r = g_FilterAmountR <= (color & 0x1F) ? (color & 0x1F) - g_FilterAmountR : 0;
             } else {
                 temp_v1 = (color & 0x1F) + g_FilterAmountR;
@@ -1288,7 +1617,7 @@ void func_80025588(s16 arg0, s16 arg1, s16 arg2, s16 arg3, s32 arg4)
                 }
             }
 
-            if (*(u8*)&g_FilterModeG != 0) {
+            if ((u8)g_FilterModeG != 0) {
                 var_g = (u16)g_FilterAmountG <= (color & 0x3E0) ? (color & 0x3E0) - (u16)g_FilterAmountG : 0;
             } else {
                 temp_v1 = (color & 0x3E0) + (u16)g_FilterAmountG;
@@ -1298,7 +1627,7 @@ void func_80025588(s16 arg0, s16 arg1, s16 arg2, s16 arg3, s32 arg4)
                 }
             }
 
-            if (*(u8*)&g_FilterModeB != 0) {
+            if ((u8)g_FilterModeB != 0) {
                 var_b = (u16)g_FilterAmountB <= (color & 0x7C00) ? (color & 0x7C00) - (u16)g_FilterAmountB : 0;
             } else {
                 temp_v1 = (color & 0x7C00) + (u16)g_FilterAmountB;
@@ -1324,6 +1653,8 @@ void func_80025588(s16 arg0, s16 arg1, s16 arg2, s16 arg3, s32 arg4)
 }
 #endif
 #ifndef MMX4_SATURN
+void func_8002588C();
+
 void func_800257BC(struct PlayerObj* arg0)
 {
     struct PlayerObj* target = arg0;
@@ -1369,11 +1700,11 @@ void func_8002588C(arg0, part, clut)
     s32 frame_count;
 
     if (arg0->bg_offset < 0) {
-        origin_x = arg0->x_pos.u.hi;
-        origin_y = arg0->y_pos.u.hi;
+        origin_x = arg0->x_pos.i.hi;
+        origin_y = arg0->y_pos.i.hi;
     } else {
-        origin_x = arg0->x_pos.u.hi - background_objects[arg0->bg_offset].x_pos.u.hi;
-        origin_y = arg0->y_pos.u.hi - background_objects[arg0->bg_offset].y_pos.u.hi;
+        origin_x = arg0->x_pos.i.hi - background_objects[arg0->bg_offset].x_pos.i.hi;
+        origin_y = arg0->y_pos.i.hi - background_objects[arg0->bg_offset].y_pos.i.hi;
     }
 
     primitive = SP_PRIM_CURSOR;
@@ -1471,6 +1802,7 @@ void func_8002588C(arg0, part, clut)
 #endif
 #endif
 #ifndef MMX4_SATURN
+#ifndef VERSION_DEMO
 void func_80025CDC(void)
 {
     struct UnkObj* var_s0;
@@ -1486,4 +1818,5 @@ void func_80025CDC(void)
     }
     func_80024260();
 }
+#endif
 #endif

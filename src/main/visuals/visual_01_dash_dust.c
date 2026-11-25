@@ -14,7 +14,7 @@ void dash_dust_attach(struct VisualObj* arg0, struct PlayerObj* arg1);
 
 void dash_dust_update(struct VisualObj* arg0)
 {
-    s32 var_a0;
+    u32 var_a0;
     struct PlayerObj* entity;
 
     entity = g_Player.controlling_clone == 0 ? &g_Player : &g_Entity;
@@ -29,14 +29,14 @@ void dash_dust_update(struct VisualObj* arg0)
 
         dash_dust_attach(arg0, entity);
         set_animation(arg0, 2);
-        arg0->state = (u8)arg0->state + 1;
+        arg0->state++;
     } else {
         animate_object(arg0);
         dash_dust_attach(arg0, entity);
         var_a0 = 0;
         if (entity->dash_momentum > 0) {
             if (entity->unk17 != 0x10) {
-                var_a0 = entity->unk17 != 0x80;
+                var_a0 = entity->unk17 != DEMO_ALT(0x80, 0x78);
             }
         } else if (entity->unk17 != 0x12) {
             var_a0 = 1;

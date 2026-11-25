@@ -84,10 +84,10 @@ void func_80044508(struct MainObj* self);
 
 void func_80044458(struct MainObj* self)
 {
+    self->state++;
     self->unk5 = 1;
     self->unk7C = 0xB4;
     self->unk2 = 0;
-    self->state++;
     self->bg_offset = g_Player.bg_offset;
     self->unk18.val = self->x_pos.val;
     self->unk1C.val = self->y_pos.val;
@@ -97,13 +97,13 @@ void func_80044458(struct MainObj* self)
     self->gravity = 0;
     self->unk15 = self->x_pos.val - g_Player.x_pos.val <= 0 ? PLAYER_FACING_RIGHT : 0;
     self->animation_table = (const u8* const*)drill_copter_animations;
-    self->unk16 = VISUAL_SATURN_LAYER(6);
     self->collision_data = (const u16*)D_801064F0;
-    self->hp = 6;
+    self->unk16 = VISUAL_SATURN_LAYER(6);
     self->terrain_box = NULL;
     self->hurt_box = &D_800F9EC0;
     self->attack_box = &D_800F9EC0;
     self->air_state = 0;
+    self->hp = 6;
     self->contact_damage = 2;
 }
 
@@ -119,15 +119,15 @@ void func_80044508(struct MainObj* self)
     hit = func_8002DD04(self);
     if (hit < 0) {
         spawn_explosion(BASE_OBJECT(self));
-        spawn_debris(D_800FA0B4[(s8)self->unk2], D_800FA0A8[(s8)self->unk2], self);
+        spawn_debris(D_800FA0B4[self->unk2], D_800FA0A8[self->unk2], self);
         if (self->unk2 != 2)
             drop_item(BASE_OBJECT(self), 8);
-        self->state = 2;
+        self->state = DEMO_ALT(2, self->state + 1);
         return;
     }
     if (self->unk2 == 0)
         func_80044DE4(self);
-    drill_copter_step_funcs[(s8)self->unk5](self);
+    drill_copter_step_funcs[self->unk5](self);
     if (func_8002B1E8(BASE_OBJECT(self), 0x40, 0x40) == 0) {
 #ifdef MMX4_WIN32
         update_on_screen(BASE_OBJECT(self), 0x20, 0x20);
@@ -136,7 +136,7 @@ void func_80044508(struct MainObj* self)
 #endif
         return;
     }
-    self->state = 2;
+    self->state = DEMO_ALT(2, self->state + 1);
 }
 
 void drill_copter_despawn(struct MainObj* self)
@@ -218,8 +218,8 @@ void drill_copter_sway_move(struct MainObj* self)
         distance = g_Player.x_pos.val - object_x;
     }
     if (distance > FIXED(64)) {
-        self->unk15 = ((self->unk15 & PLAYER_FACING_RIGHT) == 0) << PLAYER_FACING_SHIFT;
-        self->x_speed = -self->x_speed;
+        self->unk15 = (self->unk15 & PLAYER_FACING_RIGHT) ? 0 : PLAYER_FACING_RIGHT;
+        self->x_speed *= -1;
         object_x_2 = self->x_pos.val;
         distance = object_x_2 - g_Player.x_pos.val;
         if (distance <= -1) {
@@ -254,7 +254,8 @@ void drill_copter_drop_start(struct MainObj* self)
 void drill_copter_drop_wait(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
-    if (--self->unk7C == 0) {
+    self->unk7C--;
+    if (self->unk7C == 0) {
         self->unk6++;
         self->x_speed = 0;
         self->x_accel = 0;
@@ -303,15 +304,16 @@ void drill_copter_rise(struct MainObj* self)
 
 void drill_copter_rise_start(struct MainObj* self)
 {
-    self->unk7C = 0x3C;
     self->unk6++;
+    self->unk7C = 0x3C;
     set_animation(self, 8);
 }
 
 void drill_copter_rise_wait(struct MainObj* self)
 {
     animate_object(ANIMATED_OBJECT(self));
-    if (--self->unk7C == 0) {
+    self->unk7C--;
+    if (self->unk7C == 0) {
         self->unk6++;
         self->x_speed = 0;
         self->x_accel = 0;
@@ -333,22 +335,22 @@ void drill_copter_fire(struct MainObj* self)
 
 void drill_copter_fire_start(struct MainObj* self)
 {
-    self->unk7C = 0x28;
     self->unk6++;
+    self->unk7C = 0x28;
 }
 
 void drill_copter_fire_wait(struct MainObj* self)
 {
-    if (--self->unk7C == 0) {
+    self->unk7C--;
+    if (self->unk7C == 0) {
         set_animation(self, 7);
-        self->unk7E = 3;
         self->unk6++;
+        self->unk7E = 3;
     }
 }
 
 void drill_copter_fire_shots(struct MainObj* self)
 {
-    const u8* sprite_frames;
     u8 i;
     struct ShotObj* shot;
 
@@ -356,37 +358,35 @@ void drill_copter_fire_shots(struct MainObj* self)
     if (self->animation_step.fields.event != 0) {
         func_8001540C(2, SATURN_SOUND(0xA, 0x0F), self);
         self->animation_step.fields.event = 0;
-        i = 0;
-        do {
+        for (i = 0; i < 2; i++) {
             shot = find_free_shot_obj();
             if (shot != NULL) {
                 shot->active = 0x41;
                 shot->id = 1;
                 shot->unk40 = self->unk40;
                 shot->unk42 = self->unk42;
-                sprite_frames = self->sprite_frames;
-                shot->unk3C = (void*)sprite_frames;
+                shot->unk3C = (void*)self->sprite_frames;
                 shot->unk2 = i;
                 shot->bg_offset = self->bg_offset;
                 shot->x_pos.val = self->x_pos.val;
                 shot->y_pos.val = self->y_pos.val;
             }
-            i++;
-        } while (i < 2);
+        }
     }
     if (self->animation_step.fields.relative_step == 0) {
         if (--self->unk7E != 0) {
             set_animation(self, 7);
             return;
         }
-        self->unk7C = 0x5A;
         self->unk6++;
+        self->unk7C = 0x5A;
     }
 }
 
 void drill_copter_fire_reload(struct MainObj* self)
 {
-    if (--self->unk7C == 0) {
+    self->unk7C--;
+    if (self->unk7C == 0) {
         set_animation(self, 7);
         self->unk6 = 2;
         self->unk7E = 3;
@@ -398,8 +398,7 @@ void func_80044DE4(struct MainObj* self)
 {
     struct MainObj* child;
 
-    self->unk7C = (u16)self->unk7C - 1;
-    if (self->unk7C != 0)
+    if (--self->unk7C != 0)
         return;
     child = find_free_main_obj();
     if (child == NULL)
